@@ -1,0 +1,16 @@
+# Secrets -- never share
+.env
+
+# Uploaded files -- too large for GitHub
+uploads/
+
+# Node modules -- auto-installed
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
