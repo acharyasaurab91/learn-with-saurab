@@ -2206,7 +2206,6 @@ app.get(’/admin’, requireAdmin, async (req, res) => {
 try {
 const user = await User.findById(req.session.userId);
 
-```
 const [
   totalUsers,
   totalCourses,
