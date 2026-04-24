@@ -161,6 +161,27 @@ const transactionSchema = new mongoose.Schema({
   status:        { type: String, enum: ['pending','completed','failed'], default: 'pending' }
 }, { timestamps: true });
 
+
+
+
+
+// 6b. Module Schema (individual videos inside a course)
+const moduleSchema = new mongoose.Schema({
+  course:          { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
+  title:           { type: String, required: true },
+  description:     { type: String, default: '' },
+  type:            { type: String, default: 'video' },
+  videoPath:       { type: String, default: '' },
+  videoFilename:   { type: String, default: '' },
+  isFreePreview:   { type: Boolean, default: false },
+  duration:        { type: Number, default: 0 },
+  order:           { type: Number, default: 1 }
+}, { timestamps: true });
+
+
+
+
+
 // Register all models
 const User        = mongoose.model('User', userSchema);
 const Category    = mongoose.model('Category', categorySchema);
@@ -168,6 +189,7 @@ const Course      = mongoose.model('Course', courseSchema);
 const Test        = mongoose.model('Test', testSchema);
 const TestAttempt = mongoose.model('TestAttempt', testAttemptSchema);
 const Transaction = mongoose.model('Transaction', transactionSchema);
+const Module      = mongoose.model('Module', moduleSchema);
 
 
 
@@ -2166,6 +2188,2625 @@ app.get('/dashboard', requireAuth, async (req, res) => {
     res.status(500).send('Something went wrong.');
   }
 });
+
+
+
+
+// ============================================
+// ADMIN PANEL ROUTES
+// Paste this block ABOVE the app.listen() line
+// requireAdmin is already defined above — do NOT paste it again
+// ============================================
+
+// ─── MULTER FOR ADMIN UPLOADS ─────────────────────────────────────────────
+// imageUpload and videoUpload already defined above — we reuse them directly
+
+// ─── GET /admin — Dashboard ───────────────────────────────────────────────
+app.get(’/admin’, requireAdmin, async (req, res) => {
+try {
+const user = await User.findById(req.session.userId);
+
+```
+const [
+  totalUsers,
+  totalCourses,
+  totalCategories,
+  publishedCourses,
+  totalModules
+] = await Promise.all([
+  User.countDocuments(),
+  Course.countDocuments(),
+  Category.countDocuments(),
+  Course.countDocuments({ isPublished: true }),
+  Module.countDocuments()
+]);
+
+const enrollmentData = await User.aggregate([
+  { $project: { count: { $size: '$enrolledCourses' } } },
+  { $group: { _id: null, total: { $sum: '$count' } } }
+]);
+const totalEnrollments = enrollmentData[0]?.total || 0;
+
+const recentUsers = await User.find()
+  .sort({ createdAt: -1 })
+  .limit(5)
+  .select('firstName lastName email createdAt');
+
+const recentCourses = await Course.find()
+  .sort({ createdAt: -1 })
+  .limit(5);
+
+res.send(renderAdminDashboard({
+  totalUsers, totalCourses, totalCategories,
+  totalEnrollments, publishedCourses, totalModules,
+  recentUsers, recentCourses,
+  admin: { name: user.firstName + ' ' + user.lastName }
+}));
+```
+
+} catch (err) {
+console.error(‘Admin dashboard error:’, err);
+res.status(500).send(‘Error loading admin dashboard’);
+}
+});
+
+// ─── GET /admin/categories — List ─────────────────────────────────────────
+app.get(’/admin/categories’, requireAdmin, async (req, res) => {
+try {
+const user = await User.findById(req.session.userId);
+const categories = await Category.find().sort({ order: 1 });
+res.send(renderAdminCategories({
+categories,
+admin: { name: user.firstName },
+success: req.query.success,
+error: req.query.error
+}));
+} catch (err) {
+console.error(‘Admin categories error:’, err);
+res.status(500).send(‘Error loading categories’);
+}
+});
+
+// POST /admin/categories — Create
+app.post(’/admin/categories’, requireAdmin, async (req, res) => {
+try {
+const { name, description, icon, color, order } = req.body;
+if (!name) return res.redirect(’/admin/categories?error=Name+is+required’);
+
+```
+const existing = await Category.findOne({ name: name.trim() });
+if (existing) return res.redirect('/admin/categories?error=Category+already+exists');
+
+// Generate slug from name
+const slug = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+const maxOrder = await Category.findOne().sort({ order: -1 }).select('order');
+await Category.create({
+  name: name.trim(),
+  slug,
+  description: description?.trim() || '',
+  icon: icon || '📚',
+  color: color || '#0D9488',
+  order: order ? parseInt(order) : (maxOrder?.order || 0) + 1,
+  isVisible: true
+});
+
+res.redirect('/admin/categories?success=Category+created+successfully');
+```
+
+} catch (err) {
+console.error(‘Create category error:’, err);
+res.redirect(’/admin/categories?error=Failed+to+create+category’);
+}
+});
+
+// POST /admin/categories/:id/edit — Update
+app.post(’/admin/categories/:id/edit’, requireAdmin, async (req, res) => {
+try {
+const { name, description, icon, color, order, isActive } = req.body;
+const slug = name.trim().toLowerCase().replace(/\s+/g, ‘-’).replace(/[^a-z0-9-]/g, ‘’);
+await Category.findByIdAndUpdate(req.params.id, {
+name: name.trim(),
+slug,
+description: description?.trim() || ‘’,
+icon: icon || ‘📚’,
+color: color || ‘#0D9488’,
+order: parseInt(order) || 1,
+isVisible: isActive === ‘on’ || isActive === ‘true’
+});
+res.redirect(’/admin/categories?success=Category+updated’);
+} catch (err) {
+console.error(‘Edit category error:’, err);
+res.redirect(’/admin/categories?error=Failed+to+update+category’);
+}
+});
+
+// POST /admin/categories/:id/delete — Delete
+app.post(’/admin/categories/:id/delete’, requireAdmin, async (req, res) => {
+try {
+const courseCount = await Course.countDocuments({ category: req.params.id });
+if (courseCount > 0) {
+return res.redirect(’/admin/categories?error=Cannot+delete:+’ + courseCount + ‘+courses+use+this+category’);
+}
+await Category.findByIdAndDelete(req.params.id);
+res.redirect(’/admin/categories?success=Category+deleted’);
+} catch (err) {
+console.error(‘Delete category error:’, err);
+res.redirect(’/admin/categories?error=Failed+to+delete+category’);
+}
+});
+
+// ─── GET /admin/courses — List ─────────────────────────────────────────────
+app.get(’/admin/courses’, requireAdmin, async (req, res) => {
+try {
+const user = await User.findById(req.session.userId);
+const { search, status } = req.query;
+let query = {};
+if (search) query.title = { $regex: search, $options: ‘i’ };
+if (status === ‘published’) query.isPublished = true;
+if (status === ‘draft’) query.isPublished = false;
+if (status === ‘free’) query.price = 0;
+if (status === ‘paid’) query.price = { $gt: 0 };
+
+```
+const courses = await Course.find(query).sort({ createdAt: -1 });
+const categories = await Category.find().sort({ order: 1 });
+
+res.send(renderAdminCourses({
+  courses,
+  categories,
+  filters: { search, status },
+  admin: { name: user.firstName },
+  success: req.query.success,
+  error: req.query.error
+}));
+```
+
+} catch (err) {
+console.error(‘Admin courses error:’, err);
+res.status(500).send(‘Error loading courses’);
+}
+});
+
+// POST /admin/courses — Create
+app.post(’/admin/courses’, requireAdmin, imageUpload.single(‘thumbnail’), async (req, res) => {
+try {
+const { title, description, category, price, isFree, isPublished, duration, level } = req.body;
+if (!title) return res.redirect(’/admin/courses?error=Title+is+required’);
+
+```
+const course = await Course.create({
+  title: title.trim(),
+  description: description?.trim() || '',
+  category: category || '',
+  price: isFree === 'on' ? 0 : (parseFloat(price) || 0),
+  isPublished: isPublished === 'on',
+  level: level || 'Beginner',
+  imagePath: req.file ? '/uploads/course-images/' + req.file.filename : '',
+  isFeatured: false
+});
+
+res.redirect('/admin/course/' + course._id + '/modules?success=Course+created!+Now+add+modules.');
+```
+
+} catch (err) {
+console.error(‘Create course error:’, err);
+res.redirect(’/admin/courses?error=Failed+to+create+course’);
+}
+});
+
+// POST /admin/courses/:id/edit — Update
+app.post(’/admin/courses/:id/edit’, requireAdmin, imageUpload.single(‘thumbnail’), async (req, res) => {
+try {
+const { title, description, category, price, isFree, isPublished, level } = req.body;
+
+```
+const updateData = {
+  title: title.trim(),
+  description: description?.trim() || '',
+  category: category || '',
+  price: isFree === 'on' ? 0 : (parseFloat(price) || 0),
+  isPublished: isPublished === 'on',
+  level: level || 'Beginner'
+};
+
+if (req.file) {
+  updateData.imagePath = '/uploads/course-images/' + req.file.filename;
+}
+
+await Course.findByIdAndUpdate(req.params.id, updateData);
+res.redirect('/admin/courses?success=Course+updated+successfully');
+```
+
+} catch (err) {
+console.error(‘Edit course error:’, err);
+res.redirect(’/admin/courses?error=Failed+to+update+course’);
+}
+});
+
+// POST /admin/courses/:id/delete — Delete course + its modules
+app.post(’/admin/courses/:id/delete’, requireAdmin, async (req, res) => {
+try {
+await Module.deleteMany({ course: req.params.id });
+await Course.findByIdAndDelete(req.params.id);
+res.redirect(’/admin/courses?success=Course+and+all+modules+deleted’);
+} catch (err) {
+console.error(‘Delete course error:’, err);
+res.redirect(’/admin/courses?error=Failed+to+delete+course’);
+}
+});
+
+// POST /admin/courses/:id/toggle-featured — Quick toggle
+app.post(’/admin/courses/:id/toggle-featured’, requireAdmin, async (req, res) => {
+try {
+const course = await Course.findById(req.params.id);
+if (!course) return res.redirect(’/admin/courses?error=Course+not+found’);
+course.isFeatured = !course.isFeatured;
+await course.save();
+res.redirect(’/admin/courses?success=Featured+status+updated’);
+} catch (err) {
+res.redirect(’/admin/courses?error=Failed+to+update’);
+}
+});
+
+// ─── GET /admin/course/:id/modules — Manage modules ───────────────────────
+app.get(’/admin/course/:id/modules’, requireAdmin, async (req, res) => {
+try {
+const user = await User.findById(req.session.userId);
+const course = await Course.findById(req.params.id);
+if (!course) return res.redirect(’/admin/courses?error=Course+not+found’);
+
+```
+const modules = await Module.find({ course: req.params.id }).sort({ order: 1 });
+
+res.send(renderAdminModules({
+  course,
+  modules,
+  admin: { name: user.firstName },
+  success: req.query.success,
+  error: req.query.error
+}));
+```
+
+} catch (err) {
+console.error(‘Admin modules error:’, err);
+res.status(500).send(‘Error loading modules’);
+}
+});
+
+// POST /admin/course/:id/modules — Add module with video upload
+app.post(’/admin/course/:id/modules’, requireAdmin, videoUpload.single(‘video’), async (req, res) => {
+try {
+const { title, description, isFreePreview, order } = req.body;
+if (!title) return res.redirect(’/admin/course/’ + req.params.id + ‘/modules?error=Module+title+required’);
+
+```
+const maxOrder = await Module.findOne({ course: req.params.id }).sort({ order: -1 }).select('order');
+
+await Module.create({
+  course: req.params.id,
+  title: title.trim(),
+  description: description?.trim() || '',
+  type: 'video',
+  videoPath: req.file ? 'uploads/videos/' + req.file.filename : '',
+  videoFilename: req.file ? req.file.filename : '',
+  isFreePreview: isFreePreview === 'on',
+  order: order ? parseInt(order) : (maxOrder?.order || 0) + 1
+});
+
+res.redirect('/admin/course/' + req.params.id + '/modules?success=Module+added+successfully');
+```
+
+} catch (err) {
+console.error(‘Add module error:’, err);
+res.redirect(’/admin/course/’ + req.params.id + ‘/modules?error=Failed+to+add+module’);
+}
+});
+
+// POST /admin/module/:id/edit — Edit module info
+app.post(’/admin/module/:id/edit’, requireAdmin, async (req, res) => {
+try {
+const { title, description, isFreePreview, order } = req.body;
+const module = await Module.findByIdAndUpdate(req.params.id, {
+title: title.trim(),
+description: description?.trim() || ‘’,
+isFreePreview: isFreePreview === ‘on’,
+order: parseInt(order) || 1
+}, { new: true });
+
+```
+res.redirect('/admin/course/' + module.course + '/modules?success=Module+updated');
+```
+
+} catch (err) {
+console.error(‘Edit module error:’, err);
+res.redirect(’/admin/courses?error=Failed+to+update+module’);
+}
+});
+
+// POST /admin/module/:id/delete — Delete module + video file
+app.post(’/admin/module/:id/delete’, requireAdmin, async (req, res) => {
+try {
+const module = await Module.findById(req.params.id);
+if (!module) return res.redirect(’/admin/courses?error=Module+not+found’);
+
+```
+const courseId = module.course;
+
+// Delete video file from disk
+if (module.videoFilename) {
+  const filePath = path.join(__dirname, 'uploads/videos', module.videoFilename);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+}
+
+await Module.findByIdAndDelete(req.params.id);
+res.redirect('/admin/course/' + courseId + '/modules?success=Module+deleted');
+```
+
+} catch (err) {
+console.error(‘Delete module error:’, err);
+res.redirect(’/admin/courses?error=Failed+to+delete+module’);
+}
+});
+
+// POST /admin/course/:id/modules/reorder — Save drag-drop order (JSON API)
+app.post(’/admin/course/:id/modules/reorder’, requireAdmin, async (req, res) => {
+try {
+const ids = Array.isArray(req.body.order) ? req.body.order : JSON.parse(req.body.order);
+await Promise.all(ids.map((id, index) =>
+Module.findByIdAndUpdate(id, { order: index + 1 })
+));
+res.json({ success: true });
+} catch (err) {
+console.error(‘Reorder error:’, err);
+res.status(500).json({ error: ‘Failed to reorder’ });
+}
+});
+
+// ============================================
+// ADMIN HTML RENDER FUNCTIONS
+// These build the full HTML for each admin page
+// ============================================
+
+function adminShell({ title, activePage, content, admin, breadcrumb = [] }) {
+const navItems = [
+{ href: ‘/admin’,             icon: ‘📊’, label: ‘Dashboard’,    key: ‘dashboard’ },
+{ href: ‘/admin/categories’,  icon: ‘🗂️’,  label: ‘Categories’,  key: ‘categories’ },
+{ href: ‘/admin/courses’,     icon: ‘🎓’, label: ‘Courses’,      key: ‘courses’ },
+{ href: ‘/admin/users’,       icon: ‘👥’, label: ‘Users’,        key: ‘users’ },
+{ href: ‘/admin/tests’,       icon: ‘📝’, label: ‘Tests’,        key: ‘tests’ },
+{ href: ‘/admin/transactions’,icon: ‘💰’, label: ‘Transactions’, key: ‘transactions’ },
+{ href: ‘/admin/analytics’,   icon: ‘📈’, label: ‘Analytics’,    key: ‘analytics’ },
+{ href: ‘/admin/site-settings’,icon:‘⚙️’, label: ‘Site Settings’,key: ‘settings’ },
+];
+
+const breadcrumbHtml = [
+‘<a href="/admin">Admin</a>’,
+…breadcrumb.map((b, i) =>
+i === breadcrumb.length - 1
+? `<span class="sep">›</span><span class="current">${b.label}</span>`
+: `<span class="sep">›</span><a href="${b.href}">${b.label}</a>`
+)
+].join(’’);
+
+return `<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title} — LWS Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body">
+
+  <div class="admin-sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <aside class="admin-sidebar" id="adminSidebar">
+    <a href="/admin" class="admin-sidebar-logo">
+      <div>
+        <span>LearnwithSaurab</span><br>
+        <span class="admin-badge">Admin</span>
+      </div>
+    </a>
+    <nav class="admin-nav">
+      <div class="admin-nav-section-label">Main</div>
+      ${navItems.slice(0,3).map(item => `
+        <a href="${item.href}" class="admin-nav-item ${activePage === item.key ? 'active' : ''}">
+          <span class="nav-icon">${item.icon}</span>${item.label}
+        </a>`).join('')}
+      <div class="admin-nav-section-label">Content</div>
+      ${navItems.slice(3,6).map(item => `
+        <a href="${item.href}" class="admin-nav-item ${activePage === item.key ? 'active' : ''}">
+          <span class="nav-icon">${item.icon}</span>${item.label}
+        </a>`).join('')}
+      <div class="admin-nav-section-label">System</div>
+      ${navItems.slice(6).map(item => `
+        <a href="${item.href}" class="admin-nav-item ${activePage === item.key ? 'active' : ''}">
+          <span class="nav-icon">${item.icon}</span>${item.label}
+        </a>`).join('')}
+    </nav>
+    <div class="admin-sidebar-footer">
+      <div class="admin-sidebar-user">
+        <div class="enrollment-avatar">${(admin.name||'A')[0].toUpperCase()}</div>
+        <div class="admin-sidebar-user-info">
+          <div class="user-name">${admin.name||'Admin'}</div>
+          <div class="user-role">Super Admin</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="admin-main">
+    <header class="admin-topbar">
+      <div class="admin-topbar-left">
+        <button class="admin-sidebar-toggle" onclick="openSidebar()">☰</button>
+        <div>
+          <div class="admin-page-title">${title}</div>
+          <div class="admin-breadcrumb">${breadcrumbHtml}</div>
+        </div>
+      </div>
+      <div class="admin-topbar-right">
+        <a href="/" target="_blank" class="admin-topbar-btn" title="View Site">🌐</a>
+        <a href="/logout" class="admin-topbar-btn" title="Logout">🚪</a>
+      </div>
+    </header>
+    <main class="admin-content">
+      ${content}
+    </main>
+  </div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('adminSidebar').classList.add('open');
+      document.getElementById('sidebarOverlay').classList.add('open');
+    }
+    function closeSidebar() {
+      document.getElementById('adminSidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('open');
+    }
+    setTimeout(() => {
+      document.querySelectorAll('.admin-alert').forEach(el => {
+        el.style.transition = 'opacity 0.4s';
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 400);
+      });
+    }, 4000);
+  </script>
+
+</body>
+</html>`;
+}
+
+// ─── DASHBOARD HTML ───────────────────────────────────────────────────────
+function renderAdminDashboard({ totalUsers, totalCourses, totalCategories, totalEnrollments, publishedCourses, totalModules, recentUsers, recentCourses, admin }) {
+const content = `
+<div class="admin-stats-grid">
+<div class="stat-card teal">
+<div class="stat-card-header">
+<div class="stat-card-icon">👥</div>
+<span class="stat-change up">Registered</span>
+</div>
+<div class="stat-value">${totalUsers.toLocaleString()}</div>
+<div class="stat-label">Total Students</div>
+</div>
+<div class="stat-card gold">
+<div class="stat-card-header">
+<div class="stat-card-icon">🎓</div>
+<span class="stat-change up">${publishedCourses} live</span>
+</div>
+<div class="stat-value">${totalCourses}</div>
+<div class="stat-label">Total Courses</div>
+</div>
+<div class="stat-card purple">
+<div class="stat-card-header">
+<div class="stat-card-icon">📋</div>
+<span class="stat-change up">All time</span>
+</div>
+<div class="stat-value">${totalEnrollments.toLocaleString()}</div>
+<div class="stat-label">Total Enrollments</div>
+</div>
+<div class="stat-card green">
+<div class="stat-card-header">
+<div class="stat-card-icon">🎬</div>
+<span class="stat-change up">Uploaded</span>
+</div>
+<div class="stat-value">${totalModules}</div>
+<div class="stat-label">Video Modules</div>
+</div>
+</div>
+
+```
+<div class="admin-card admin-mb-24">
+  <div class="admin-card-header">
+    <span class="admin-card-title">⚡ Quick Actions</span>
+  </div>
+  <div class="admin-card-body" style="display:flex;gap:12px;flex-wrap:wrap;">
+    <a href="/admin/courses?openCreate=1" class="btn-admin btn-admin-primary">➕ New Course</a>
+    <a href="/admin/categories?openCreate=1" class="btn-admin btn-admin-secondary">🗂️ New Category</a>
+    <a href="/" target="_blank" class="btn-admin btn-admin-secondary">🌐 View Live Site</a>
+  </div>
+</div>
+
+<div class="admin-two-col">
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <span class="admin-card-title">👥 Recent Signups</span>
+      <a href="/admin/users" class="btn-admin btn-admin-secondary btn-admin-sm">View All</a>
+    </div>
+    <div class="admin-card-body" style="padding:0 24px;">
+      <div class="enrollment-list">
+        ${recentUsers.length === 0
+          ? `<div class="admin-empty"><div class="admin-empty-title">No users yet</div></div>`
+          : recentUsers.map(u => `
+            <div class="enrollment-item">
+              <div class="enrollment-avatar">${u.firstName[0].toUpperCase()}</div>
+              <div class="enrollment-info">
+                <div class="enrollment-name">${u.firstName} ${u.lastName}</div>
+                <div class="enrollment-course">${u.email}</div>
+              </div>
+              <div class="text-muted" style="font-size:12px;">${new Date(u.createdAt).toLocaleDateString()}</div>
+            </div>`).join('')
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <span class="admin-card-title">🎓 Recent Courses</span>
+      <a href="/admin/courses" class="btn-admin btn-admin-secondary btn-admin-sm">View All</a>
+    </div>
+    <div class="admin-card-body" style="padding:0 24px;">
+      <div class="enrollment-list">
+        ${recentCourses.length === 0
+          ? `<div class="admin-empty"><div class="admin-empty-title">No courses yet</div></div>`
+          : recentCourses.map(c => `
+            <div class="enrollment-item">
+              <div class="enrollment-avatar">🎓</div>
+              <div class="enrollment-info">
+                <div class="enrollment-name">${c.title}</div>
+                <div class="enrollment-course">${c.category || 'Uncategorized'}</div>
+              </div>
+              <span class="status-badge ${c.isPublished ? 'published' : 'draft'}">${c.isPublished ? 'Live' : 'Draft'}</span>
+            </div>`).join('')
+        }
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+`;
+return adminShell({ title: ‘Dashboard’, activePage: ‘dashboard’, content, admin });
+}
+
+// ─── CATEGORIES HTML ──────────────────────────────────────────────────────
+function renderAdminCategories({ categories, admin, success, error }) {
+const content = `${success ?`<div class="admin-alert success">✅ ${decodeURIComponent(success)}</div>`: ''} ${error   ?`<div class="admin-alert error">❌ ${decodeURIComponent(error)}</div>` : ‘’}
+
+```
+<div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
+  <button class="btn-admin btn-admin-primary" onclick="openModal('createCategoryModal')">➕ Add Category</button>
+</div>
+
+<div class="admin-card">
+  <div class="admin-card-header">
+    <span class="admin-card-title">🗂️ All Categories (${categories.length})</span>
+  </div>
+  ${categories.length === 0 ? `
+    <div class="admin-empty">
+      <div class="admin-empty-icon">🗂️</div>
+      <div class="admin-empty-title">No categories yet</div>
+      <button class="btn-admin btn-admin-primary" onclick="openModal('createCategoryModal')">Create First Category</button>
+    </div>
+  ` : `
+    <div class="admin-table-wrapper">
+      <table class="admin-table">
+        <thead><tr>
+          <th>Order</th><th>Icon</th><th>Name</th><th>Slug</th><th>Visible</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          ${categories.map(cat => `
+            <tr>
+              <td class="font-mono text-muted">#${cat.order||'—'}</td>
+              <td style="font-size:20px;">${cat.icon||'📚'}</td>
+              <td><strong>${cat.name}</strong></td>
+              <td class="font-mono text-muted" style="font-size:12px;">${cat.slug||''}</td>
+              <td><span class="status-badge ${cat.isVisible ? 'published' : 'draft'}">${cat.isVisible ? 'Visible' : 'Hidden'}</span></td>
+              <td>
+                <div class="table-actions">
+                  <button class="btn-admin btn-admin-secondary btn-admin-sm btn-admin-icon"
+                    onclick='openEditCategory(${JSON.stringify({
+                      id: cat._id.toString(),
+                      name: cat.name,
+                      description: cat.description||'',
+                      icon: cat.icon||'📚',
+                      color: cat.color||'#0D9488',
+                      order: cat.order||1,
+                      isVisible: cat.isVisible
+                    })})'>✏️</button>
+                  <form action="/admin/categories/${cat._id}/delete" method="POST" style="display:inline;"
+                    onsubmit="return confirm('Delete: ${cat.name}?')">
+                    <button type="submit" class="btn-admin btn-admin-danger btn-admin-sm btn-admin-icon">🗑️</button>
+                  </form>
+                </div>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `}
+</div>
+
+<!-- CREATE MODAL -->
+<div class="admin-modal-overlay" id="createCategoryModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <span class="admin-modal-title">➕ Add Category</span>
+      <button class="admin-modal-close" onclick="closeModal('createCategoryModal')">×</button>
+    </div>
+    <form action="/admin/categories" method="POST">
+      <div class="admin-form-group">
+        <label class="admin-form-label">Name <span class="required">*</span></label>
+        <input type="text" name="name" class="admin-form-input" placeholder="e.g. CEE Preparation" required>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Icon (emoji)</label>
+          <input type="text" name="icon" class="admin-form-input" value="📚">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Color</label>
+          <input type="color" name="color" class="admin-form-input" value="#0D9488" style="height:42px;padding:4px;">
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Description</label>
+        <textarea name="description" class="admin-form-textarea" style="min-height:70px;"></textarea>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Display Order</label>
+        <input type="number" name="order" class="admin-form-input" value="${categories.length+1}" min="1">
+        <div class="admin-form-hint">Lower number = appears first on homepage</div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('createCategoryModal')">Cancel</button>
+        <button type="submit" class="btn-admin btn-admin-primary">Create Category</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="admin-modal-overlay" id="editCategoryModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <span class="admin-modal-title">✏️ Edit Category</span>
+      <button class="admin-modal-close" onclick="closeModal('editCategoryModal')">×</button>
+    </div>
+    <form id="editCategoryForm" action="" method="POST">
+      <div class="admin-form-group">
+        <label class="admin-form-label">Name</label>
+        <input type="text" name="name" id="editCatName" class="admin-form-input" required>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Icon</label>
+          <input type="text" name="icon" id="editCatIcon" class="admin-form-input">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Color</label>
+          <input type="color" name="color" id="editCatColor" class="admin-form-input" style="height:42px;padding:4px;">
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Description</label>
+        <textarea name="description" id="editCatDesc" class="admin-form-textarea" style="min-height:70px;"></textarea>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Display Order</label>
+          <input type="number" name="order" id="editCatOrder" class="admin-form-input" min="1">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Visibility</label>
+          <div class="admin-toggle-wrap" style="margin-top:10px;">
+            <label class="admin-toggle">
+              <input type="checkbox" name="isActive" id="editCatActive">
+              <span class="admin-toggle-slider"></span>
+            </label>
+            <span class="admin-toggle-label">Show on homepage</span>
+          </div>
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('editCategoryModal')">Cancel</button>
+        <button type="submit" class="btn-admin btn-admin-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  if (new URLSearchParams(location.search).get('openCreate')) openModal('createCategoryModal');
+  function openEditCategory(cat) {
+    document.getElementById('editCategoryForm').action = '/admin/categories/' + cat.id + '/edit';
+    document.getElementById('editCatName').value = cat.name;
+    document.getElementById('editCatIcon').value = cat.icon;
+    document.getElementById('editCatColor').value = cat.color;
+    document.getElementById('editCatDesc').value = cat.description;
+    document.getElementById('editCatOrder').value = cat.order;
+    document.getElementById('editCatActive').checked = cat.isVisible;
+    openModal('editCategoryModal');
+  }
+  document.querySelectorAll('.admin-modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+</script>
+```
+
+`;
+return adminShell({ title: ‘Categories’, activePage: ‘categories’, content, admin, breadcrumb: [{label:‘Categories’}] });
+}
+
+// ─── COURSES HTML ─────────────────────────────────────────────────────────
+function renderAdminCourses({ courses, categories, filters, admin, success, error }) {
+const content = `${success ?`<div class="admin-alert success">✅ ${decodeURIComponent(success)}</div>`: ''} ${error   ?`<div class="admin-alert error">❌ ${decodeURIComponent(error)}</div>` : ‘’}
+
+```
+<div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
+  <button class="btn-admin btn-admin-primary" onclick="openModal('createCourseModal')">➕ New Course</button>
+</div>
+
+<div class="admin-card admin-mb-24">
+  <div class="admin-card-body" style="padding:16px 24px;">
+    <form method="GET" action="/admin/courses">
+      <div class="admin-filter-bar">
+        <div class="admin-search-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" name="search" class="admin-search" placeholder="Search courses..." value="${filters.search||''}">
+        </div>
+        <select name="status" class="admin-select">
+          <option value="">All Status</option>
+          <option value="published" ${filters.status==='published'?'selected':''}>Published</option>
+          <option value="draft"     ${filters.status==='draft'    ?'selected':''}>Draft</option>
+          <option value="free"      ${filters.status==='free'     ?'selected':''}>Free</option>
+          <option value="paid"      ${filters.status==='paid'     ?'selected':''}>Paid</option>
+        </select>
+        <button type="submit" class="btn-admin btn-admin-secondary">Filter</button>
+        <a href="/admin/courses" class="btn-admin btn-admin-secondary">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="admin-card">
+  <div class="admin-card-header">
+    <span class="admin-card-title">🎓 All Courses (${courses.length})</span>
+  </div>
+  ${courses.length === 0 ? `
+    <div class="admin-empty">
+      <div class="admin-empty-icon">🎓</div>
+      <div class="admin-empty-title">No courses found</div>
+      <button class="btn-admin btn-admin-primary" onclick="openModal('createCourseModal')">Create First Course</button>
+    </div>
+  ` : `
+    <div class="admin-table-wrapper">
+      <table class="admin-table">
+        <thead><tr>
+          <th>Thumbnail</th><th>Title</th><th>Category</th><th>Price</th><th>Level</th><th>Status</th><th>Featured</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          ${courses.map(c => `
+            <tr>
+              <td>
+                ${c.imagePath
+                  ? `<img src="${c.imagePath}" class="table-thumb" alt="">`
+                  : `<div class="table-thumb" style="background:rgba(13,148,136,0.1);display:flex;align-items:center;justify-content:center;">🎓</div>`
+                }
+              </td>
+              <td><strong>${c.title}</strong></td>
+              <td class="text-muted">${c.category||'None'}</td>
+              <td class="${c.price===0?'text-success':'text-gold'} font-mono">
+                ${c.price===0?'FREE':'NPR '+c.price}
+              </td>
+              <td class="text-muted">${c.level||'Beginner'}</td>
+              <td><span class="status-badge ${c.isPublished?'published':'draft'}">${c.isPublished?'Published':'Draft'}</span></td>
+              <td>
+                <form action="/admin/courses/${c._id}/toggle-featured" method="POST" style="display:inline;">
+                  <button type="submit" class="btn-admin btn-admin-sm ${c.isFeatured?'btn-admin-gold':'btn-admin-secondary'}">${c.isFeatured?'⭐ Yes':'☆ No'}</button>
+                </form>
+              </td>
+              <td>
+                <div class="table-actions">
+                  <a href="/admin/course/${c._id}/modules" class="btn-admin btn-admin-secondary btn-admin-sm btn-admin-icon" title="Modules">🎬</a>
+                  <button class="btn-admin btn-admin-secondary btn-admin-sm btn-admin-icon"
+                    onclick='openEditCourse(${JSON.stringify({
+                      id: c._id.toString(),
+                      title: c.title,
+                      description: c.description||'',
+                      category: c.category||'',
+                      price: c.price||0,
+                      isFree: c.price===0,
+                      isPublished: c.isPublished,
+                      level: c.level||'Beginner'
+                    })})'>✏️</button>
+                  <form action="/admin/courses/${c._id}/delete" method="POST" style="display:inline;"
+                    onsubmit="return confirm('Delete: ${c.title.replace(/'/g,"\\'")}? All modules deleted too.')">
+                    <button type="submit" class="btn-admin btn-admin-danger btn-admin-sm btn-admin-icon">🗑️</button>
+                  </form>
+                </div>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `}
+</div>
+
+<!-- CREATE COURSE MODAL -->
+<div class="admin-modal-overlay" id="createCourseModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <span class="admin-modal-title">➕ New Course</span>
+      <button class="admin-modal-close" onclick="closeModal('createCourseModal')">×</button>
+    </div>
+    <form action="/admin/courses" method="POST" enctype="multipart/form-data">
+      <div class="admin-form-group">
+        <label class="admin-form-label">Title <span class="required">*</span></label>
+        <input type="text" name="title" class="admin-form-input" placeholder="e.g. CEE Physics Complete Course" required>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Description</label>
+        <textarea name="description" class="admin-form-textarea"></textarea>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Category</label>
+          <select name="category" class="admin-form-select">
+            <option value="">Select category</option>
+            ${categories.map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Level</label>
+          <select name="level" class="admin-form-select">
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Price (NPR)</label>
+        <input type="number" name="price" id="createPrice" class="admin-form-input" placeholder="0 for free" min="0">
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Free Course?</label>
+          <div class="admin-toggle-wrap" style="margin-top:10px;">
+            <label class="admin-toggle">
+              <input type="checkbox" name="isFree" id="createIsFree"
+                onchange="document.getElementById('createPrice').disabled=this.checked">
+              <span class="admin-toggle-slider"></span>
+            </label>
+            <span class="admin-toggle-label">Free for all students</span>
+          </div>
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Publish Now?</label>
+          <div class="admin-toggle-wrap" style="margin-top:10px;">
+            <label class="admin-toggle">
+              <input type="checkbox" name="isPublished">
+              <span class="admin-toggle-slider"></span>
+            </label>
+            <span class="admin-toggle-label">Visible to students</span>
+          </div>
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Thumbnail</label>
+        <input type="file" name="thumbnail" accept="image/*" class="admin-form-input" style="padding:8px;">
+        <div class="admin-form-hint">JPG/PNG/WebP, max 5MB. Recommended: 1280×720</div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('createCourseModal')">Cancel</button>
+        <button type="submit" class="btn-admin btn-admin-primary">Create & Add Modules →</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT COURSE MODAL -->
+<div class="admin-modal-overlay" id="editCourseModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <span class="admin-modal-title">✏️ Edit Course</span>
+      <button class="admin-modal-close" onclick="closeModal('editCourseModal')">×</button>
+    </div>
+    <form id="editCourseForm" action="" method="POST" enctype="multipart/form-data">
+      <div class="admin-form-group">
+        <label class="admin-form-label">Title</label>
+        <input type="text" name="title" id="editCourseTitle" class="admin-form-input" required>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Description</label>
+        <textarea name="description" id="editCourseDesc" class="admin-form-textarea"></textarea>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Category</label>
+          <select name="category" id="editCourseCat" class="admin-form-select">
+            <option value="">No category</option>
+            ${categories.map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Level</label>
+          <select name="level" id="editCourseLevel" class="admin-form-select">
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Price (NPR)</label>
+          <input type="number" name="price" id="editCoursePrice" class="admin-form-input" min="0">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Published?</label>
+          <div class="admin-toggle-wrap" style="margin-top:10px;">
+            <label class="admin-toggle">
+              <input type="checkbox" name="isPublished" id="editCoursePublished">
+              <span class="admin-toggle-slider"></span>
+            </label>
+            <span class="admin-toggle-label">Live on site</span>
+          </div>
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">New Thumbnail (optional)</label>
+        <input type="file" name="thumbnail" accept="image/*" class="admin-form-input" style="padding:8px;">
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('editCourseModal')">Cancel</button>
+        <button type="submit" class="btn-admin btn-admin-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  if (new URLSearchParams(location.search).get('openCreate')) openModal('createCourseModal');
+  function openEditCourse(c) {
+    document.getElementById('editCourseForm').action = '/admin/courses/' + c.id + '/edit';
+    document.getElementById('editCourseTitle').value  = c.title;
+    document.getElementById('editCourseDesc').value   = c.description;
+    document.getElementById('editCourseCat').value    = c.category;
+    document.getElementById('editCoursePrice').value  = c.price;
+    document.getElementById('editCourseLevel').value  = c.level;
+    document.getElementById('editCoursePublished').checked = c.isPublished;
+    openModal('editCourseModal');
+  }
+  document.querySelectorAll('.admin-modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+</script>
+```
+
+`;
+return adminShell({ title: ‘Courses’, activePage: ‘courses’, content, admin, breadcrumb: [{label:‘Courses’}] });
+}
+
+// ─── MODULES HTML ─────────────────────────────────────────────────────────
+function renderAdminModules({ course, modules, admin, success, error }) {
+const content = `${success ?`<div class="admin-alert success">✅ ${decodeURIComponent(success)}</div>`: ''} ${error   ?`<div class="admin-alert error">❌ ${decodeURIComponent(error)}</div>` : ‘’}
+
+```
+<div class="admin-card admin-mb-24">
+  <div class="admin-card-body" style="padding:20px 24px;">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      ${course.imagePath
+        ? `<img src="${course.imagePath}" style="width:80px;height:50px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,0.08);" alt="">`
+        : `<div style="width:80px;height:50px;border-radius:8px;background:rgba(13,148,136,0.1);display:flex;align-items:center;justify-content:center;font-size:24px;">🎓</div>`
+      }
+      <div style="flex:1;">
+        <div style="font-family:Montserrat,sans-serif;font-weight:700;font-size:18px;">${course.title}</div>
+        <div style="font-size:13px;color:#6B7280;margin-top:4px;">
+          ${course.category||'Uncategorized'} ·
+          <span class="${course.price===0?'text-success':'text-gold'}">${course.price===0?'Free':'NPR '+course.price}</span> ·
+          <span class="status-badge ${course.isPublished?'published':'draft'}" style="margin-left:4px;">${course.isPublished?'Published':'Draft'}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/admin/courses" class="btn-admin btn-admin-secondary btn-admin-sm">← All Courses</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:flex-start;">
+
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <span class="admin-card-title">🎬 Modules (${modules.length})</span>
+      <button class="btn-admin btn-admin-primary btn-admin-sm" onclick="openModal('addModuleModal')">➕ Add Module</button>
+    </div>
+    ${modules.length === 0 ? `
+      <div class="admin-empty">
+        <div class="admin-empty-icon">🎬</div>
+        <div class="admin-empty-title">No modules yet</div>
+        <div class="admin-empty-text">Add your first video module to this course</div>
+        <button class="btn-admin btn-admin-primary" onclick="openModal('addModuleModal')">Add First Module</button>
+      </div>
+    ` : `
+      <div style="padding:16px;">
+        <div class="module-list" id="moduleList">
+          ${modules.map((m, i) => `
+            <div class="module-item" data-id="${m._id}" draggable="true">
+              <div class="module-drag-handle">⋮⋮</div>
+              <div class="module-number">${i+1}</div>
+              <div class="module-info">
+                <div class="module-title">${m.title}</div>
+                <div class="module-meta">
+                  ${m.videoFilename ? '📹 Video uploaded' : '⚠️ No video yet'} ·
+                  ${m.isFreePreview ? '<span style="color:#34D399;">Free preview</span>' : 'Paid only'}
+                </div>
+              </div>
+              <span class="module-type-badge ${m.isFreePreview?'free-preview':'video'}">
+                ${m.isFreePreview?'Free Preview':'Paid'}
+              </span>
+              <div class="module-actions">
+                <button class="btn-admin btn-admin-secondary btn-admin-sm btn-admin-icon"
+                  onclick='openEditModule(${JSON.stringify({
+                    id: m._id.toString(),
+                    title: m.title,
+                    description: m.description||'',
+                    isFreePreview: m.isFreePreview,
+                    order: m.order||(i+1)
+                  })})'>✏️</button>
+                <form action="/admin/module/${m._id}/delete" method="POST" style="display:inline;"
+                  onsubmit="return confirm('Delete module?')">
+                  <button type="submit" class="btn-admin btn-admin-danger btn-admin-sm btn-admin-icon">🗑️</button>
+                </form>
+              </div>
+            </div>`).join('')}
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#4B5563;text-align:center;">⋮⋮ Drag to reorder</div>
+      </div>
+    `}
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="admin-card">
+      <div class="admin-card-header"><span class="admin-card-title">📊 Stats</span></div>
+      <div class="admin-card-body">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:13px;color:#6B7280;">Total Modules</span>
+            <span style="font-weight:700;">${modules.length}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:13px;color:#6B7280;">Free Previews</span>
+            <span style="font-weight:700;color:#34D399;">${modules.filter(m=>m.isFreePreview).length}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:13px;color:#6B7280;">Videos Uploaded</span>
+            <span style="font-weight:700;color:#60A5FA;">${modules.filter(m=>m.videoFilename).length}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="admin-card">
+      <div class="admin-card-header"><span class="admin-card-title">💡 Tips</span></div>
+      <div class="admin-card-body" style="font-size:13px;color:#9CA3AF;line-height:1.9;">
+        <p>✅ <strong style="color:#E5E7EB;">MP4</strong> — works on all devices</p>
+        <p>✅ Keep videos <strong style="color:#E5E7EB;">under 200MB</strong> for speed</p>
+        <p>✅ Mark 1–2 intro modules as <strong style="color:#2DD4BF;">Free Preview</strong></p>
+        <p>✅ Number modules clearly e.g. "Chapter 1: Introduction"</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MODULE MODAL -->
+<div class="admin-modal-overlay" id="addModuleModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <span class="admin-modal-title">➕ Add Module</span>
+      <button class="admin-modal-close" onclick="closeModal('addModuleModal')">×</button>
+    </div>
+    <form action="/admin/course/${course._id}/modules" method="POST" enctype="multipart/form-data" id="uploadForm">
+      <div class="admin-form-group">
+        <label class="admin-form-label">Module Title <span class="required">*</span></label>
+        <input type="text" name="title" class="admin-form-input" placeholder="e.g. Chapter 1: Introduction" required>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Description (optional)</label>
+        <textarea name="description" class="admin-form-textarea" style="min-height:70px;"></textarea>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Order</label>
+          <input type="number" name="order" class="admin-form-input" value="${modules.length+1}" min="1">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Free Preview?</label>
+          <div class="admin-toggle-wrap" style="margin-top:10px;">
+            <label class="admin-toggle">
+              <input type="checkbox" name="isFreePreview">
+              <span class="admin-toggle-slider"></span>
+            </label>
+            <span class="admin-toggle-label">Visible to all</span>
+          </div>
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Upload Video</label>
+        <div class="admin-upload-zone" id="uploadZone">
+          <input type="file" name="video" accept="video/*" id="videoInput" onchange="handleVideoSelect(this)">
+          <div class="upload-icon">📹</div>
+          <div class="upload-title">Click or drag video here</div>
+          <div class="upload-subtitle">MP4, MKV, MOV · Max <strong>2GB</strong></div>
+        </div>
+        <div class="upload-progress-wrap" id="uploadProgress">
+          <div style="font-size:13px;color:#9CA3AF;margin-bottom:8px;" id="uploadFileName">Uploading...</div>
+          <div class="upload-progress-bar">
+            <div class="upload-progress-fill" id="uploadFill"></div>
+          </div>
+          <div class="upload-progress-text" id="uploadPct">0%</div>
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('addModuleModal')">Cancel</button>
+        <button type="submit" class="btn-admin btn-admin-primary" id="uploadSubmitBtn">Upload & Save Module</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT MODULE MODAL -->
+<div class="admin-modal-overlay" id="editModuleModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <span class="admin-modal-title">✏️ Edit Module</span>
+      <button class="admin-modal-close" onclick="closeModal('editModuleModal')">×</button>
+    </div>
+    <form id="editModuleForm" action="" method="POST">
+      <div class="admin-form-group">
+        <label class="admin-form-label">Title</label>
+        <input type="text" name="title" id="editModTitle" class="admin-form-input" required>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Description</label>
+        <textarea name="description" id="editModDesc" class="admin-form-textarea" style="min-height:70px;"></textarea>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Order</label>
+          <input type="number" name="order" id="editModOrder" class="admin-form-input" min="1">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Free Preview?</label>
+          <div class="admin-toggle-wrap" style="margin-top:10px;">
+            <label class="admin-toggle">
+              <input type="checkbox" name="isFreePreview" id="editModFree">
+              <span class="admin-toggle-slider"></span>
+            </label>
+            <span class="admin-toggle-label">Visible to all</span>
+          </div>
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('editModuleModal')">Cancel</button>
+        <button type="submit" class="btn-admin btn-admin-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  document.querySelectorAll('.admin-modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+  function openEditModule(m) {
+    document.getElementById('editModuleForm').action = '/admin/module/' + m.id + '/edit';
+    document.getElementById('editModTitle').value    = m.title;
+    document.getElementById('editModDesc').value     = m.description;
+    document.getElementById('editModOrder').value    = m.order;
+    document.getElementById('editModFree').checked  = m.isFreePreview;
+    openModal('editModuleModal');
+  }
+  function handleVideoSelect(input) {
+    if (input.files[0]) {
+      const size = (input.files[0].size/1024/1024).toFixed(1);
+      document.querySelector('.upload-title').textContent = input.files[0].name;
+      document.querySelector('.upload-subtitle').textContent = size + ' MB selected ✅';
+    }
+  }
+  // XHR upload with progress bar
+  document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const videoInput = document.getElementById('videoInput');
+    if (!videoInput.files[0]) return; // no video — regular form submit
+    e.preventDefault();
+    const formData = new FormData(this);
+    const xhr = new XMLHttpRequest();
+    document.getElementById('uploadProgress').classList.add('visible');
+    document.getElementById('uploadFileName').textContent = 'Uploading: ' + videoInput.files[0].name;
+    document.getElementById('uploadSubmitBtn').disabled = true;
+    document.getElementById('uploadSubmitBtn').textContent = 'Uploading...';
+    xhr.upload.addEventListener('progress', evt => {
+      if (evt.lengthComputable) {
+        const pct = Math.round(evt.loaded/evt.total*100);
+        document.getElementById('uploadFill').style.width = pct + '%';
+        document.getElementById('uploadPct').textContent = pct + '%';
+      }
+    });
+    xhr.addEventListener('load', () => {
+      window.location.href = '/admin/course/${course._id}/modules?success=Module+added+successfully';
+    });
+    xhr.addEventListener('error', () => {
+      alert('Upload failed. Check your connection and try again.');
+      document.getElementById('uploadSubmitBtn').disabled = false;
+      document.getElementById('uploadSubmitBtn').textContent = 'Upload & Save Module';
+    });
+    xhr.open('POST', '/admin/course/${course._id}/modules');
+    xhr.send(formData);
+  });
+  // Drag-to-reorder
+  let dragSrc = null;
+  const list = document.getElementById('moduleList');
+  if (list) {
+    list.querySelectorAll('.module-item').forEach(item => {
+      item.addEventListener('dragstart', () => { dragSrc = item; item.style.opacity='0.4'; });
+      item.addEventListener('dragend',   () => { item.style.opacity='1'; saveOrder(); });
+      item.addEventListener('dragover',  e => e.preventDefault());
+      item.addEventListener('drop',      e => { e.preventDefault(); if(dragSrc!==item) list.insertBefore(dragSrc,item); });
+    });
+  }
+  function saveOrder() {
+    const ids = [...document.querySelectorAll('.module-item')].map(el=>el.dataset.id);
+    fetch('/admin/course/${course._id}/modules/reorder', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ order: ids })
+    });
+    document.querySelectorAll('.module-number').forEach((el,i) => el.textContent = i+1);
+  }
+</script>
+```
+
+`;
+return adminShell({
+title: ’Modules — ’ + course.title,
+activePage: ‘courses’,
+content,
+admin,
+breadcrumb: [
+{ label: ‘Courses’, href: ‘/admin/courses’ },
+{ label: course.title, href: ‘/admin/courses’ },
+{ label: ‘Modules’ }
+]
+});
+}// ============================================
+// ADMIN PANEL ROUTES
+// Paste this block ABOVE the app.listen() line
+// requireAdmin is already defined above — do NOT paste it again
+// ============================================
+
+// ─── MULTER FOR ADMIN UPLOADS ─────────────────────────────────────────────
+// imageUpload and videoUpload already defined above — we reuse them directly
+
+// ─── GET /admin — Dashboard ───────────────────────────────────────────────
+app.get(’/admin’, requireAdmin, async (req, res) => {
+try {
+const user = await User.findById(req.session.userId);
+
+```
+const [
+  totalUsers,
+  totalCourses,
+  totalCategories,
+  publishedCourses,
+  totalModules
+] = await Promise.all([
+  User.countDocuments(),
+  Course.countDocuments(),
+  Category.countDocuments(),
+  Course.countDocuments({ isPublished: true }),
+  Module.countDocuments()
+]);
+
+const enrollmentData = await User.aggregate([
+  { $project: { count: { $size: '$enrolledCourses' } } },
+  { $group: { _id: null, total: { $sum: '$count' } } }
+]);
+const totalEnrollments = enrollmentData[0]?.total || 0;
+
+const recentUsers = await User.find()
+  .sort({ createdAt: -1 })
+  .limit(5)
+  .select('firstName lastName email createdAt');
+
+const recentCourses = await Course.find()
+  .sort({ createdAt: -1 })
+  .limit(5);
+
+res.send(renderAdminDashboard({
+  totalUsers, totalCourses, totalCategories,
+  totalEnrollments, publishedCourses, totalModules,
+  recentUsers, recentCourses,
+  admin: { name: user.firstName + ' ' + user.lastName }
+}));
+```
+
+} catch (err) {
+console.error(‘Admin dashboard error:’, err);
+res.status(500).send(‘Error loading admin dashboard’);
+}
+});
+
+// ─── GET /admin/categories — List ─────────────────────────────────────────
+app.get(’/admin/categories’, requireAdmin, async (req, res) => {
+try {
+const user = await User.findById(req.session.userId);
+const categories = await Category.find().sort({ order: 1 });
+res.send(renderAdminCategories({
+categories,
+admin: { name: user.firstName },
+success: req.query.success,
+error: req.query.error
+}));
+} catch (err) {
+console.error(‘Admin categories error:’, err);
+res.status(500).send(‘Error loading categories’);
+}
+});
+
+// POST /admin/categories — Create
+app.post(’/admin/categories’, requireAdmin, async (req, res) => {
+try {
+const { name, description, icon, color, order } = req.body;
+if (!name) return res.redirect(’/admin/categories?error=Name+is+required’);
+
+```
+const existing = await Category.findOne({ name: name.trim() });
+if (existing) return res.redirect('/admin/categories?error=Category+already+exists');
+
+// Generate slug from name
+const slug = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+const maxOrder = await Category.findOne().sort({ order: -1 }).select('order');
+await Category.create({
+  name: name.trim(),
+  slug,
+  description: description?.trim() || '',
+  icon: icon || '📚',
+  color: color || '#0D9488',
+  order: order ? parseInt(order) : (maxOrder?.order || 0) + 1,
+  isVisible: true
+});
+
+res.redirect('/admin/categories?success=Category+created+successfully');
+```
+
+} catch (err) {
+console.error(‘Create category error:’, err);
+res.redirect(’/admin/categories?error=Failed+to+create+category’);
+}
+});
+
+// POST /admin/categories/:id/edit — Update
+app.post(’/admin/categories/:id/edit’, requireAdmin, async (req, res) => {
+try {
+const { name, description, icon, color, order, isActive } = req.body;
+const slug = name.trim().toLowerCase().replace(/\s+/g, ‘-’).replace(/[^a-z0-9-]/g, ‘’);
+await Category.findByIdAndUpdate(req.params.id, {
+name: name.trim(),
+slug,
+description: description?.trim() || ‘’,
+icon: icon || ‘📚’,
+color: color || ‘#0D9488’,
+order: parseInt(order) || 1,
+isVisible: isActive === ‘on’ || isActive === ‘true’
+});
+res.redirect(’/admin/categories?success=Category+updated’);
+} catch (err) {
+console.error(‘Edit category error:’, err);
+res.redirect(’/admin/categories?error=Failed+to+update+category’);
+}
+});
+
+// POST /admin/categories/:id/delete — Delete
+app.post(’/admin/categories/:id/delete’, requireAdmin, async (req, res) => {
+try {
+const courseCount = await Course.countDocuments({ category: req.params.id });
+if (courseCount > 0) {
+return res.redirect(’/admin/categories?error=Cannot+delete:+’ + courseCount + ‘+courses+use+this+category’);
+}
+await Category.findByIdAndDelete(req.params.id);
+res.redirect(’/admin/categories?success=Category+deleted’);
+} catch (err) {
+console.error(‘Delete category error:’, err);
+res.redirect(’/admin/categories?error=Failed+to+delete+category’);
+}
+});
+
+// ─── GET /admin/courses — List ─────────────────────────────────────────────
+app.get(’/admin/courses’, requireAdmin, async (req, res) => {
+try {
+const user = await User.findById(req.session.userId);
+const { search, status } = req.query;
+let query = {};
+if (search) query.title = { $regex: search, $options: ‘i’ };
+if (status === ‘published’) query.isPublished = true;
+if (status === ‘draft’) query.isPublished = false;
+if (status === ‘free’) query.price = 0;
+if (status === ‘paid’) query.price = { $gt: 0 };
+
+```
+const courses = await Course.find(query).sort({ createdAt: -1 });
+const categories = await Category.find().sort({ order: 1 });
+
+res.send(renderAdminCourses({
+  courses,
+  categories,
+  filters: { search, status },
+  admin: { name: user.firstName },
+  success: req.query.success,
+  error: req.query.error
+}));
+```
+
+} catch (err) {
+console.error(‘Admin courses error:’, err);
+res.status(500).send(‘Error loading courses’);
+}
+});
+
+// POST /admin/courses — Create
+app.post(’/admin/courses’, requireAdmin, imageUpload.single(‘thumbnail’), async (req, res) => {
+try {
+const { title, description, category, price, isFree, isPublished, duration, level } = req.body;
+if (!title) return res.redirect(’/admin/courses?error=Title+is+required’);
+
+```
+const course = await Course.create({
+  title: title.trim(),
+  description: description?.trim() || '',
+  category: category || '',
+  price: isFree === 'on' ? 0 : (parseFloat(price) || 0),
+  isPublished: isPublished === 'on',
+  level: level || 'Beginner',
+  imagePath: req.file ? '/uploads/course-images/' + req.file.filename : '',
+  isFeatured: false
+});
+
+res.redirect('/admin/course/' + course._id + '/modules?success=Course+created!+Now+add+modules.');
+```
+
+} catch (err) {
+console.error(‘Create course error:’, err);
+res.redirect(’/admin/courses?error=Failed+to+create+course’);
+}
+});
+
+// POST /admin/courses/:id/edit — Update
+app.post(’/admin/courses/:id/edit’, requireAdmin, imageUpload.single(‘thumbnail’), async (req, res) => {
+try {
+const { title, description, category, price, isFree, isPublished, level } = req.body;
+
+```
+const updateData = {
+  title: title.trim(),
+  description: description?.trim() || '',
+  category: category || '',
+  price: isFree === 'on' ? 0 : (parseFloat(price) || 0),
+  isPublished: isPublished === 'on',
+  level: level || 'Beginner'
+};
+
+if (req.file) {
+  updateData.imagePath = '/uploads/course-images/' + req.file.filename;
+}
+
+await Course.findByIdAndUpdate(req.params.id, updateData);
+res.redirect('/admin/courses?success=Course+updated+successfully');
+```
+
+} catch (err) {
+console.error(‘Edit course error:’, err);
+res.redirect(’/admin/courses?error=Failed+to+update+course’);
+}
+});
+
+// POST /admin/courses/:id/delete — Delete course + its modules
+app.post(’/admin/courses/:id/delete’, requireAdmin, async (req, res) => {
+try {
+await Module.deleteMany({ course: req.params.id });
+await Course.findByIdAndDelete(req.params.id);
+res.redirect(’/admin/courses?success=Course+and+all+modules+deleted’);
+} catch (err) {
+console.error(‘Delete course error:’, err);
+res.redirect(’/admin/courses?error=Failed+to+delete+course’);
+}
+});
+
+// POST /admin/courses/:id/toggle-featured — Quick toggle
+app.post(’/admin/courses/:id/toggle-featured’, requireAdmin, async (req, res) => {
+try {
+const course = await Course.findById(req.params.id);
+if (!course) return res.redirect(’/admin/courses?error=Course+not+found’);
+course.isFeatured = !course.isFeatured;
+await course.save();
+res.redirect(’/admin/courses?success=Featured+status+updated’);
+} catch (err) {
+res.redirect(’/admin/courses?error=Failed+to+update’);
+}
+});
+
+// ─── GET /admin/course/:id/modules — Manage modules ───────────────────────
+app.get(’/admin/course/:id/modules’, requireAdmin, async (req, res) => {
+try {
+const user = await User.findById(req.session.userId);
+const course = await Course.findById(req.params.id);
+if (!course) return res.redirect(’/admin/courses?error=Course+not+found’);
+
+```
+const modules = await Module.find({ course: req.params.id }).sort({ order: 1 });
+
+res.send(renderAdminModules({
+  course,
+  modules,
+  admin: { name: user.firstName },
+  success: req.query.success,
+  error: req.query.error
+}));
+```
+
+} catch (err) {
+console.error(‘Admin modules error:’, err);
+res.status(500).send(‘Error loading modules’);
+}
+});
+
+// POST /admin/course/:id/modules — Add module with video upload
+app.post(’/admin/course/:id/modules’, requireAdmin, videoUpload.single(‘video’), async (req, res) => {
+try {
+const { title, description, isFreePreview, order } = req.body;
+if (!title) return res.redirect(’/admin/course/’ + req.params.id + ‘/modules?error=Module+title+required’);
+
+```
+const maxOrder = await Module.findOne({ course: req.params.id }).sort({ order: -1 }).select('order');
+
+await Module.create({
+  course: req.params.id,
+  title: title.trim(),
+  description: description?.trim() || '',
+  type: 'video',
+  videoPath: req.file ? 'uploads/videos/' + req.file.filename : '',
+  videoFilename: req.file ? req.file.filename : '',
+  isFreePreview: isFreePreview === 'on',
+  order: order ? parseInt(order) : (maxOrder?.order || 0) + 1
+});
+
+res.redirect('/admin/course/' + req.params.id + '/modules?success=Module+added+successfully');
+```
+
+} catch (err) {
+console.error(‘Add module error:’, err);
+res.redirect(’/admin/course/’ + req.params.id + ‘/modules?error=Failed+to+add+module’);
+}
+});
+
+// POST /admin/module/:id/edit — Edit module info
+app.post(’/admin/module/:id/edit’, requireAdmin, async (req, res) => {
+try {
+const { title, description, isFreePreview, order } = req.body;
+const module = await Module.findByIdAndUpdate(req.params.id, {
+title: title.trim(),
+description: description?.trim() || ‘’,
+isFreePreview: isFreePreview === ‘on’,
+order: parseInt(order) || 1
+}, { new: true });
+
+```
+res.redirect('/admin/course/' + module.course + '/modules?success=Module+updated');
+```
+
+} catch (err) {
+console.error(‘Edit module error:’, err);
+res.redirect(’/admin/courses?error=Failed+to+update+module’);
+}
+});
+
+// POST /admin/module/:id/delete — Delete module + video file
+app.post(’/admin/module/:id/delete’, requireAdmin, async (req, res) => {
+try {
+const module = await Module.findById(req.params.id);
+if (!module) return res.redirect(’/admin/courses?error=Module+not+found’);
+
+```
+const courseId = module.course;
+
+// Delete video file from disk
+if (module.videoFilename) {
+  const filePath = path.join(__dirname, 'uploads/videos', module.videoFilename);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+}
+
+await Module.findByIdAndDelete(req.params.id);
+res.redirect('/admin/course/' + courseId + '/modules?success=Module+deleted');
+```
+
+} catch (err) {
+console.error(‘Delete module error:’, err);
+res.redirect(’/admin/courses?error=Failed+to+delete+module’);
+}
+});
+
+// POST /admin/course/:id/modules/reorder — Save drag-drop order (JSON API)
+app.post(’/admin/course/:id/modules/reorder’, requireAdmin, async (req, res) => {
+try {
+const ids = Array.isArray(req.body.order) ? req.body.order : JSON.parse(req.body.order);
+await Promise.all(ids.map((id, index) =>
+Module.findByIdAndUpdate(id, { order: index + 1 })
+));
+res.json({ success: true });
+} catch (err) {
+console.error(‘Reorder error:’, err);
+res.status(500).json({ error: ‘Failed to reorder’ });
+}
+});
+
+// ============================================
+// ADMIN HTML RENDER FUNCTIONS
+// These build the full HTML for each admin page
+// ============================================
+
+function adminShell({ title, activePage, content, admin, breadcrumb = [] }) {
+const navItems = [
+{ href: ‘/admin’,             icon: ‘📊’, label: ‘Dashboard’,    key: ‘dashboard’ },
+{ href: ‘/admin/categories’,  icon: ‘🗂️’,  label: ‘Categories’,  key: ‘categories’ },
+{ href: ‘/admin/courses’,     icon: ‘🎓’, label: ‘Courses’,      key: ‘courses’ },
+{ href: ‘/admin/users’,       icon: ‘👥’, label: ‘Users’,        key: ‘users’ },
+{ href: ‘/admin/tests’,       icon: ‘📝’, label: ‘Tests’,        key: ‘tests’ },
+{ href: ‘/admin/transactions’,icon: ‘💰’, label: ‘Transactions’, key: ‘transactions’ },
+{ href: ‘/admin/analytics’,   icon: ‘📈’, label: ‘Analytics’,    key: ‘analytics’ },
+{ href: ‘/admin/site-settings’,icon:‘⚙️’, label: ‘Site Settings’,key: ‘settings’ },
+];
+
+const breadcrumbHtml = [
+‘<a href="/admin">Admin</a>’,
+…breadcrumb.map((b, i) =>
+i === breadcrumb.length - 1
+? `<span class="sep">›</span><span class="current">${b.label}</span>`
+: `<span class="sep">›</span><a href="${b.href}">${b.label}</a>`
+)
+].join(’’);
+
+return `<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title} — LWS Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body">
+
+  <div class="admin-sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <aside class="admin-sidebar" id="adminSidebar">
+    <a href="/admin" class="admin-sidebar-logo">
+      <div>
+        <span>LearnwithSaurab</span><br>
+        <span class="admin-badge">Admin</span>
+      </div>
+    </a>
+    <nav class="admin-nav">
+      <div class="admin-nav-section-label">Main</div>
+      ${navItems.slice(0,3).map(item => `
+        <a href="${item.href}" class="admin-nav-item ${activePage === item.key ? 'active' : ''}">
+          <span class="nav-icon">${item.icon}</span>${item.label}
+        </a>`).join('')}
+      <div class="admin-nav-section-label">Content</div>
+      ${navItems.slice(3,6).map(item => `
+        <a href="${item.href}" class="admin-nav-item ${activePage === item.key ? 'active' : ''}">
+          <span class="nav-icon">${item.icon}</span>${item.label}
+        </a>`).join('')}
+      <div class="admin-nav-section-label">System</div>
+      ${navItems.slice(6).map(item => `
+        <a href="${item.href}" class="admin-nav-item ${activePage === item.key ? 'active' : ''}">
+          <span class="nav-icon">${item.icon}</span>${item.label}
+        </a>`).join('')}
+    </nav>
+    <div class="admin-sidebar-footer">
+      <div class="admin-sidebar-user">
+        <div class="enrollment-avatar">${(admin.name||'A')[0].toUpperCase()}</div>
+        <div class="admin-sidebar-user-info">
+          <div class="user-name">${admin.name||'Admin'}</div>
+          <div class="user-role">Super Admin</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="admin-main">
+    <header class="admin-topbar">
+      <div class="admin-topbar-left">
+        <button class="admin-sidebar-toggle" onclick="openSidebar()">☰</button>
+        <div>
+          <div class="admin-page-title">${title}</div>
+          <div class="admin-breadcrumb">${breadcrumbHtml}</div>
+        </div>
+      </div>
+      <div class="admin-topbar-right">
+        <a href="/" target="_blank" class="admin-topbar-btn" title="View Site">🌐</a>
+        <a href="/logout" class="admin-topbar-btn" title="Logout">🚪</a>
+      </div>
+    </header>
+    <main class="admin-content">
+      ${content}
+    </main>
+  </div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('adminSidebar').classList.add('open');
+      document.getElementById('sidebarOverlay').classList.add('open');
+    }
+    function closeSidebar() {
+      document.getElementById('adminSidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('open');
+    }
+    setTimeout(() => {
+      document.querySelectorAll('.admin-alert').forEach(el => {
+        el.style.transition = 'opacity 0.4s';
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 400);
+      });
+    }, 4000);
+  </script>
+
+</body>
+</html>`;
+}
+
+// ─── DASHBOARD HTML ───────────────────────────────────────────────────────
+function renderAdminDashboard({ totalUsers, totalCourses, totalCategories, totalEnrollments, publishedCourses, totalModules, recentUsers, recentCourses, admin }) {
+const content = `
+<div class="admin-stats-grid">
+<div class="stat-card teal">
+<div class="stat-card-header">
+<div class="stat-card-icon">👥</div>
+<span class="stat-change up">Registered</span>
+</div>
+<div class="stat-value">${totalUsers.toLocaleString()}</div>
+<div class="stat-label">Total Students</div>
+</div>
+<div class="stat-card gold">
+<div class="stat-card-header">
+<div class="stat-card-icon">🎓</div>
+<span class="stat-change up">${publishedCourses} live</span>
+</div>
+<div class="stat-value">${totalCourses}</div>
+<div class="stat-label">Total Courses</div>
+</div>
+<div class="stat-card purple">
+<div class="stat-card-header">
+<div class="stat-card-icon">📋</div>
+<span class="stat-change up">All time</span>
+</div>
+<div class="stat-value">${totalEnrollments.toLocaleString()}</div>
+<div class="stat-label">Total Enrollments</div>
+</div>
+<div class="stat-card green">
+<div class="stat-card-header">
+<div class="stat-card-icon">🎬</div>
+<span class="stat-change up">Uploaded</span>
+</div>
+<div class="stat-value">${totalModules}</div>
+<div class="stat-label">Video Modules</div>
+</div>
+</div>
+
+```
+<div class="admin-card admin-mb-24">
+  <div class="admin-card-header">
+    <span class="admin-card-title">⚡ Quick Actions</span>
+  </div>
+  <div class="admin-card-body" style="display:flex;gap:12px;flex-wrap:wrap;">
+    <a href="/admin/courses?openCreate=1" class="btn-admin btn-admin-primary">➕ New Course</a>
+    <a href="/admin/categories?openCreate=1" class="btn-admin btn-admin-secondary">🗂️ New Category</a>
+    <a href="/" target="_blank" class="btn-admin btn-admin-secondary">🌐 View Live Site</a>
+  </div>
+</div>
+
+<div class="admin-two-col">
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <span class="admin-card-title">👥 Recent Signups</span>
+      <a href="/admin/users" class="btn-admin btn-admin-secondary btn-admin-sm">View All</a>
+    </div>
+    <div class="admin-card-body" style="padding:0 24px;">
+      <div class="enrollment-list">
+        ${recentUsers.length === 0
+          ? `<div class="admin-empty"><div class="admin-empty-title">No users yet</div></div>`
+          : recentUsers.map(u => `
+            <div class="enrollment-item">
+              <div class="enrollment-avatar">${u.firstName[0].toUpperCase()}</div>
+              <div class="enrollment-info">
+                <div class="enrollment-name">${u.firstName} ${u.lastName}</div>
+                <div class="enrollment-course">${u.email}</div>
+              </div>
+              <div class="text-muted" style="font-size:12px;">${new Date(u.createdAt).toLocaleDateString()}</div>
+            </div>`).join('')
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <span class="admin-card-title">🎓 Recent Courses</span>
+      <a href="/admin/courses" class="btn-admin btn-admin-secondary btn-admin-sm">View All</a>
+    </div>
+    <div class="admin-card-body" style="padding:0 24px;">
+      <div class="enrollment-list">
+        ${recentCourses.length === 0
+          ? `<div class="admin-empty"><div class="admin-empty-title">No courses yet</div></div>`
+          : recentCourses.map(c => `
+            <div class="enrollment-item">
+              <div class="enrollment-avatar">🎓</div>
+              <div class="enrollment-info">
+                <div class="enrollment-name">${c.title}</div>
+                <div class="enrollment-course">${c.category || 'Uncategorized'}</div>
+              </div>
+              <span class="status-badge ${c.isPublished ? 'published' : 'draft'}">${c.isPublished ? 'Live' : 'Draft'}</span>
+            </div>`).join('')
+        }
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+`;
+return adminShell({ title: ‘Dashboard’, activePage: ‘dashboard’, content, admin });
+}
+
+// ─── CATEGORIES HTML ──────────────────────────────────────────────────────
+function renderAdminCategories({ categories, admin, success, error }) {
+const content = `${success ?`<div class="admin-alert success">✅ ${decodeURIComponent(success)}</div>`: ''} ${error   ?`<div class="admin-alert error">❌ ${decodeURIComponent(error)}</div>` : ‘’}
+
+```
+<div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
+  <button class="btn-admin btn-admin-primary" onclick="openModal('createCategoryModal')">➕ Add Category</button>
+</div>
+
+<div class="admin-card">
+  <div class="admin-card-header">
+    <span class="admin-card-title">🗂️ All Categories (${categories.length})</span>
+  </div>
+  ${categories.length === 0 ? `
+    <div class="admin-empty">
+      <div class="admin-empty-icon">🗂️</div>
+      <div class="admin-empty-title">No categories yet</div>
+      <button class="btn-admin btn-admin-primary" onclick="openModal('createCategoryModal')">Create First Category</button>
+    </div>
+  ` : `
+    <div class="admin-table-wrapper">
+      <table class="admin-table">
+        <thead><tr>
+          <th>Order</th><th>Icon</th><th>Name</th><th>Slug</th><th>Visible</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          ${categories.map(cat => `
+            <tr>
+              <td class="font-mono text-muted">#${cat.order||'—'}</td>
+              <td style="font-size:20px;">${cat.icon||'📚'}</td>
+              <td><strong>${cat.name}</strong></td>
+              <td class="font-mono text-muted" style="font-size:12px;">${cat.slug||''}</td>
+              <td><span class="status-badge ${cat.isVisible ? 'published' : 'draft'}">${cat.isVisible ? 'Visible' : 'Hidden'}</span></td>
+              <td>
+                <div class="table-actions">
+                  <button class="btn-admin btn-admin-secondary btn-admin-sm btn-admin-icon"
+                    onclick='openEditCategory(${JSON.stringify({
+                      id: cat._id.toString(),
+                      name: cat.name,
+                      description: cat.description||'',
+                      icon: cat.icon||'📚',
+                      color: cat.color||'#0D9488',
+                      order: cat.order||1,
+                      isVisible: cat.isVisible
+                    })})'>✏️</button>
+                  <form action="/admin/categories/${cat._id}/delete" method="POST" style="display:inline;"
+                    onsubmit="return confirm('Delete: ${cat.name}?')">
+                    <button type="submit" class="btn-admin btn-admin-danger btn-admin-sm btn-admin-icon">🗑️</button>
+                  </form>
+                </div>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `}
+</div>
+
+<!-- CREATE MODAL -->
+<div class="admin-modal-overlay" id="createCategoryModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <span class="admin-modal-title">➕ Add Category</span>
+      <button class="admin-modal-close" onclick="closeModal('createCategoryModal')">×</button>
+    </div>
+    <form action="/admin/categories" method="POST">
+      <div class="admin-form-group">
+        <label class="admin-form-label">Name <span class="required">*</span></label>
+        <input type="text" name="name" class="admin-form-input" placeholder="e.g. CEE Preparation" required>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Icon (emoji)</label>
+          <input type="text" name="icon" class="admin-form-input" value="📚">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Color</label>
+          <input type="color" name="color" class="admin-form-input" value="#0D9488" style="height:42px;padding:4px;">
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Description</label>
+        <textarea name="description" class="admin-form-textarea" style="min-height:70px;"></textarea>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Display Order</label>
+        <input type="number" name="order" class="admin-form-input" value="${categories.length+1}" min="1">
+        <div class="admin-form-hint">Lower number = appears first on homepage</div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('createCategoryModal')">Cancel</button>
+        <button type="submit" class="btn-admin btn-admin-primary">Create Category</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="admin-modal-overlay" id="editCategoryModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <span class="admin-modal-title">✏️ Edit Category</span>
+      <button class="admin-modal-close" onclick="closeModal('editCategoryModal')">×</button>
+    </div>
+    <form id="editCategoryForm" action="" method="POST">
+      <div class="admin-form-group">
+        <label class="admin-form-label">Name</label>
+        <input type="text" name="name" id="editCatName" class="admin-form-input" required>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Icon</label>
+          <input type="text" name="icon" id="editCatIcon" class="admin-form-input">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Color</label>
+          <input type="color" name="color" id="editCatColor" class="admin-form-input" style="height:42px;padding:4px;">
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Description</label>
+        <textarea name="description" id="editCatDesc" class="admin-form-textarea" style="min-height:70px;"></textarea>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Display Order</label>
+          <input type="number" name="order" id="editCatOrder" class="admin-form-input" min="1">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Visibility</label>
+          <div class="admin-toggle-wrap" style="margin-top:10px;">
+            <label class="admin-toggle">
+              <input type="checkbox" name="isActive" id="editCatActive">
+              <span class="admin-toggle-slider"></span>
+            </label>
+            <span class="admin-toggle-label">Show on homepage</span>
+          </div>
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('editCategoryModal')">Cancel</button>
+        <button type="submit" class="btn-admin btn-admin-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  if (new URLSearchParams(location.search).get('openCreate')) openModal('createCategoryModal');
+  function openEditCategory(cat) {
+    document.getElementById('editCategoryForm').action = '/admin/categories/' + cat.id + '/edit';
+    document.getElementById('editCatName').value = cat.name;
+    document.getElementById('editCatIcon').value = cat.icon;
+    document.getElementById('editCatColor').value = cat.color;
+    document.getElementById('editCatDesc').value = cat.description;
+    document.getElementById('editCatOrder').value = cat.order;
+    document.getElementById('editCatActive').checked = cat.isVisible;
+    openModal('editCategoryModal');
+  }
+  document.querySelectorAll('.admin-modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+</script>
+```
+
+`;
+return adminShell({ title: ‘Categories’, activePage: ‘categories’, content, admin, breadcrumb: [{label:‘Categories’}] });
+}
+
+// ─── COURSES HTML ─────────────────────────────────────────────────────────
+function renderAdminCourses({ courses, categories, filters, admin, success, error }) {
+const content = `${success ?`<div class="admin-alert success">✅ ${decodeURIComponent(success)}</div>`: ''} ${error   ?`<div class="admin-alert error">❌ ${decodeURIComponent(error)}</div>` : ‘’}
+
+```
+<div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
+  <button class="btn-admin btn-admin-primary" onclick="openModal('createCourseModal')">➕ New Course</button>
+</div>
+
+<div class="admin-card admin-mb-24">
+  <div class="admin-card-body" style="padding:16px 24px;">
+    <form method="GET" action="/admin/courses">
+      <div class="admin-filter-bar">
+        <div class="admin-search-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" name="search" class="admin-search" placeholder="Search courses..." value="${filters.search||''}">
+        </div>
+        <select name="status" class="admin-select">
+          <option value="">All Status</option>
+          <option value="published" ${filters.status==='published'?'selected':''}>Published</option>
+          <option value="draft"     ${filters.status==='draft'    ?'selected':''}>Draft</option>
+          <option value="free"      ${filters.status==='free'     ?'selected':''}>Free</option>
+          <option value="paid"      ${filters.status==='paid'     ?'selected':''}>Paid</option>
+        </select>
+        <button type="submit" class="btn-admin btn-admin-secondary">Filter</button>
+        <a href="/admin/courses" class="btn-admin btn-admin-secondary">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="admin-card">
+  <div class="admin-card-header">
+    <span class="admin-card-title">🎓 All Courses (${courses.length})</span>
+  </div>
+  ${courses.length === 0 ? `
+    <div class="admin-empty">
+      <div class="admin-empty-icon">🎓</div>
+      <div class="admin-empty-title">No courses found</div>
+      <button class="btn-admin btn-admin-primary" onclick="openModal('createCourseModal')">Create First Course</button>
+    </div>
+  ` : `
+    <div class="admin-table-wrapper">
+      <table class="admin-table">
+        <thead><tr>
+          <th>Thumbnail</th><th>Title</th><th>Category</th><th>Price</th><th>Level</th><th>Status</th><th>Featured</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          ${courses.map(c => `
+            <tr>
+              <td>
+                ${c.imagePath
+                  ? `<img src="${c.imagePath}" class="table-thumb" alt="">`
+                  : `<div class="table-thumb" style="background:rgba(13,148,136,0.1);display:flex;align-items:center;justify-content:center;">🎓</div>`
+                }
+              </td>
+              <td><strong>${c.title}</strong></td>
+              <td class="text-muted">${c.category||'None'}</td>
+              <td class="${c.price===0?'text-success':'text-gold'} font-mono">
+                ${c.price===0?'FREE':'NPR '+c.price}
+              </td>
+              <td class="text-muted">${c.level||'Beginner'}</td>
+              <td><span class="status-badge ${c.isPublished?'published':'draft'}">${c.isPublished?'Published':'Draft'}</span></td>
+              <td>
+                <form action="/admin/courses/${c._id}/toggle-featured" method="POST" style="display:inline;">
+                  <button type="submit" class="btn-admin btn-admin-sm ${c.isFeatured?'btn-admin-gold':'btn-admin-secondary'}">${c.isFeatured?'⭐ Yes':'☆ No'}</button>
+                </form>
+              </td>
+              <td>
+                <div class="table-actions">
+                  <a href="/admin/course/${c._id}/modules" class="btn-admin btn-admin-secondary btn-admin-sm btn-admin-icon" title="Modules">🎬</a>
+                  <button class="btn-admin btn-admin-secondary btn-admin-sm btn-admin-icon"
+                    onclick='openEditCourse(${JSON.stringify({
+                      id: c._id.toString(),
+                      title: c.title,
+                      description: c.description||'',
+                      category: c.category||'',
+                      price: c.price||0,
+                      isFree: c.price===0,
+                      isPublished: c.isPublished,
+                      level: c.level||'Beginner'
+                    })})'>✏️</button>
+                  <form action="/admin/courses/${c._id}/delete" method="POST" style="display:inline;"
+                    onsubmit="return confirm('Delete: ${c.title.replace(/'/g,"\\'")}? All modules deleted too.')">
+                    <button type="submit" class="btn-admin btn-admin-danger btn-admin-sm btn-admin-icon">🗑️</button>
+                  </form>
+                </div>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `}
+</div>
+
+<!-- CREATE COURSE MODAL -->
+<div class="admin-modal-overlay" id="createCourseModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <span class="admin-modal-title">➕ New Course</span>
+      <button class="admin-modal-close" onclick="closeModal('createCourseModal')">×</button>
+    </div>
+    <form action="/admin/courses" method="POST" enctype="multipart/form-data">
+      <div class="admin-form-group">
+        <label class="admin-form-label">Title <span class="required">*</span></label>
+        <input type="text" name="title" class="admin-form-input" placeholder="e.g. CEE Physics Complete Course" required>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Description</label>
+        <textarea name="description" class="admin-form-textarea"></textarea>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Category</label>
+          <select name="category" class="admin-form-select">
+            <option value="">Select category</option>
+            ${categories.map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Level</label>
+          <select name="level" class="admin-form-select">
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Price (NPR)</label>
+        <input type="number" name="price" id="createPrice" class="admin-form-input" placeholder="0 for free" min="0">
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Free Course?</label>
+          <div class="admin-toggle-wrap" style="margin-top:10px;">
+            <label class="admin-toggle">
+              <input type="checkbox" name="isFree" id="createIsFree"
+                onchange="document.getElementById('createPrice').disabled=this.checked">
+              <span class="admin-toggle-slider"></span>
+            </label>
+            <span class="admin-toggle-label">Free for all students</span>
+          </div>
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Publish Now?</label>
+          <div class="admin-toggle-wrap" style="margin-top:10px;">
+            <label class="admin-toggle">
+              <input type="checkbox" name="isPublished">
+              <span class="admin-toggle-slider"></span>
+            </label>
+            <span class="admin-toggle-label">Visible to students</span>
+          </div>
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Thumbnail</label>
+        <input type="file" name="thumbnail" accept="image/*" class="admin-form-input" style="padding:8px;">
+        <div class="admin-form-hint">JPG/PNG/WebP, max 5MB. Recommended: 1280×720</div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('createCourseModal')">Cancel</button>
+        <button type="submit" class="btn-admin btn-admin-primary">Create & Add Modules →</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT COURSE MODAL -->
+<div class="admin-modal-overlay" id="editCourseModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <span class="admin-modal-title">✏️ Edit Course</span>
+      <button class="admin-modal-close" onclick="closeModal('editCourseModal')">×</button>
+    </div>
+    <form id="editCourseForm" action="" method="POST" enctype="multipart/form-data">
+      <div class="admin-form-group">
+        <label class="admin-form-label">Title</label>
+        <input type="text" name="title" id="editCourseTitle" class="admin-form-input" required>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Description</label>
+        <textarea name="description" id="editCourseDesc" class="admin-form-textarea"></textarea>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Category</label>
+          <select name="category" id="editCourseCat" class="admin-form-select">
+            <option value="">No category</option>
+            ${categories.map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Level</label>
+          <select name="level" id="editCourseLevel" class="admin-form-select">
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Price (NPR)</label>
+          <input type="number" name="price" id="editCoursePrice" class="admin-form-input" min="0">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Published?</label>
+          <div class="admin-toggle-wrap" style="margin-top:10px;">
+            <label class="admin-toggle">
+              <input type="checkbox" name="isPublished" id="editCoursePublished">
+              <span class="admin-toggle-slider"></span>
+            </label>
+            <span class="admin-toggle-label">Live on site</span>
+          </div>
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">New Thumbnail (optional)</label>
+        <input type="file" name="thumbnail" accept="image/*" class="admin-form-input" style="padding:8px;">
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('editCourseModal')">Cancel</button>
+        <button type="submit" class="btn-admin btn-admin-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  if (new URLSearchParams(location.search).get('openCreate')) openModal('createCourseModal');
+  function openEditCourse(c) {
+    document.getElementById('editCourseForm').action = '/admin/courses/' + c.id + '/edit';
+    document.getElementById('editCourseTitle').value  = c.title;
+    document.getElementById('editCourseDesc').value   = c.description;
+    document.getElementById('editCourseCat').value    = c.category;
+    document.getElementById('editCoursePrice').value  = c.price;
+    document.getElementById('editCourseLevel').value  = c.level;
+    document.getElementById('editCoursePublished').checked = c.isPublished;
+    openModal('editCourseModal');
+  }
+  document.querySelectorAll('.admin-modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+</script>
+```
+
+`;
+return adminShell({ title: ‘Courses’, activePage: ‘courses’, content, admin, breadcrumb: [{label:‘Courses’}] });
+}
+
+// ─── MODULES HTML ─────────────────────────────────────────────────────────
+function renderAdminModules({ course, modules, admin, success, error }) {
+const content = `${success ?`<div class="admin-alert success">✅ ${decodeURIComponent(success)}</div>`: ''} ${error   ?`<div class="admin-alert error">❌ ${decodeURIComponent(error)}</div>` : ‘’}
+
+```
+<div class="admin-card admin-mb-24">
+  <div class="admin-card-body" style="padding:20px 24px;">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      ${course.imagePath
+        ? `<img src="${course.imagePath}" style="width:80px;height:50px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,0.08);" alt="">`
+        : `<div style="width:80px;height:50px;border-radius:8px;background:rgba(13,148,136,0.1);display:flex;align-items:center;justify-content:center;font-size:24px;">🎓</div>`
+      }
+      <div style="flex:1;">
+        <div style="font-family:Montserrat,sans-serif;font-weight:700;font-size:18px;">${course.title}</div>
+        <div style="font-size:13px;color:#6B7280;margin-top:4px;">
+          ${course.category||'Uncategorized'} ·
+          <span class="${course.price===0?'text-success':'text-gold'}">${course.price===0?'Free':'NPR '+course.price}</span> ·
+          <span class="status-badge ${course.isPublished?'published':'draft'}" style="margin-left:4px;">${course.isPublished?'Published':'Draft'}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/admin/courses" class="btn-admin btn-admin-secondary btn-admin-sm">← All Courses</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:flex-start;">
+
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <span class="admin-card-title">🎬 Modules (${modules.length})</span>
+      <button class="btn-admin btn-admin-primary btn-admin-sm" onclick="openModal('addModuleModal')">➕ Add Module</button>
+    </div>
+    ${modules.length === 0 ? `
+      <div class="admin-empty">
+        <div class="admin-empty-icon">🎬</div>
+        <div class="admin-empty-title">No modules yet</div>
+        <div class="admin-empty-text">Add your first video module to this course</div>
+        <button class="btn-admin btn-admin-primary" onclick="openModal('addModuleModal')">Add First Module</button>
+      </div>
+    ` : `
+      <div style="padding:16px;">
+        <div class="module-list" id="moduleList">
+          ${modules.map((m, i) => `
+            <div class="module-item" data-id="${m._id}" draggable="true">
+              <div class="module-drag-handle">⋮⋮</div>
+              <div class="module-number">${i+1}</div>
+              <div class="module-info">
+                <div class="module-title">${m.title}</div>
+                <div class="module-meta">
+                  ${m.videoFilename ? '📹 Video uploaded' : '⚠️ No video yet'} ·
+                  ${m.isFreePreview ? '<span style="color:#34D399;">Free preview</span>' : 'Paid only'}
+                </div>
+              </div>
+              <span class="module-type-badge ${m.isFreePreview?'free-preview':'video'}">
+                ${m.isFreePreview?'Free Preview':'Paid'}
+              </span>
+              <div class="module-actions">
+                <button class="btn-admin btn-admin-secondary btn-admin-sm btn-admin-icon"
+                  onclick='openEditModule(${JSON.stringify({
+                    id: m._id.toString(),
+                    title: m.title,
+                    description: m.description||'',
+                    isFreePreview: m.isFreePreview,
+                    order: m.order||(i+1)
+                  })})'>✏️</button>
+                <form action="/admin/module/${m._id}/delete" method="POST" style="display:inline;"
+                  onsubmit="return confirm('Delete module?')">
+                  <button type="submit" class="btn-admin btn-admin-danger btn-admin-sm btn-admin-icon">🗑️</button>
+                </form>
+              </div>
+            </div>`).join('')}
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#4B5563;text-align:center;">⋮⋮ Drag to reorder</div>
+      </div>
+    `}
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="admin-card">
+      <div class="admin-card-header"><span class="admin-card-title">📊 Stats</span></div>
+      <div class="admin-card-body">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:13px;color:#6B7280;">Total Modules</span>
+            <span style="font-weight:700;">${modules.length}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:13px;color:#6B7280;">Free Previews</span>
+            <span style="font-weight:700;color:#34D399;">${modules.filter(m=>m.isFreePreview).length}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:13px;color:#6B7280;">Videos Uploaded</span>
+            <span style="font-weight:700;color:#60A5FA;">${modules.filter(m=>m.videoFilename).length}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="admin-card">
+      <div class="admin-card-header"><span class="admin-card-title">💡 Tips</span></div>
+      <div class="admin-card-body" style="font-size:13px;color:#9CA3AF;line-height:1.9;">
+        <p>✅ <strong style="color:#E5E7EB;">MP4</strong> — works on all devices</p>
+        <p>✅ Keep videos <strong style="color:#E5E7EB;">under 200MB</strong> for speed</p>
+        <p>✅ Mark 1–2 intro modules as <strong style="color:#2DD4BF;">Free Preview</strong></p>
+        <p>✅ Number modules clearly e.g. "Chapter 1: Introduction"</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MODULE MODAL -->
+<div class="admin-modal-overlay" id="addModuleModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <span class="admin-modal-title">➕ Add Module</span>
+      <button class="admin-modal-close" onclick="closeModal('addModuleModal')">×</button>
+    </div>
+    <form action="/admin/course/${course._id}/modules" method="POST" enctype="multipart/form-data" id="uploadForm">
+      <div class="admin-form-group">
+        <label class="admin-form-label">Module Title <span class="required">*</span></label>
+        <input type="text" name="title" class="admin-form-input" placeholder="e.g. Chapter 1: Introduction" required>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Description (optional)</label>
+        <textarea name="description" class="admin-form-textarea" style="min-height:70px;"></textarea>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Order</label>
+          <input type="number" name="order" class="admin-form-input" value="${modules.length+1}" min="1">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Free Preview?</label>
+          <div class="admin-toggle-wrap" style="margin-top:10px;">
+            <label class="admin-toggle">
+              <input type="checkbox" name="isFreePreview">
+              <span class="admin-toggle-slider"></span>
+            </label>
+            <span class="admin-toggle-label">Visible to all</span>
+          </div>
+        </div>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Upload Video</label>
+        <div class="admin-upload-zone" id="uploadZone">
+          <input type="file" name="video" accept="video/*" id="videoInput" onchange="handleVideoSelect(this)">
+          <div class="upload-icon">📹</div>
+          <div class="upload-title">Click or drag video here</div>
+          <div class="upload-subtitle">MP4, MKV, MOV · Max <strong>2GB</strong></div>
+        </div>
+        <div class="upload-progress-wrap" id="uploadProgress">
+          <div style="font-size:13px;color:#9CA3AF;margin-bottom:8px;" id="uploadFileName">Uploading...</div>
+          <div class="upload-progress-bar">
+            <div class="upload-progress-fill" id="uploadFill"></div>
+          </div>
+          <div class="upload-progress-text" id="uploadPct">0%</div>
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('addModuleModal')">Cancel</button>
+        <button type="submit" class="btn-admin btn-admin-primary" id="uploadSubmitBtn">Upload & Save Module</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT MODULE MODAL -->
+<div class="admin-modal-overlay" id="editModuleModal">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <span class="admin-modal-title">✏️ Edit Module</span>
+      <button class="admin-modal-close" onclick="closeModal('editModuleModal')">×</button>
+    </div>
+    <form id="editModuleForm" action="" method="POST">
+      <div class="admin-form-group">
+        <label class="admin-form-label">Title</label>
+        <input type="text" name="title" id="editModTitle" class="admin-form-input" required>
+      </div>
+      <div class="admin-form-group">
+        <label class="admin-form-label">Description</label>
+        <textarea name="description" id="editModDesc" class="admin-form-textarea" style="min-height:70px;"></textarea>
+      </div>
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label class="admin-form-label">Order</label>
+          <input type="number" name="order" id="editModOrder" class="admin-form-input" min="1">
+        </div>
+        <div class="admin-form-group">
+          <label class="admin-form-label">Free Preview?</label>
+          <div class="admin-toggle-wrap" style="margin-top:10px;">
+            <label class="admin-toggle">
+              <input type="checkbox" name="isFreePreview" id="editModFree">
+              <span class="admin-toggle-slider"></span>
+            </label>
+            <span class="admin-toggle-label">Visible to all</span>
+          </div>
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal('editModuleModal')">Cancel</button>
+        <button type="submit" class="btn-admin btn-admin-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  document.querySelectorAll('.admin-modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+  function openEditModule(m) {
+    document.getElementById('editModuleForm').action = '/admin/module/' + m.id + '/edit';
+    document.getElementById('editModTitle').value    = m.title;
+    document.getElementById('editModDesc').value     = m.description;
+    document.getElementById('editModOrder').value    = m.order;
+    document.getElementById('editModFree').checked  = m.isFreePreview;
+    openModal('editModuleModal');
+  }
+  function handleVideoSelect(input) {
+    if (input.files[0]) {
+      const size = (input.files[0].size/1024/1024).toFixed(1);
+      document.querySelector('.upload-title').textContent = input.files[0].name;
+      document.querySelector('.upload-subtitle').textContent = size + ' MB selected ✅';
+    }
+  }
+  // XHR upload with progress bar
+  document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const videoInput = document.getElementById('videoInput');
+    if (!videoInput.files[0]) return; // no video — regular form submit
+    e.preventDefault();
+    const formData = new FormData(this);
+    const xhr = new XMLHttpRequest();
+    document.getElementById('uploadProgress').classList.add('visible');
+    document.getElementById('uploadFileName').textContent = 'Uploading: ' + videoInput.files[0].name;
+    document.getElementById('uploadSubmitBtn').disabled = true;
+    document.getElementById('uploadSubmitBtn').textContent = 'Uploading...';
+    xhr.upload.addEventListener('progress', evt => {
+      if (evt.lengthComputable) {
+        const pct = Math.round(evt.loaded/evt.total*100);
+        document.getElementById('uploadFill').style.width = pct + '%';
+        document.getElementById('uploadPct').textContent = pct + '%';
+      }
+    });
+    xhr.addEventListener('load', () => {
+      window.location.href = '/admin/course/${course._id}/modules?success=Module+added+successfully';
+    });
+    xhr.addEventListener('error', () => {
+      alert('Upload failed. Check your connection and try again.');
+      document.getElementById('uploadSubmitBtn').disabled = false;
+      document.getElementById('uploadSubmitBtn').textContent = 'Upload & Save Module';
+    });
+    xhr.open('POST', '/admin/course/${course._id}/modules');
+    xhr.send(formData);
+  });
+  // Drag-to-reorder
+  let dragSrc = null;
+  const list = document.getElementById('moduleList');
+  if (list) {
+    list.querySelectorAll('.module-item').forEach(item => {
+      item.addEventListener('dragstart', () => { dragSrc = item; item.style.opacity='0.4'; });
+      item.addEventListener('dragend',   () => { item.style.opacity='1'; saveOrder(); });
+      item.addEventListener('dragover',  e => e.preventDefault());
+      item.addEventListener('drop',      e => { e.preventDefault(); if(dragSrc!==item) list.insertBefore(dragSrc,item); });
+    });
+  }
+  function saveOrder() {
+    const ids = [...document.querySelectorAll('.module-item')].map(el=>el.dataset.id);
+    fetch('/admin/course/${course._id}/modules/reorder', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ order: ids })
+    });
+    document.querySelectorAll('.module-number').forEach((el,i) => el.textContent = i+1);
+  }
+</script>
+```
+
+`;
+return adminShell({
+title: ’Modules — ’ + course.title,
+activePage: ‘courses’,
+content,
+admin,
+breadcrumb: [
+{ label: ‘Courses’, href: ‘/admin/courses’ },
+{ label: course.title, href: ‘/admin/courses’ },
+{ label: ‘Modules’ }
+]
+});
+}
+
+
 
 // ============================================
 // START SERVER -- ALWAYS LAST

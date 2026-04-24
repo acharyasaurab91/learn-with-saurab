@@ -1,75 +1,122 @@
-/* ============================================
-   LEARN WITH SAURAB -- mobile-nav.js
-   Hamburger menu logic
-   ============================================ */
+// ============================================
+// LEARN WITH SAURAB — mobile-nav.js
+// Hamburger menu + mobile navigation
+// ============================================
 
-document.addEventListener('DOMContentLoaded', function() {
-  const hamburger = document.getElementById('hamburger');
-  const navLinks  = document.getElementById('navLinks');
+document.addEventListener(‘DOMContentLoaded’, function () {
 
-  if (!hamburger || !navLinks) return;
+const hamburger = document.getElementById(‘hamburger’);
+const navLinks  = document.getElementById(‘navLinks’);
 
-  // Create overlay
-  const overlay = document.createElement('div');
-  overlay.className = 'nav-overlay';
+// Create mobile nav overlay if it doesn’t exist
+let mobileNav = document.getElementById(‘mobileNav’);
+
+if (!mobileNav && hamburger) {
+// Build mobile menu from existing nav links
+mobileNav = document.createElement(‘div’);
+mobileNav.id = ‘mobileNav’;
+mobileNav.className = ‘mobile-nav’;
+
+```
+// Get all nav link items
+const links = navLinks ? navLinks.querySelectorAll('.nav-link') : [];
+const navActions = document.querySelector('.nav-actions');
+
+links.forEach(function (link) {
+  const a = document.createElement('a');
+  a.href = link.href;
+  a.textContent = link.textContent.trim();
+  a.className = 'nav-link';
+  mobileNav.appendChild(a);
+});
+
+// Add login/signup buttons
+if (navActions) {
+  const btns = navActions.querySelectorAll('a');
+  btns.forEach(function (btn) {
+    if (!btn.classList.contains('hamburger') && btn.tagName === 'A') {
+      const cloned = btn.cloneNode(true);
+      mobileNav.appendChild(cloned);
+    }
+  });
+}
+
+document.body.appendChild(mobileNav);
+```
+
+}
+
+if (!hamburger) return;
+
+// Toggle mobile menu
+hamburger.addEventListener(‘click’, function () {
+const isOpen = mobileNav && mobileNav.classList.contains(‘open’);
+
+```
+if (mobileNav) {
+  mobileNav.classList.toggle('open');
+}
+
+hamburger.classList.toggle('open');
+
+// Prevent body scroll when menu is open
+document.body.style.overflow = isOpen ? '' : 'hidden';
+```
+
+});
+
+// Close menu when a link is clicked
+if (mobileNav) {
+mobileNav.querySelectorAll(‘a’).forEach(function (link) {
+link.addEventListener(‘click’, function () {
+mobileNav.classList.remove(‘open’);
+hamburger.classList.remove(‘open’);
+document.body.style.overflow = ‘’;
+});
+});
+}
+
+// Close on outside click
+document.addEventListener(‘click’, function (e) {
+if (mobileNav && mobileNav.classList.contains(‘open’)) {
+if (!hamburger.contains(e.target) && !mobileNav.contains(e.target)) {
+mobileNav.classList.remove(‘open’);
+hamburger.classList.remove(‘open’);
+document.body.style.overflow = ‘’;
+}
+}
+});
+
+// ─── DASHBOARD SIDEBAR TOGGLE ───
+const sidebarToggle = document.getElementById(‘sidebarToggle’);
+const sidebar = document.getElementById(‘sidebar’);
+
+if (sidebarToggle && sidebar) {
+
+```
+// Create overlay
+let overlay = document.getElementById('sidebarOverlay');
+if (!overlay) {
+  overlay = document.createElement('div');
+  overlay.id = 'sidebarOverlay';
+  overlay.className = 'sidebar-overlay';
   document.body.appendChild(overlay);
+}
 
-  // Open menu
-  function openMenu() {
-    navLinks.classList.add('nav-open');
-    overlay.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    hamburger.setAttribute('aria-expanded', 'true');
+sidebarToggle.addEventListener('click', function () {
+  sidebar.classList.toggle('sidebar-open');
+  overlay.classList.toggle('active');
+  document.body.style.overflow = sidebar.classList.contains('sidebar-open') ? 'hidden' : '';
+});
 
-    // Animate hamburger to X
-    const spans = hamburger.querySelectorAll('span');
-    spans[0].style.transform = 'rotate(45deg) translate(5px, 5px)';
-    spans[1].style.opacity = '0';
-    spans[2].style.transform = 'rotate(-45deg) translate(5px, -5px)';
-  }
+overlay.addEventListener('click', function () {
+  sidebar.classList.remove('sidebar-open');
+  overlay.classList.remove('active');
+  document.body.style.overflow = '';
+});
+```
 
-  // Close menu
-  function closeMenu() {
-    navLinks.classList.remove('nav-open');
-    overlay.classList.remove('active');
-    document.body.style.overflow = '';
-    hamburger.setAttribute('aria-expanded', 'false');
+}
 
-    // Reset hamburger
-    const spans = hamburger.querySelectorAll('span');
-    spans[0].style.transform = '';
-    spans[1].style.opacity = '';
-    spans[2].style.transform = '';
-  }
-
-  // Toggle on hamburger click
-  hamburger.addEventListener('click', function() {
-    if (navLinks.classList.contains('nav-open')) {
-      closeMenu();
-    } else {
-      openMenu();
-    }
-  });
-
-  // Close on overlay click
-  overlay.addEventListener('click', closeMenu);
-
-  // Close on nav link click
-  navLinks.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', closeMenu);
-  });
-
-  // Close on Escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && navLinks.classList.contains('nav-open')) {
-      closeMenu();
-    }
-  });
-
-  // Close on resize to desktop
-  window.addEventListener('resize', function() {
-    if (window.innerWidth > 768) {
-      closeMenu();
-    }
-  });
+console.log(‘✅ Learn with Saurab — mobile-nav.js loaded’);
 });
