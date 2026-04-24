@@ -2202,7 +2202,7 @@ app.get('/dashboard', requireAuth, async (req, res) => {
 // imageUpload and videoUpload already defined above — we reuse them directly
 
 // ─── GET /admin — Dashboard ───────────────────────────────────────────────
-app.get(’/admin’, requireAdmin, async (req, res) => {
+app.get('/admin', requireAdmin, async (req, res) => {
 try {
 const user = await User.findById(req.session.userId);
 
