@@ -261,7 +261,7 @@ if (req.body) {
 Object.keys(req.body).forEach(key => {
 if (typeof req.body[key] === ‘string’) {
 req.body[key] = req.body[key]
-.replace(/<script[^>]*>.*?</script>/gi, ‘’)
+.replace(/<script[^>]*>[\s\S]*?</script>/gi, ‘’)
 .replace(/javascript:/gi, ‘’)
 .trim();
 }
@@ -504,8 +504,8 @@ const featuredCourses = await Course.find({ isFeatured: true, isPublished: true 
 const freeTests = await Test.find({ isFree: true, isPublished: true }).limit(4);
 const user = req.session.userId ? await User.findById(req.session.userId) : null;
 
-```
 const categoriesHtml = categories.map(cat => `
+
   <div class="category-card" style="--card-color: ${cat.color}">
     <div class="category-icon">
       <i class="${cat.icon}"></i>
@@ -524,51 +524,14 @@ const categoriesHtml = categories.map(cat => `
 `).join('');
 
 const coursesHtml = featuredCourses.length > 0
-  ? featuredCourses.map(course => `
-    <div class="course-card">
-      <div class="course-thumb">
-        ${course.imagePath
-          ? `<img src="${course.imagePath}" alt="${course.title}">`
-          : course.imageUrl
-          ? `<img src="${course.imageUrl}" alt="${course.title}">`
-          : `<div class="thumb-placeholder"><i class="fas fa-book-open"></i></div>`
-        }
-        ${course.price === 0
-          ? `<span class="badge badge-free">FREE</span>`
-          : `<span class="badge badge-paid">NPR ${course.price}</span>`
-        }
-      </div>
-      <div class="course-info">
-        <span class="course-category-tag">${course.category || 'General'}</span>
-        <h3>${course.title}</h3>
-        <p>${course.description.substring(0, 80)}...</p>
-        <div class="course-footer">
-          <span class="course-price">${course.price === 0 ? 'Free' : 'NPR ' + course.price}</span>
-          <a href="/course-preview/${course._id}" class="btn-enroll">View Course</a>
-        </div>
-      </div>
-    </div>
-  `).join('')
-  : `<div class="empty-state"><i class="fas fa-book-open"></i><p>Courses coming soon!</p></div>`;
+? featuredCourses.map(course => `<div class="course-card"> <div class="course-thumb"> ${course.imagePath ?`<img src="${course.imagePath}" alt="${course.title}">`: course.imageUrl ?`<img src="${course.imageUrl}" alt="${course.title}">`:`<div class="thumb-placeholder"><i class="fas fa-book-open"></i></div>`} ${course.price === 0 ?`<span class="badge badge-free">FREE</span>`:`<span class="badge badge-paid">NPR ${course.price}</span>`} </div> <div class="course-info"> <span class="course-category-tag">${course.category || 'General'}</span> <h3>${course.title}</h3> <p>${course.description.substring(0, 80)}...</p> <div class="course-footer"> <span class="course-price">${course.price === 0 ? 'Free' : 'NPR ' + course.price}</span> <a href="/course-preview/${course._id}" class="btn-enroll">View Course</a> </div> </div> </div>`).join(’’)
+: `<div class="empty-state"><i class="fas fa-book-open"></i><p>Courses coming soon!</p></div>`;
 
 const testsHtml = freeTests.length > 0
-  ? freeTests.map(test => `
-    <div class="test-card">
-      <div class="test-icon"><i class="fas fa-clipboard-list"></i></div>
-      <div class="test-info">
-        <h4>${test.title}</h4>
-        <div class="test-meta">
-          <span><i class="fas fa-question-circle"></i> ${test.questions.length} Questions</span>
-          <span><i class="fas fa-clock"></i> ${test.duration} mins</span>
-        </div>
-        <a href="/take-test/${test._id}" class="btn-test">Start Free Test</a>
-      </div>
-    </div>
-  `).join('')
-  : `<div class="empty-state"><p>Free tests coming soon!</p></div>`;
+? freeTests.map(test => `<div class="test-card"> <div class="test-icon"><i class="fas fa-clipboard-list"></i></div> <div class="test-info"> <h4>${test.title}</h4> <div class="test-meta"> <span><i class="fas fa-question-circle"></i> ${test.questions.length} Questions</span> <span><i class="fas fa-clock"></i> ${test.duration} mins</span> </div> <a href="/take-test/${test._id}" class="btn-test">Start Free Test</a> </div> </div>`).join(’’)
+: `<div class="empty-state"><p>Free tests coming soon!</p></div>`;
 
 res.send(`<!DOCTYPE html>
-```
 
 <html lang="en">
 <head>
@@ -874,7 +837,7 @@ res.send(`<!DOCTYPE html>
       <p class="text-muted">Didn't receive it? Check your spam folder.</p>
       <a href="/resend-verification" class="btn-auth-outline">Resend Email</a>
       <div class="auth-footer-links">
-        <a href="/login">Back to Login</a> &nbsp;•&nbsp; <a href="/">Home</a>
+        <a href="/login">Back to Login</a> &nbsp;*&nbsp; <a href="/">Home</a>
       </div>
     </div>
   </div>
@@ -890,10 +853,8 @@ emailVerifyToken: req.params.token,
 emailVerifyExpires: { $gt: Date.now() }
 });
 
-```
 if (!user) {
-  return res.send(`<!DOCTYPE html>
-```
+return res.send(`<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -921,7 +882,6 @@ if (!user) {
 </html>`);
     }
 
-```
 // Activate account
 user.isVerified = true;
 user.emailVerifyToken = undefined;
@@ -934,8 +894,7 @@ req.session.userId = user._id;
 // Send welcome email (non-blocking)
 sendWelcomeEmail(user).catch(console.error);
 
-res.redirect('/dashboard');
-```
+res.redirect(’/dashboard’);
 
 } catch (err) {
 console.error(‘Verify email error:’, err);
@@ -964,8 +923,8 @@ res.send(`<!DOCTYPE html>
 <body class="auth-body">
   <div class="auth-wrapper">
 
-```
 <!-- Left Panel -->
+
 <div class="auth-left">
   <a href="/" class="auth-logo">LearnwithSaurab</a>
   <div class="auth-left-content">
@@ -981,6 +940,7 @@ res.send(`<!DOCTYPE html>
 </div>
 
 <!-- Right Panel -- Form -->
+
 <div class="auth-right">
   <div class="auth-card">
     <div class="auth-header">
@@ -988,104 +948,106 @@ res.send(`<!DOCTYPE html>
       <p>Already have an account? <a href="/login">Login here</a></p>
     </div>
 
-    <div id="errorMsg" class="auth-error" style="display:none;"></div>
-    <div id="successMsg" class="auth-success" style="display:none;"></div>
+```
+<div id="errorMsg" class="auth-error" style="display:none;"></div>
+<div id="successMsg" class="auth-success" style="display:none;"></div>
 
-    <form class="auth-form" id="signupForm">
-      <div class="form-row-2">
-        <div class="form-group">
-          <label>First Name</label>
-          <div class="input-wrap">
-            <i class="fas fa-user"></i>
-            <input type="text" name="firstName" placeholder="Saurab" required>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Last Name</label>
-          <div class="input-wrap">
-            <i class="fas fa-user"></i>
-            <input type="text" name="lastName" placeholder="Acharya" required>
-          </div>
-        </div>
+<form class="auth-form" id="signupForm">
+  <div class="form-row-2">
+    <div class="form-group">
+      <label>First Name</label>
+      <div class="input-wrap">
+        <i class="fas fa-user"></i>
+        <input type="text" name="firstName" placeholder="Saurab" required>
       </div>
-
-      <div class="form-group">
-        <label>Username</label>
-        <div class="input-wrap">
-          <i class="fas fa-at"></i>
-          <input type="text" name="username" id="username" placeholder="saurab123" required>
-          <span class="input-status" id="usernameStatus"></span>
-        </div>
+    </div>
+    <div class="form-group">
+      <label>Last Name</label>
+      <div class="input-wrap">
+        <i class="fas fa-user"></i>
+        <input type="text" name="lastName" placeholder="Acharya" required>
       </div>
+    </div>
+  </div>
 
-      <div class="form-group">
-        <label>Email Address</label>
-        <div class="input-wrap">
-          <i class="fas fa-envelope"></i>
-          <input type="email" name="email" placeholder="saurab@gmail.com" required>
-        </div>
-      </div>
+  <div class="form-group">
+    <label>Username</label>
+    <div class="input-wrap">
+      <i class="fas fa-at"></i>
+      <input type="text" name="username" id="username" placeholder="saurab123" required>
+      <span class="input-status" id="usernameStatus"></span>
+    </div>
+  </div>
 
-      <div class="form-group">
-        <label>Mobile Number</label>
-        <div class="input-wrap">
-          <i class="fas fa-phone"></i>
-          <input type="tel" name="mobile" placeholder="+977-9800000000" required>
-        </div>
-      </div>
+  <div class="form-group">
+    <label>Email Address</label>
+    <div class="input-wrap">
+      <i class="fas fa-envelope"></i>
+      <input type="email" name="email" placeholder="saurab@gmail.com" required>
+    </div>
+  </div>
 
-      <div class="form-group">
-        <label>Password</label>
-        <div class="input-wrap">
-          <i class="fas fa-lock"></i>
-          <input type="password" name="password" id="password" placeholder="Min 8 characters" required>
-          <button type="button" class="toggle-password" onclick="togglePass('password')">
-            <i class="fas fa-eye"></i>
-          </button>
-        </div>
-        <div class="password-strength" id="strengthBar">
-          <div class="strength-fill" id="strengthFill"></div>
-        </div>
-        <span class="strength-label" id="strengthLabel"></span>
-      </div>
+  <div class="form-group">
+    <label>Mobile Number</label>
+    <div class="input-wrap">
+      <i class="fas fa-phone"></i>
+      <input type="tel" name="mobile" placeholder="+977-9800000000" required>
+    </div>
+  </div>
 
-      <div class="form-group">
-        <label>Confirm Password</label>
-        <div class="input-wrap">
-          <i class="fas fa-lock"></i>
-          <input type="password" name="confirmPassword" id="confirmPassword" placeholder="Repeat password" required>
-          <button type="button" class="toggle-password" onclick="togglePass('confirmPassword')">
-            <i class="fas fa-eye"></i>
-          </button>
-        </div>
-      </div>
-
-      <div class="form-group admin-section" id="adminSection" style="display:none;">
-        <label>Admin Secret Code</label>
-        <div class="input-wrap">
-          <i class="fas fa-shield-alt"></i>
-          <input type="password" name="adminCode" placeholder="Enter admin code">
-        </div>
-      </div>
-
-      <div class="form-check">
-        <input type="checkbox" id="isAdmin" onchange="toggleAdminCode()">
-        <label for="isAdmin">Register as Admin</label>
-      </div>
-
-      <div class="form-check">
-        <input type="checkbox" id="terms" required>
-        <label for="terms">I agree to the <a href="/terms">Terms & Conditions</a></label>
-      </div>
-
-      <button type="submit" class="btn-auth-primary" id="submitBtn">
-        <span id="btnText">Create Account</span>
-        <span id="btnLoader" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Creating...</span>
+  <div class="form-group">
+    <label>Password</label>
+    <div class="input-wrap">
+      <i class="fas fa-lock"></i>
+      <input type="password" name="password" id="password" placeholder="Min 8 characters" required>
+      <button type="button" class="toggle-password" onclick="togglePass('password')">
+        <i class="fas fa-eye"></i>
       </button>
-    </form>
+    </div>
+    <div class="password-strength" id="strengthBar">
+      <div class="strength-fill" id="strengthFill"></div>
+    </div>
+    <span class="strength-label" id="strengthLabel"></span>
+  </div>
+
+  <div class="form-group">
+    <label>Confirm Password</label>
+    <div class="input-wrap">
+      <i class="fas fa-lock"></i>
+      <input type="password" name="confirmPassword" id="confirmPassword" placeholder="Repeat password" required>
+      <button type="button" class="toggle-password" onclick="togglePass('confirmPassword')">
+        <i class="fas fa-eye"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="form-group admin-section" id="adminSection" style="display:none;">
+    <label>Admin Secret Code</label>
+    <div class="input-wrap">
+      <i class="fas fa-shield-alt"></i>
+      <input type="password" name="adminCode" placeholder="Enter admin code">
+    </div>
+  </div>
+
+  <div class="form-check">
+    <input type="checkbox" id="isAdmin" onchange="toggleAdminCode()">
+    <label for="isAdmin">Register as Admin</label>
+  </div>
+
+  <div class="form-check">
+    <input type="checkbox" id="terms" required>
+    <label for="terms">I agree to the <a href="/terms">Terms & Conditions</a></label>
+  </div>
+
+  <button type="submit" class="btn-auth-primary" id="submitBtn">
+    <span id="btnText">Create Account</span>
+    <span id="btnLoader" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Creating...</span>
+  </button>
+</form>
+```
+
   </div>
 </div>
-```
 
   </div>
 
@@ -1209,28 +1171,27 @@ app.post(’/signup’, async (req, res) => {
 try {
 const { firstName, lastName, username, email, mobile, password, isAdmin, adminCode } = req.body;
 
-```
 // Validation
 if (!firstName || !lastName || !username || !email || !mobile || !password) {
-  return res.json({ success: false, message: 'All fields are required.' });
+return res.json({ success: false, message: ‘All fields are required.’ });
 }
 if (password.length < 8) {
-  return res.json({ success: false, message: 'Password must be at least 8 characters.' });
+return res.json({ success: false, message: ‘Password must be at least 8 characters.’ });
 }
 if (mobile.length < 10) {
-  return res.json({ success: false, message: 'Please enter a valid mobile number.' });
+return res.json({ success: false, message: ‘Please enter a valid mobile number.’ });
 }
 
 // Check existing user
 const existing = await User.findOne({
-  $or: [{ email: email.toLowerCase() }, { username }]
+$or: [{ email: email.toLowerCase() }, { username }]
 });
 
 if (existing) {
-  if (existing.email === email.toLowerCase()) {
-    return res.json({ success: false, message: 'Email already registered. Please login.' });
-  }
-  return res.json({ success: false, message: 'Username already taken. Choose another.' });
+if (existing.email === email.toLowerCase()) {
+return res.json({ success: false, message: ‘Email already registered. Please login.’ });
+}
+return res.json({ success: false, message: ‘Username already taken. Choose another.’ });
 }
 
 // Hash password
@@ -1239,25 +1200,25 @@ const hashedPassword = await bcrypt.hash(password, 12);
 // Check admin
 let adminStatus = false;
 if (isAdmin && adminCode === process.env.ADMIN_SECRET_CODE) {
-  adminStatus = true;
+adminStatus = true;
 }
 
 // Generate email verify token
-const emailVerifyToken = crypto.randomBytes(32).toString('hex');
+const emailVerifyToken = crypto.randomBytes(32).toString(‘hex’);
 const emailVerifyExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
 
 // Create user
 const newUser = new User({
-  firstName: firstName.trim(),
-  lastName: lastName.trim(),
-  username: username.trim(),
-  email: email.toLowerCase().trim(),
-  mobile: mobile.trim(),
-  password: hashedPassword,
-  isAdmin: adminStatus,
-  isVerified: false,
-  emailVerifyToken,
-  emailVerifyExpires
+firstName: firstName.trim(),
+lastName: lastName.trim(),
+username: username.trim(),
+email: email.toLowerCase().trim(),
+mobile: mobile.trim(),
+password: hashedPassword,
+isAdmin: adminStatus,
+isVerified: false,
+emailVerifyToken,
+emailVerifyExpires
 });
 
 await newUser.save();
@@ -1265,8 +1226,7 @@ await newUser.save();
 // Send verification email
 await sendVerificationEmail(newUser, emailVerifyToken);
 
-res.json({ success: true, message: 'Account created! Please check your email to verify.' });
-```
+res.json({ success: true, message: ‘Account created! Please check your email to verify.’ });
 
 } catch (err) {
 console.error(‘Signup error:’, err);
@@ -1307,8 +1267,8 @@ res.send(`<!DOCTYPE html>
 <body class="auth-body">
   <div class="auth-wrapper">
 
-```
 <!-- Left Panel -->
+
 <div class="auth-left">
   <a href="/" class="auth-logo">LearnwithSaurab</a>
   <div class="auth-left-content">
@@ -1324,6 +1284,7 @@ res.send(`<!DOCTYPE html>
 </div>
 
 <!-- Right Panel -->
+
 <div class="auth-right">
   <div class="auth-card">
     <div class="auth-header">
@@ -1331,50 +1292,52 @@ res.send(`<!DOCTYPE html>
       <p>Don't have an account? <a href="/signup">Sign up free</a></p>
     </div>
 
-    <div id="errorMsg" class="auth-error" style="display:none;"></div>
+```
+<div id="errorMsg" class="auth-error" style="display:none;"></div>
 
-    <form class="auth-form" id="loginForm">
-      <input type="hidden" name="redirect" value="${redirect}">
+<form class="auth-form" id="loginForm">
+  <input type="hidden" name="redirect" value="${redirect}">
 
-      <div class="form-group">
-        <label>Username or Email</label>
-        <div class="input-wrap">
-          <i class="fas fa-user"></i>
-          <input type="text" name="identifier" placeholder="Your username or email" required>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Password</label>
-        <div class="input-wrap">
-          <i class="fas fa-lock"></i>
-          <input type="password" name="password" id="loginPassword" placeholder="Your password" required>
-          <button type="button" class="toggle-password" onclick="togglePass('loginPassword')">
-            <i class="fas fa-eye"></i>
-          </button>
-        </div>
-      </div>
-
-      <div class="form-row-between">
-        <div class="form-check">
-          <input type="checkbox" id="rememberMe" name="rememberMe">
-          <label for="rememberMe">Remember me</label>
-        </div>
-        <a href="/forgot-password" class="forgot-link">Forgot password?</a>
-      </div>
-
-      <button type="submit" class="btn-auth-primary" id="loginBtn">
-        <span id="btnText">Login</span>
-        <span id="btnLoader" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Logging in...</span>
-      </button>
-    </form>
-
-    <div class="auth-footer-links">
-      <a href="/">← Back to Home</a>
+  <div class="form-group">
+    <label>Username or Email</label>
+    <div class="input-wrap">
+      <i class="fas fa-user"></i>
+      <input type="text" name="identifier" placeholder="Your username or email" required>
     </div>
   </div>
+
+  <div class="form-group">
+    <label>Password</label>
+    <div class="input-wrap">
+      <i class="fas fa-lock"></i>
+      <input type="password" name="password" id="loginPassword" placeholder="Your password" required>
+      <button type="button" class="toggle-password" onclick="togglePass('loginPassword')">
+        <i class="fas fa-eye"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="form-row-between">
+    <div class="form-check">
+      <input type="checkbox" id="rememberMe" name="rememberMe">
+      <label for="rememberMe">Remember me</label>
+    </div>
+    <a href="/forgot-password" class="forgot-link">Forgot password?</a>
+  </div>
+
+  <button type="submit" class="btn-auth-primary" id="loginBtn">
+    <span id="btnText">Login</span>
+    <span id="btnLoader" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Logging in...</span>
+  </button>
+</form>
+
+<div class="auth-footer-links">
+  <a href="/">← Back to Home</a>
 </div>
 ```
+
+  </div>
+</div>
 
   </div>
 
@@ -1430,35 +1393,34 @@ app.post(’/login’, async (req, res) => {
 try {
 const { identifier, password, redirect } = req.body;
 
-```
 if (!identifier || !password) {
-  return res.json({ success: false, message: 'Please enter your username/email and password.' });
+return res.json({ success: false, message: ‘Please enter your username/email and password.’ });
 }
 
 // Find user by email or username
 const user = await User.findOne({
-  $or: [
-    { email: identifier.toLowerCase() },
-    { username: identifier }
-  ]
+$or: [
+{ email: identifier.toLowerCase() },
+{ username: identifier }
+]
 });
 
 if (!user) {
-  return res.json({ success: false, message: 'No account found with that username or email.' });
+return res.json({ success: false, message: ‘No account found with that username or email.’ });
 }
 
 // Check password
 const isMatch = await bcrypt.compare(password, user.password);
 if (!isMatch) {
-  return res.json({ success: false, message: 'Incorrect password. Please try again.' });
+return res.json({ success: false, message: ‘Incorrect password. Please try again.’ });
 }
 
 // Check email verification
 if (!user.isVerified) {
-  return res.json({
-    success: false,
-    message: 'Please verify your email first. Check your inbox or <a href="/resend-verification">resend verification email</a>.'
-  });
+return res.json({
+success: false,
+message: ‘Please verify your email first. Check your inbox or <a href="/resend-verification">resend verification email</a>.’
+});
 }
 
 // Set session
@@ -1467,10 +1429,9 @@ user.lastLogin = new Date();
 await user.save();
 
 res.json({
-  success: true,
-  redirect: redirect || (user.isAdmin ? '/admin' : '/dashboard')
+success: true,
+redirect: redirect || (user.isAdmin ? ‘/admin’ : ‘/dashboard’)
 });
-```
 
 } catch (err) {
 console.error(‘Login error:’, err);
@@ -1524,7 +1485,7 @@ res.send(`<!DOCTYPE html>
         <button type="submit" class="btn-auth-primary">Send Verification Email</button>
       </form>
       <div class="auth-footer-links">
-        <a href="/login">Back to Login</a> &nbsp;•&nbsp; <a href="/">Home</a>
+        <a href="/login">Back to Login</a> &nbsp;*&nbsp; <a href="/">Home</a>
       </div>
     </div>
   </div>
@@ -1560,21 +1521,19 @@ try {
 const { email } = req.body;
 const user = await User.findOne({ email: email.toLowerCase() });
 
-```
-// Always respond the same (security -- don't reveal if email exists)
+// Always respond the same (security – don’t reveal if email exists)
 if (!user || user.isVerified) {
-  return res.json({ success: true, message: 'If that email exists and is unverified, a new link has been sent.' });
+return res.json({ success: true, message: ‘If that email exists and is unverified, a new link has been sent.’ });
 }
 
-const token = crypto.randomBytes(32).toString('hex');
+const token = crypto.randomBytes(32).toString(‘hex’);
 user.emailVerifyToken = token;
 user.emailVerifyExpires = Date.now() + 24 * 60 * 60 * 1000;
 await user.save();
 
 await sendVerificationEmail(user, token);
 
-res.json({ success: true, message: 'Verification email sent! Check your inbox.' });
-```
+res.json({ success: true, message: ‘Verification email sent! Check your inbox.’ });
 
 } catch (err) {
 console.error(‘Resend verification error:’, err);
@@ -1626,7 +1585,7 @@ res.send(`<!DOCTYPE html>
       </form>
       <div class="auth-footer-links">
         <a href="/login">← Back to Login</a>
-        &nbsp;•&nbsp;
+        &nbsp;*&nbsp;
         <a href="/signup">Create Account</a>
       </div>
     </div>
@@ -1639,35 +1598,33 @@ res.send(`<!DOCTYPE html>
       errorMsg.style.display = 'none';
       successMsg.style.display = 'none';
 
-```
-  document.getElementById('btnText').style.display = 'none';
-  document.getElementById('btnLoader').style.display = 'inline';
-  document.getElementById('submitBtn').disabled = true;
+document.getElementById(‘btnText’).style.display = ‘none’;
+document.getElementById(‘btnLoader’).style.display = ‘inline’;
+document.getElementById(‘submitBtn’).disabled = true;
 
-  try {
-    const res = await fetch('/api/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: this.email.value })
-    });
-    const result = await res.json();
-    if (result.success) {
-      successMsg.textContent = result.message;
-      successMsg.style.display = 'block';
-    } else {
-      errorMsg.textContent = result.message;
-      errorMsg.style.display = 'block';
-    }
-  } catch (err) {
-    errorMsg.textContent = 'Something went wrong. Please try again.';
-    errorMsg.style.display = 'block';
-  } finally {
-    document.getElementById('btnText').style.display = 'inline';
-    document.getElementById('btnLoader').style.display = 'none';
-    document.getElementById('submitBtn').disabled = false;
-  }
+try {
+const res = await fetch(’/api/forgot-password’, {
+method: ‘POST’,
+headers: { ‘Content-Type’: ‘application/json’ },
+body: JSON.stringify({ email: this.email.value })
 });
-```
+const result = await res.json();
+if (result.success) {
+successMsg.textContent = result.message;
+successMsg.style.display = ‘block’;
+} else {
+errorMsg.textContent = result.message;
+errorMsg.style.display = ‘block’;
+}
+} catch (err) {
+errorMsg.textContent = ‘Something went wrong. Please try again.’;
+errorMsg.style.display = ‘block’;
+} finally {
+document.getElementById(‘btnText’).style.display = ‘inline’;
+document.getElementById(‘btnLoader’).style.display = ‘none’;
+document.getElementById(‘submitBtn’).disabled = false;
+}
+});
 
   </script>
 </body>
@@ -1679,16 +1636,15 @@ try {
 const { email } = req.body;
 const user = await User.findOne({ email: email.toLowerCase() });
 
-```
 // Always respond same message (security)
 if (!user) {
-  return res.json({
-    success: true,
-    message: 'If that email exists, a reset link has been sent. Check your inbox.'
-  });
+return res.json({
+success: true,
+message: ‘If that email exists, a reset link has been sent. Check your inbox.’
+});
 }
 
-const token = crypto.randomBytes(32).toString('hex');
+const token = crypto.randomBytes(32).toString(‘hex’);
 user.resetPasswordToken = token;
 user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
 await user.save();
@@ -1696,10 +1652,9 @@ await user.save();
 await sendPasswordResetEmail(user, token);
 
 res.json({
-  success: true,
-  message: 'Reset link sent! Check your inbox. Link expires in 1 hour.'
+success: true,
+message: ‘Reset link sent! Check your inbox. Link expires in 1 hour.’
 });
-```
 
 } catch (err) {
 console.error(‘Forgot password error:’, err);
@@ -1718,10 +1673,8 @@ resetPasswordToken: req.params.token,
 resetPasswordExpires: { $gt: Date.now() }
 });
 
-```
 if (!user) {
-  return res.send(`<!DOCTYPE html>
-```
+return res.send(`<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -1749,9 +1702,7 @@ if (!user) {
 </html>`);
     }
 
-```
 res.send(`<!DOCTYPE html>
-```
 
 <html lang="en">
 <head>
@@ -1820,75 +1771,73 @@ res.send(`<!DOCTYPE html>
       input.type = input.type === 'password' ? 'text' : 'password';
     }
 
-```
-document.getElementById('newPassword').addEventListener('input', function() {
-  const val = this.value;
-  const fill = document.getElementById('strengthFill');
-  const label = document.getElementById('strengthLabel');
-  let strength = 0;
-  if (val.length >= 8) strength++;
-  if (/[A-Z]/.test(val)) strength++;
-  if (/[0-9]/.test(val)) strength++;
-  if (/[^A-Za-z0-9]/.test(val)) strength++;
-  const colors = ['', '#E63946', '#F59E0B', '#0D7377', '#10B981'];
-  const widths = ['0%', '25%', '50%', '75%', '100%'];
-  const levels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-  fill.style.width = widths[strength];
-  fill.style.background = colors[strength];
-  label.textContent = levels[strength];
-  label.style.color = colors[strength];
+document.getElementById(‘newPassword’).addEventListener(‘input’, function() {
+const val = this.value;
+const fill = document.getElementById(‘strengthFill’);
+const label = document.getElementById(‘strengthLabel’);
+let strength = 0;
+if (val.length >= 8) strength++;
+if (/[A-Z]/.test(val)) strength++;
+if (/[0-9]/.test(val)) strength++;
+if (/[^A-Za-z0-9]/.test(val)) strength++;
+const colors = [’’, ‘#E63946’, ‘#F59E0B’, ‘#0D7377’, ‘#10B981’];
+const widths = [‘0%’, ‘25%’, ‘50%’, ‘75%’, ‘100%’];
+const levels = [’’, ‘Weak’, ‘Fair’, ‘Good’, ‘Strong’];
+fill.style.width = widths[strength];
+fill.style.background = colors[strength];
+label.textContent = levels[strength];
+label.style.color = colors[strength];
 });
 
-document.getElementById('resetForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const errorMsg = document.getElementById('errorMsg');
-  const successMsg = document.getElementById('successMsg');
-  errorMsg.style.display = 'none';
-  successMsg.style.display = 'none';
+document.getElementById(‘resetForm’).addEventListener(‘submit’, async function(e) {
+e.preventDefault();
+const errorMsg = document.getElementById(‘errorMsg’);
+const successMsg = document.getElementById(‘successMsg’);
+errorMsg.style.display = ‘none’;
+successMsg.style.display = ‘none’;
 
-  const password = document.getElementById('newPassword').value;
-  const confirmPassword = document.getElementById('confirmPassword').value;
+const password = document.getElementById(‘newPassword’).value;
+const confirmPassword = document.getElementById(‘confirmPassword’).value;
 
-  if (password !== confirmPassword) {
-    errorMsg.textContent = 'Passwords do not match!';
-    errorMsg.style.display = 'block';
-    return;
-  }
-  if (password.length < 8) {
-    errorMsg.textContent = 'Password must be at least 8 characters!';
-    errorMsg.style.display = 'block';
-    return;
-  }
+if (password !== confirmPassword) {
+errorMsg.textContent = ‘Passwords do not match!’;
+errorMsg.style.display = ‘block’;
+return;
+}
+if (password.length < 8) {
+errorMsg.textContent = ‘Password must be at least 8 characters!’;
+errorMsg.style.display = ‘block’;
+return;
+}
 
-  document.getElementById('btnText').style.display = 'none';
-  document.getElementById('btnLoader').style.display = 'inline';
-  document.getElementById('submitBtn').disabled = true;
+document.getElementById(‘btnText’).style.display = ‘none’;
+document.getElementById(‘btnLoader’).style.display = ‘inline’;
+document.getElementById(‘submitBtn’).disabled = true;
 
-  try {
-    const res = await fetch('/api/reset-password/${req.params.token}', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password })
-    });
-    const result = await res.json();
-    if (result.success) {
-      successMsg.textContent = result.message;
-      successMsg.style.display = 'block';
-      setTimeout(() => window.location.href = '/login', 2000);
-    } else {
-      errorMsg.textContent = result.message;
-      errorMsg.style.display = 'block';
-    }
-  } catch (err) {
-    errorMsg.textContent = 'Something went wrong. Please try again.';
-    errorMsg.style.display = 'block';
-  } finally {
-    document.getElementById('btnText').style.display = 'inline';
-    document.getElementById('btnLoader').style.display = 'none';
-    document.getElementById('submitBtn').disabled = false;
-  }
+try {
+const res = await fetch(’/api/reset-password/${req.params.token}’, {
+method: ‘POST’,
+headers: { ‘Content-Type’: ‘application/json’ },
+body: JSON.stringify({ password })
 });
-```
+const result = await res.json();
+if (result.success) {
+successMsg.textContent = result.message;
+successMsg.style.display = ‘block’;
+setTimeout(() => window.location.href = ‘/login’, 2000);
+} else {
+errorMsg.textContent = result.message;
+errorMsg.style.display = ‘block’;
+}
+} catch (err) {
+errorMsg.textContent = ‘Something went wrong. Please try again.’;
+errorMsg.style.display = ‘block’;
+} finally {
+document.getElementById(‘btnText’).style.display = ‘inline’;
+document.getElementById(‘btnLoader’).style.display = ‘none’;
+document.getElementById(‘submitBtn’).disabled = false;
+}
+});
 
   </script>
 </body>
@@ -1903,24 +1852,23 @@ app.post(’/api/reset-password/:token’, async (req, res) => {
 try {
 const { password } = req.body;
 
-```
 if (!password || password.length < 8) {
-  return res.json({
-    success: false,
-    message: 'Password must be at least 8 characters.'
-  });
+return res.json({
+success: false,
+message: ‘Password must be at least 8 characters.’
+});
 }
 
 const user = await User.findOne({
-  resetPasswordToken: req.params.token,
-  resetPasswordExpires: { $gt: Date.now() }
+resetPasswordToken: req.params.token,
+resetPasswordExpires: { $gt: Date.now() }
 });
 
 if (!user) {
-  return res.json({
-    success: false,
-    message: 'Reset link is invalid or has expired.'
-  });
+return res.json({
+success: false,
+message: ‘Reset link is invalid or has expired.’
+});
 }
 
 user.password = await bcrypt.hash(password, 12);
@@ -1929,10 +1877,9 @@ user.resetPasswordExpires = undefined;
 await user.save();
 
 res.json({
-  success: true,
-  message: 'Password reset successfully! Redirecting to login...'
+success: true,
+message: ‘Password reset successfully! Redirecting to login…’
 });
-```
 
 } catch (err) {
 console.error(‘Reset password error:’, err);
@@ -1949,77 +1896,42 @@ try {
 const user = await User.findById(req.session.userId)
 .populate(‘enrolledCourses’);
 
-```
 if (!user) {
-  req.session.destroy();
-  return res.redirect('/login');
+req.session.destroy();
+return res.redirect(’/login’);
 }
 
 // Redirect admin to admin panel
-if (user.isAdmin) return res.redirect('/admin');
+if (user.isAdmin) return res.redirect(’/admin’);
 
 const recentTests = await TestAttempt.find({ userId: user._id })
-  .populate('testId')
-  .sort({ completedAt: -1 })
-  .limit(5);
+.populate(‘testId’)
+.sort({ completedAt: -1 })
+.limit(5);
 
 const freeTests = await Test.find({ isFree: true, isPublished: true }).limit(4);
 
 const enrolledHtml = user.enrolledCourses.length > 0
-  ? user.enrolledCourses.map(course => `
-    <div class="dashboard-course-card">
-      <div class="dcc-thumb">
-        ${course.imagePath
-          ? `<img src="${course.imagePath}" alt="${course.title}">`
-          : `<div class="dcc-placeholder"><i class="fas fa-book-open"></i></div>`
-        }
-      </div>
-      <div class="dcc-info">
-        <h4>${course.title}</h4>
-        <span class="dcc-category">${course.category || 'General'}</span>
-        <a href="/course/${course._id}/learn" class="btn-continue">
-          <i class="fas fa-play"></i> Continue
-        </a>
-      </div>
-    </div>
-  `).join('')
-  : `<div class="empty-state">
-      <i class="fas fa-book-open"></i>
-      <p>No courses enrolled yet.</p>
-      <a href="/browse-courses" class="btn-primary-sm">Browse Courses</a>
-    </div>`;
+? user.enrolledCourses.map(course => `<div class="dashboard-course-card"> <div class="dcc-thumb"> ${course.imagePath ?`<img src="${course.imagePath}" alt="${course.title}">`:`<div class="dcc-placeholder"><i class="fas fa-book-open"></i></div>`} </div> <div class="dcc-info"> <h4>${course.title}</h4> <span class="dcc-category">${course.category || 'General'}</span> <a href="/course/${course._id}/learn" class="btn-continue"> <i class="fas fa-play"></i> Continue </a> </div> </div>`).join(’’)
+: `<div class="empty-state"> <i class="fas fa-book-open"></i> <p>No courses enrolled yet.</p> <a href="/browse-courses" class="btn-primary-sm">Browse Courses</a> </div>`;
 
 const testsHtml = recentTests.length > 0
-  ? recentTests.map(attempt => `
-    <tr>
-      <td>${attempt.testId ? attempt.testId.title : 'Test'}</td>
-      <td>${attempt.score}/${attempt.totalMarks}</td>
-      <td>
-        <span class="badge ${attempt.passed ? 'badge-success' : 'badge-danger'}">
-          ${attempt.passed ? 'Passed' : 'Failed'}
-        </span>
-      </td>
-      <td>${new Date(attempt.completedAt).toLocaleDateString()}</td>
-      <td><a href="/test-result/${attempt._id}">View</a></td>
-    </tr>
-  `).join('')
-  : `<tr><td colspan="5" style="text-align:center; color: var(--text-secondary);">
-      No tests taken yet. <a href="/free-tests">Try a free test!</a>
-    </td></tr>`;
+? recentTests.map(attempt => `<tr> <td>${attempt.testId ? attempt.testId.title : 'Test'}</td> <td>${attempt.score}/${attempt.totalMarks}</td> <td> <span class="badge ${attempt.passed ? 'badge-success' : 'badge-danger'}"> ${attempt.passed ? 'Passed' : 'Failed'} </span> </td> <td>${new Date(attempt.completedAt).toLocaleDateString()}</td> <td><a href="/test-result/${attempt._id}">View</a></td> </tr>`).join(’’)
+: `<tr><td colspan="5" style="text-align:center; color: var(--text-secondary);"> No tests taken yet. <a href="/free-tests">Try a free test!</a> </td></tr>`;
 
 const freeTestsHtml = freeTests.map(test => `
+
   <div class="quick-test-card">
     <div class="qtc-icon"><i class="fas fa-clipboard-list"></i></div>
     <div class="qtc-info">
       <h4>${test.title}</h4>
-      <span>${test.questions.length} Questions • ${test.duration} mins</span>
+      <span>${test.questions.length} Questions * ${test.duration} mins</span>
     </div>
     <a href="/take-test/${test._id}" class="btn-primary-sm">Start</a>
   </div>
 `).join('');
 
 res.send(`<!DOCTYPE html>
-```
 
 <html lang="en">
 <head>
@@ -2072,8 +1984,8 @@ res.send(`<!DOCTYPE html>
 
   <main class="dashboard-main">
 
-```
 <!-- Top Bar -->
+
 <header class="dashboard-header">
   <button class="sidebar-toggle" id="sidebarToggle">
     <i class="fas fa-bars"></i>
@@ -2090,6 +2002,7 @@ res.send(`<!DOCTYPE html>
 </header>
 
 <!-- Stats Cards -->
+
 <div class="stats-grid">
   <div class="stat-card">
     <div class="stat-icon teal">
@@ -2130,6 +2043,7 @@ res.send(`<!DOCTYPE html>
 </div>
 
 <!-- My Courses -->
+
 <div class="dashboard-section">
   <div class="section-head">
     <h2>My Courses</h2>
@@ -2141,6 +2055,7 @@ res.send(`<!DOCTYPE html>
 </div>
 
 <!-- Recent Test Results -->
+
 <div class="dashboard-section">
   <div class="section-head">
     <h2>Recent Test Results</h2>
@@ -2165,6 +2080,7 @@ res.send(`<!DOCTYPE html>
 </div>
 
 <!-- Free Tests -->
+
 <div class="dashboard-section">
   <div class="section-head">
     <h2>Quick Practice Tests</h2>
@@ -2174,7 +2090,6 @@ res.send(`<!DOCTYPE html>
     ${freeTestsHtml}
   </div>
 </div>
-```
 
   </main>
 
@@ -2571,8 +2486,8 @@ const breadcrumbHtml = [
 ‘<a href="/admin">Admin</a>’,
 …breadcrumb.map((b, i) =>
 i === breadcrumb.length - 1
-? `<span class="sep">›</span><span class="current">${b.label}</span>`
-: `<span class="sep">›</span><a href="${b.href}">${b.label}</a>`
+? `<span class="sep">></span><span class="current">${b.label}</span>`
+: `<span class="sep">></span><a href="${b.href}">${b.label}</a>`
 )
 ].join(’’);
 
