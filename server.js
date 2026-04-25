@@ -3410,6 +3410,7 @@ console.log(`📧 Email: ${process.env.EMAIL_USER || '❌ Not configured'}`);
 console.log(`🗄️  DB: ${process.env.MONGODB_URI ? '✅ Configured' : '❌ Not configured'}`);
 });
 
+
 // ============================================
 // GLOBAL ERROR HANDLER – ALWAYS VERY LAST
 // ============================================
