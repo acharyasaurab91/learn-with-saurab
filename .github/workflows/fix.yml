@@ -1,7 +1,5 @@
 name: Fix server.js
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 jobs:
   fix:
@@ -12,27 +10,14 @@ jobs:
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Fix quotes
+      - name: Replace server.js
         run: |
-          node -e "
-          const fs = require('fs');
-          let c = fs.readFileSync('server.js', 'utf8');
-          c = c.replace(/[\u2018\u2019]/g, \"'\");
-          c = c.replace(/[\u201c\u201d]/g, '\"');
-          c = c.replace(/[\u2013\u2014]/g, '--');
-          c = c.replace(/\u2026/g, '...');
-          c = c.replace(/\u00a0/g, ' ');
-          c = c.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-          c = c.split('\n').filter(l => l.trim() !== '\`\`\`').join('\n');
-          fs.writeFileSync('server.js', c);
-          console.log('Fixed!');
-          "
-      - name: Check syntax
-        run: node --check server.js && echo "SYNTAX OK"
+          curl -L "https://gist.githubusercontent.com/raw/fix/server.js" -o server.js
+          node --check server.js && echo OK
       - name: Commit
         run: |
-          git config user.email "action@github.com"
-          git config user.name "GitHub Action"
+          git config user.email "a@a.com"
+          git config user.name "bot"
           git add server.js
-          git diff --staged --quiet || git commit -m "Auto-fix quotes"
+          git commit -m "clean server" || true
           git push
