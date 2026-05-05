@@ -2,23 +2,37 @@ name: Fix server.js
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 jobs:
   fix:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Fix quotes
         run: |
           node -e "
-          let c=require('fs').readFileSync('server.js','utf8');
-          c=c.replace(/[\u2018\u2019]/g,\"'\");
-          c=c.replace(/[\u201c\u201d]/g,'\"');
-          c=c.replace(/\u2013|\u2014/g,'--');
-          c=c.replace(/\u2026/g,'...');
-          let lines=c.split('\n').filter(l=>l.trim()!='');
-          require('fs').writeFileSync('server.js',lines.join('\n'));
+          const fs = require('fs');
+          let c = fs.readFileSync('server.js', 'utf8');
+          c = c.replace(/[\u2018\u2019]/g, \"'\");
+          c = c.replace(/[\u201c\u201d]/g, '\"');
+          c = c.replace(/[\u2013\u2014]/g, '--');
+          c = c.replace(/\u2026/g, '...');
+          c = c.replace(/\u00a0/g, ' ');
+          c = c.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+          c = c.split('\n').filter(l => l.trim() !== '\`\`\`').join('\n');
+          fs.writeFileSync('server.js', c);
           console.log('Fixed!');
           "
-          node --check server.js
-      - uses: actions/checkout@v3
-      - run: git config user.email "action@github.com" && git config user.name "GitHub Action" && git add server.js && git commit -m "Auto-fix quotes" --allow-empty && git push
+      - name: Check syntax
+        run: node --check server.js && echo "SYNTAX OK"
+      - name: Commit
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add server.js
+          git diff --staged --quiet || git commit -m "Auto-fix quotes"
+          git push
