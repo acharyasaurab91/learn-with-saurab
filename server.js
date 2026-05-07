@@ -2635,6 +2635,483 @@ return `<!DOCTYPE html>
 </html>`;
 }
 
+
+
+python3 << 'PYEOF'
+with open('/mnt/user-data/uploads/server.js', 'rb') as f:
+    raw = f.read()
+content = raw.decode('utf-8', errors='replace')
+
+fixes = [
+    ('\u2018', "'"), ('\u2019', "'"), ('\u201a', "'"), ('\u201b', "'"),
+    ('\u201c', '"'), ('\u201d', '"'), ('\u201e', '"'),
+    ('\u2013', '--'), ('\u2014', '--'), ('\u2015', '--'),
+    ('\u2026', '...'), ('\u00a0', ' '), ('\u2022', '*'),
+    ('\u00b7', '*'), ('\u203a', '>'), ('\u2039', '<'), ('\u00d7', 'x'),
+]
+for bad, good in fixes:
+    content = content.replace(bad, good)
+
+lines = content.split('\n')
+clean = [l for l in lines if l.strip() != '```']
+content = '\n'.join(clean)
+
+content = content.replace(
+    ".replace(/<script[^>]*>.*?</script>/gi, '')",
+    ".replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')"
+)
+
+# Add Subject + Chapter schemas before Register all models
+new_schemas = """
+// Subject Schema
+const subjectSchema = new mongoose.Schema({
+  category:    { type: String, required: true },
+  name:        { type: String, required: true },
+  slug:        { type: String, required: true },
+  icon:        { type: String, default: '📚' },
+  description: { type: String, default: '' },
+  order:       { type: Number, default: 1 },
+  isVisible:   { type: Boolean, default: true }
+}, { timestamps: true });
+
+// Chapter Schema
+const chapterSchema = new mongoose.Schema({
+  subject:      { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
+  category:     { type: String, required: true },
+  title:        { type: String, required: true },
+  slug:         { type: String, required: true },
+  order:        { type: Number, default: 1 },
+  description:  { type: String, default: '' },
+  notesFile:    { type: String, default: '' },
+  notesFilename:{ type: String, default: '' },
+  notesFree:    { type: Boolean, default: true },
+  videoFile:    { type: String, default: '' },
+  videoFilename:{ type: String, default: '' },
+  videoFree:    { type: Boolean, default: false },
+  quizFile:     { type: String, default: '' },
+  quizFilename: { type: String, default: '' },
+  quizFree:     { type: Boolean, default: true },
+  isVisible:    { type: Boolean, default: true }
+}, { timestamps: true });
+
+"""
+
+schema_marker = '// Register all models'
+schema_pos = content.find(schema_marker)
+content = content[:schema_pos] + new_schemas + content[schema_pos:]
+
+# Add Subject + Chapter models after Transaction model
+transaction_model = "const Transaction = mongoose.model('Transaction', transactionSchema);"
+trans_pos = content.find(transaction_model)
+if trans_pos != -1:
+    insert_after = trans_pos + len(transaction_model)
+    content = content[:insert_after] + "\nconst Subject = mongoose.model('Subject', subjectSchema);\nconst Chapter = mongoose.model('Chapter', chapterSchema);" + content[insert_after:]
+
+# Add html upload multer + all routes before START SERVER
+new_routes = """
+// ============================================
+// HTML UPLOAD MULTER
+// ============================================
+const htmlUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = 'uploads/html-content/';
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      cb(null, Date.now() + '-' + Math.round(Math.random() * 1e6) + '.html');
+    }
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.originalname.endsWith('.html')) cb(null, true);
+    else cb(new Error('Only HTML files allowed'));
+  }
+});
+
+// ============================================
+// ADMIN SUBJECTS
+// ============================================
+app.get('/admin/subjects', requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+    const { category } = req.query;
+    const query = category ? { category } : {};
+    const subjects = await Subject.find(query).sort({ category: 1, order: 1 });
+    const categories = await Category.find().sort({ order: 1 });
+    res.send(renderAdminSubjects({ subjects, categories, selectedCategory: category || '', admin: { name: user.firstName }, success: req.query.success, error: req.query.error }));
+  } catch (err) { res.status(500).send('Error'); }
+});
+
+app.post('/admin/subjects', requireAdmin, async (req, res) => {
+  try {
+    const { name, category, icon, description, order } = req.body;
+    if (!name || !category) return res.redirect('/admin/subjects?error=Name+and+category+required');
+    const slug = name.trim().toLowerCase().replace(/\\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    await Subject.create({ name: name.trim(), category, slug, icon: icon || '📚', description: description || '', order: parseInt(order) || 1 });
+    res.redirect('/admin/subjects?success=Subject+created');
+  } catch (err) { res.redirect('/admin/subjects?error=Failed+to+create'); }
+});
+
+app.post('/admin/subjects/:id/edit', requireAdmin, async (req, res) => {
+  try {
+    const { name, category, icon, description, order, isVisible } = req.body;
+    const slug = name.trim().toLowerCase().replace(/\\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    await Subject.findByIdAndUpdate(req.params.id, { name: name.trim(), category, slug, icon: icon || '📚', description: description || '', order: parseInt(order) || 1, isVisible: isVisible === 'on' });
+    res.redirect('/admin/subjects?success=Subject+updated');
+  } catch (err) { res.redirect('/admin/subjects?error=Failed+to+update'); }
+});
+
+app.post('/admin/subjects/:id/delete', requireAdmin, async (req, res) => {
+  try {
+    const count = await Chapter.countDocuments({ subject: req.params.id });
+    if (count > 0) return res.redirect('/admin/subjects?error=Cannot+delete:+has+' + count + '+chapters');
+    await Subject.findByIdAndDelete(req.params.id);
+    res.redirect('/admin/subjects?success=Subject+deleted');
+  } catch (err) { res.redirect('/admin/subjects?error=Failed+to+delete'); }
+});
+
+// ============================================
+// ADMIN CHAPTERS
+// ============================================
+app.get('/admin/chapters', requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+    const { subject } = req.query;
+    const query = subject ? { subject } : {};
+    const chapters = await Chapter.find(query).populate('subject', 'name category').sort({ order: 1 });
+    const subjects = await Subject.find().sort({ category: 1, order: 1 });
+    res.send(renderAdminChapters({ chapters, subjects, selectedSubject: subject || '', admin: { name: user.firstName }, success: req.query.success, error: req.query.error }));
+  } catch (err) { res.status(500).send('Error'); }
+});
+
+app.post('/admin/chapters', requireAdmin, async (req, res) => {
+  try {
+    const { title, subject, description, order } = req.body;
+    if (!title || !subject) return res.redirect('/admin/chapters?error=Title+and+subject+required');
+    const subjectDoc = await Subject.findById(subject);
+    if (!subjectDoc) return res.redirect('/admin/chapters?error=Subject+not+found');
+    const slug = title.trim().toLowerCase().replace(/\\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    await Chapter.create({ title: title.trim(), subject, category: subjectDoc.category, slug, description: description || '', order: parseInt(order) || 1 });
+    res.redirect('/admin/chapters?success=Chapter+created&subject=' + subject);
+  } catch (err) { res.redirect('/admin/chapters?error=Failed+to+create'); }
+});
+
+app.get('/admin/chapter/:id', requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+    const chapter = await Chapter.findById(req.params.id).populate('subject');
+    if (!chapter) return res.redirect('/admin/chapters?error=Not+found');
+    res.send(renderAdminChapterDetail({ chapter, admin: { name: user.firstName }, success: req.query.success, error: req.query.error }));
+  } catch (err) { res.status(500).send('Error'); }
+});
+
+app.post('/admin/chapter/:id/edit', requireAdmin, async (req, res) => {
+  try {
+    const { title, description, order, isVisible, notesFree, videoFree, quizFree } = req.body;
+    await Chapter.findByIdAndUpdate(req.params.id, {
+      title: title.trim(), description: description || '', order: parseInt(order) || 1,
+      isVisible: isVisible === 'on', notesFree: notesFree === 'on', videoFree: videoFree === 'on', quizFree: quizFree === 'on'
+    });
+    res.redirect('/admin/chapter/' + req.params.id + '?success=Chapter+updated');
+  } catch (err) { res.redirect('/admin/chapter/' + req.params.id + '?error=Failed+to+update'); }
+});
+
+app.post('/admin/chapter/:id/upload-notes', requireAdmin, htmlUpload.single('notesFile'), async (req, res) => {
+  try {
+    if (!req.file) return res.redirect('/admin/chapter/' + req.params.id + '?error=No+file+uploaded');
+    const chapter = await Chapter.findById(req.params.id);
+    if (chapter.notesFilename) {
+      const old = path.join(__dirname, 'uploads/html-content', chapter.notesFilename);
+      if (fs.existsSync(old)) fs.unlinkSync(old);
+    }
+    await Chapter.findByIdAndUpdate(req.params.id, { notesFile: 'uploads/html-content/' + req.file.filename, notesFilename: req.file.filename });
+    res.redirect('/admin/chapter/' + req.params.id + '?success=Notes+uploaded');
+  } catch (err) { res.redirect('/admin/chapter/' + req.params.id + '?error=Failed+to+upload'); }
+});
+
+app.post('/admin/chapter/:id/upload-quiz', requireAdmin, htmlUpload.single('quizFile'), async (req, res) => {
+  try {
+    if (!req.file) return res.redirect('/admin/chapter/' + req.params.id + '?error=No+file+uploaded');
+    const chapter = await Chapter.findById(req.params.id);
+    if (chapter.quizFilename) {
+      const old = path.join(__dirname, 'uploads/html-content', chapter.quizFilename);
+      if (fs.existsSync(old)) fs.unlinkSync(old);
+    }
+    await Chapter.findByIdAndUpdate(req.params.id, { quizFile: 'uploads/html-content/' + req.file.filename, quizFilename: req.file.filename });
+    res.redirect('/admin/chapter/' + req.params.id + '?success=Quiz+uploaded');
+  } catch (err) { res.redirect('/admin/chapter/' + req.params.id + '?error=Failed+to+upload'); }
+});
+
+app.post('/admin/chapter/:id/upload-video', requireAdmin, videoUpload.single('videoFile'), async (req, res) => {
+  try {
+    if (!req.file) return res.redirect('/admin/chapter/' + req.params.id + '?error=No+video+uploaded');
+    const chapter = await Chapter.findById(req.params.id);
+    if (chapter.videoFilename) {
+      const old = path.join(__dirname, 'uploads/videos', chapter.videoFilename);
+      if (fs.existsSync(old)) fs.unlinkSync(old);
+    }
+    await Chapter.findByIdAndUpdate(req.params.id, { videoFile: 'uploads/videos/' + req.file.filename, videoFilename: req.file.filename });
+    res.redirect('/admin/chapter/' + req.params.id + '?success=Video+uploaded');
+  } catch (err) { res.redirect('/admin/chapter/' + req.params.id + '?error=Failed+to+upload'); }
+});
+
+app.post('/admin/chapter/:id/delete', requireAdmin, async (req, res) => {
+  try {
+    const chapter = await Chapter.findById(req.params.id);
+    if (!chapter) return res.redirect('/admin/chapters?error=Not+found');
+    if (chapter.notesFilename) { const p = path.join(__dirname, 'uploads/html-content', chapter.notesFilename); if (fs.existsSync(p)) fs.unlinkSync(p); }
+    if (chapter.quizFilename) { const p = path.join(__dirname, 'uploads/html-content', chapter.quizFilename); if (fs.existsSync(p)) fs.unlinkSync(p); }
+    if (chapter.videoFilename) { const p = path.join(__dirname, 'uploads/videos', chapter.videoFilename); if (fs.existsSync(p)) fs.unlinkSync(p); }
+    const subjectId = chapter.subject;
+    await Chapter.findByIdAndDelete(req.params.id);
+    res.redirect('/admin/chapters?success=Chapter+deleted&subject=' + subjectId);
+  } catch (err) { res.redirect('/admin/chapters?error=Failed+to+delete'); }
+});
+
+// ============================================
+// STUDENT ROUTES
+// ============================================
+app.get('/learn/:categorySlug', async (req, res) => {
+  try {
+    const category = await Category.findOne({ slug: req.params.categorySlug });
+    if (!category) return res.redirect('/');
+    const subjects = await Subject.find({ category: req.params.categorySlug, isVisible: true }).sort({ order: 1 });
+    const user = req.session.userId ? await User.findById(req.session.userId) : null;
+    res.send(renderSubjectList({ category, subjects, user }));
+  } catch (err) { res.status(500).send('Error'); }
+});
+
+app.get('/learn/:categorySlug/:subjectSlug', async (req, res) => {
+  try {
+    const category = await Category.findOne({ slug: req.params.categorySlug });
+    const subject = await Subject.findOne({ slug: req.params.subjectSlug, category: req.params.categorySlug });
+    if (!category || !subject) return res.redirect('/');
+    const chapters = await Chapter.find({ subject: subject._id, isVisible: true }).sort({ order: 1 });
+    const user = req.session.userId ? await User.findById(req.session.userId) : null;
+    res.send(renderChapterList({ category, subject, chapters, user }));
+  } catch (err) { res.status(500).send('Error'); }
+});
+
+app.get('/learn/:categorySlug/:subjectSlug/:chapterSlug', async (req, res) => {
+  try {
+    const user = req.session.userId ? await User.findById(req.session.userId) : null;
+    const category = await Category.findOne({ slug: req.params.categorySlug });
+    const subject = await Subject.findOne({ slug: req.params.subjectSlug });
+    const chapter = await Chapter.findOne({ slug: req.params.chapterSlug, subject: subject?._id });
+    if (!category || !subject || !chapter) return res.redirect('/');
+    const isLoggedIn = !!user;
+    res.send(renderChapterViewer({ category, subject, chapter, user, isLoggedIn }));
+  } catch (err) { res.status(500).send('Error'); }
+});
+
+app.get('/api/chapter/:id/notes', async (req, res) => {
+  try {
+    const chapter = await Chapter.findById(req.params.id);
+    if (!chapter || !chapter.notesFile) return res.status(404).send('<p>Notes not found</p>');
+    if (!chapter.notesFree && !req.session.userId) return res.status(401).send('<p>Login required</p>');
+    const filePath = path.join(__dirname, chapter.notesFile);
+    if (!fs.existsSync(filePath)) return res.status(404).send('<p>File not found</p>');
+    res.send(fs.readFileSync(filePath, 'utf8'));
+  } catch (err) { res.status(500).send('Error'); }
+});
+
+app.get('/api/chapter/:id/quiz', async (req, res) => {
+  try {
+    const chapter = await Chapter.findById(req.params.id);
+    if (!chapter || !chapter.quizFile) return res.status(404).send('<p>Quiz not found</p>');
+    if (!chapter.quizFree && !req.session.userId) return res.status(401).send('<p>Login required</p>');
+    const filePath = path.join(__dirname, chapter.quizFile);
+    if (!fs.existsSync(filePath)) return res.status(404).send('<p>File not found</p>');
+    res.send(fs.readFileSync(filePath, 'utf8'));
+  } catch (err) { res.status(500).send('Error'); }
+});
+
+// ============================================
+// ADMIN RENDER — SUBJECTS PAGE
+// ============================================
+function renderAdminSubjects({ subjects, categories, selectedCategory, admin, success, error }) {
+  const alerts = (success ? '<div class="admin-alert success">✅ ' + decodeURIComponent(success) + '</div>' : '') + (error ? '<div class="admin-alert error">❌ ' + decodeURIComponent(error) + '</div>' : '');
+  const catOptions = categories.map(c => '<option value="' + c.slug + '"' + (selectedCategory === c.slug ? ' selected' : '') + '>' + c.name + '</option>').join('');
+  const rows = subjects.map(s =>
+    '<tr><td style="font-size:22px;">' + (s.icon || '📚') + '</td><td><strong>' + s.name + '</strong></td><td class="text-muted">' + s.category + '</td>' +
+    '<td class="font-mono text-muted">#' + (s.order || 1) + '</td>' +
+    '<td><span class="status-badge ' + (s.isVisible ? 'published' : 'draft') + '">' + (s.isVisible ? 'Visible' : 'Hidden') + '</span></td>' +
+    '<td><div class="table-actions">' +
+    '<a href="/admin/chapters?subject=' + s._id + '" class="btn-admin btn-admin-secondary btn-admin-sm">📖 Chapters</a>' +
+    '<button class="btn-admin btn-admin-secondary btn-admin-sm btn-admin-icon" onclick=\'openEditSubject(' + JSON.stringify({ id: s._id.toString(), name: s.name, category: s.category, icon: s.icon || '📚', description: s.description || '', order: s.order || 1, isVisible: s.isVisible }) + '\'">✏️</button>' +
+    '<form action="/admin/subjects/' + s._id + '/delete" method="POST" style="display:inline;" onsubmit="return confirm(\'Delete ' + s.name + '?\')"><button type="submit" class="btn-admin btn-admin-danger btn-admin-sm btn-admin-icon">🗑️</button></form>' +
+    '</div></td></tr>'
+  ).join('');
+
+  const content = alerts +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;">' +
+    '<form method="GET" action="/admin/subjects"><select name="category" class="admin-select" onchange="this.form.submit()"><option value="">All Categories</option>' + catOptions + '</select></form>' +
+    '<button class="btn-admin btn-admin-primary" onclick="openModal(\'createSubjectModal\')">➕ Add Subject</button></div>' +
+    '<div class="admin-card"><div class="admin-card-header"><span class="admin-card-title">📚 Subjects (' + subjects.length + ')</span></div>' +
+    (subjects.length === 0 ? '<div class="admin-empty"><div class="admin-empty-icon">📚</div><div class="admin-empty-title">No subjects yet</div><button class="btn-admin btn-admin-primary" onclick="openModal(\'createSubjectModal\')">Add First Subject</button></div>' :
+    '<div class="admin-table-wrapper"><table class="admin-table"><thead><tr><th>Icon</th><th>Name</th><th>Category</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead><tbody>' + rows + '</tbody></table></div>') + '</div>' +
+    '<div class="admin-modal-overlay" id="createSubjectModal"><div class="admin-modal"><div class="admin-modal-header"><span class="admin-modal-title">➕ Add Subject</span><button class="admin-modal-close" onclick="closeModal(\'createSubjectModal\')">x</button></div>' +
+    '<form action="/admin/subjects" method="POST"><div class="admin-form-group"><label class="admin-form-label">Name *</label><input type="text" name="name" class="admin-form-input" placeholder="e.g. Zoology" required></div>' +
+    '<div class="admin-form-group"><label class="admin-form-label">Category *</label><select name="category" class="admin-form-select" required><option value="">Select</option>' + catOptions + '</select></div>' +
+    '<div class="admin-form-row"><div class="admin-form-group"><label class="admin-form-label">Icon (emoji)</label><input type="text" name="icon" class="admin-form-input" value="📚"></div><div class="admin-form-group"><label class="admin-form-label">Order</label><input type="number" name="order" class="admin-form-input" value="1" min="1"></div></div>' +
+    '<div class="admin-form-group"><label class="admin-form-label">Description</label><textarea name="description" class="admin-form-textarea" style="min-height:70px;"></textarea></div>' +
+    '<div class="admin-form-actions"><button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal(\'createSubjectModal\')">Cancel</button><button type="submit" class="btn-admin btn-admin-primary">Create Subject</button></div></form></div></div>' +
+    '<div class="admin-modal-overlay" id="editSubjectModal"><div class="admin-modal"><div class="admin-modal-header"><span class="admin-modal-title">✏️ Edit Subject</span><button class="admin-modal-close" onclick="closeModal(\'editSubjectModal\')">x</button></div>' +
+    '<form id="editSubjectForm" action="" method="POST"><div class="admin-form-group"><label class="admin-form-label">Name</label><input type="text" name="name" id="editSubName" class="admin-form-input" required></div>' +
+    '<div class="admin-form-group"><label class="admin-form-label">Category</label><select name="category" id="editSubCat" class="admin-form-select"><option value="">Select</option>' + catOptions + '</select></div>' +
+    '<div class="admin-form-row"><div class="admin-form-group"><label class="admin-form-label">Icon</label><input type="text" name="icon" id="editSubIcon" class="admin-form-input"></div><div class="admin-form-group"><label class="admin-form-label">Order</label><input type="number" name="order" id="editSubOrder" class="admin-form-input" min="1"></div></div>' +
+    '<div class="admin-form-group"><label class="admin-form-label">Description</label><textarea name="description" id="editSubDesc" class="admin-form-textarea" style="min-height:70px;"></textarea></div>' +
+    '<div class="admin-form-group"><div class="admin-toggle-wrap"><label class="admin-toggle"><input type="checkbox" name="isVisible" id="editSubVisible"><span class="admin-toggle-slider"></span></label><span class="admin-toggle-label">Visible to students</span></div></div>' +
+    '<div class="admin-form-actions"><button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal(\'editSubjectModal\')">Cancel</button><button type="submit" class="btn-admin btn-admin-primary">Save</button></div></form></div></div>' +
+    '<script>function openModal(id){document.getElementById(id).classList.add("open");}function closeModal(id){document.getElementById(id).classList.remove("open");}document.querySelectorAll(".admin-modal-overlay").forEach(o=>{o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open");});});function openEditSubject(s){document.getElementById("editSubjectForm").action="/admin/subjects/"+s.id+"/edit";document.getElementById("editSubName").value=s.name;document.getElementById("editSubCat").value=s.category;document.getElementById("editSubIcon").value=s.icon;document.getElementById("editSubOrder").value=s.order;document.getElementById("editSubDesc").value=s.description;document.getElementById("editSubVisible").checked=s.isVisible;openModal("editSubjectModal");}<\/script>';
+  return adminShell({ title: 'Subjects', activePage: 'subjects', content, admin, breadcrumb: [{ label: 'Subjects' }] });
+}
+
+// ============================================
+// ADMIN RENDER — CHAPTERS PAGE
+// ============================================
+function renderAdminChapters({ chapters, subjects, selectedSubject, admin, success, error }) {
+  const alerts = (success ? '<div class="admin-alert success">✅ ' + decodeURIComponent(success) + '</div>' : '') + (error ? '<div class="admin-alert error">❌ ' + decodeURIComponent(error) + '</div>' : '');
+  const subOptions = subjects.map(s => '<option value="' + s._id + '"' + (selectedSubject === s._id.toString() ? ' selected' : '') + '>' + s.name + ' (' + s.category + ')</option>').join('');
+  const rows = chapters.map(c =>
+    '<tr><td><strong>' + c.title + '</strong></td><td class="text-muted">' + (c.subject?.name || '--') + '</td>' +
+    '<td>' +
+    (c.notesFile ? '<span class="status-badge published" style="margin-right:4px;">📄 Notes</span>' : '<span class="status-badge draft" style="margin-right:4px;">No Notes</span>') +
+    (c.videoFile ? '<span class="status-badge published" style="margin-right:4px;">🎬 Video</span>' : '') +
+    (c.quizFile  ? '<span class="status-badge published">📝 Quiz</span>' : '') +
+    '</td>' +
+    '<td class="font-mono text-muted">#' + (c.order || 1) + '</td>' +
+    '<td><div class="table-actions"><a href="/admin/chapter/' + c._id + '" class="btn-admin btn-admin-primary btn-admin-sm">Manage</a>' +
+    '<form action="/admin/chapter/' + c._id + '/delete" method="POST" style="display:inline;" onsubmit="return confirm(\'Delete chapter?\')"><button type="submit" class="btn-admin btn-admin-danger btn-admin-sm btn-admin-icon">🗑️</button></form>' +
+    '</div></td></tr>'
+  ).join('');
+
+  const content = alerts +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;">' +
+    '<form method="GET" action="/admin/chapters"><select name="subject" class="admin-select" onchange="this.form.submit()"><option value="">All Subjects</option>' + subOptions + '</select></form>' +
+    '<button class="btn-admin btn-admin-primary" onclick="openModal(\'createChapterModal\')">➕ Add Chapter</button></div>' +
+    '<div class="admin-card"><div class="admin-card-header"><span class="admin-card-title">📖 Chapters (' + chapters.length + ')</span></div>' +
+    (chapters.length === 0 ? '<div class="admin-empty"><div class="admin-empty-icon">📖</div><div class="admin-empty-title">No chapters yet</div><button class="btn-admin btn-admin-primary" onclick="openModal(\'createChapterModal\')">Add First Chapter</button></div>' :
+    '<div class="admin-table-wrapper"><table class="admin-table"><thead><tr><th>Title</th><th>Subject</th><th>Content</th><th>Order</th><th>Actions</th></tr></thead><tbody>' + rows + '</tbody></table></div>') + '</div>' +
+    '<div class="admin-modal-overlay" id="createChapterModal"><div class="admin-modal"><div class="admin-modal-header"><span class="admin-modal-title">➕ Add Chapter</span><button class="admin-modal-close" onclick="closeModal(\'createChapterModal\')">x</button></div>' +
+    '<form action="/admin/chapters" method="POST"><div class="admin-form-group"><label class="admin-form-label">Title *</label><input type="text" name="title" class="admin-form-input" placeholder="e.g. Endocrinology" required></div>' +
+    '<div class="admin-form-group"><label class="admin-form-label">Subject *</label><select name="subject" class="admin-form-select" required><option value="">Select subject</option>' + subOptions + '</select></div>' +
+    '<div class="admin-form-group"><label class="admin-form-label">Description</label><textarea name="description" class="admin-form-textarea" style="min-height:70px;"></textarea></div>' +
+    '<div class="admin-form-group"><label class="admin-form-label">Order</label><input type="number" name="order" class="admin-form-input" value="1" min="1"></div>' +
+    '<div class="admin-form-actions"><button type="button" class="btn-admin btn-admin-secondary" onclick="closeModal(\'createChapterModal\')">Cancel</button><button type="submit" class="btn-admin btn-admin-primary">Create Chapter</button></div></form></div></div>' +
+    '<script>function openModal(id){document.getElementById(id).classList.add("open");}function closeModal(id){document.getElementById(id).classList.remove("open");}document.querySelectorAll(".admin-modal-overlay").forEach(o=>{o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open");});});<\/script>';
+  return adminShell({ title: 'Chapters', activePage: 'chapters', content, admin, breadcrumb: [{ label: 'Chapters' }] });
+}
+
+// ============================================
+// ADMIN RENDER — CHAPTER DETAIL
+// ============================================
+function renderAdminChapterDetail({ chapter, admin, success, error }) {
+  const alerts = (success ? '<div class="admin-alert success">✅ ' + decodeURIComponent(success) + '</div>' : '') + (error ? '<div class="admin-alert error">❌ ' + decodeURIComponent(error) + '</div>' : '');
+  const uploadCard = (label, icon, hasFile, isFree, action, fieldName, accept) =>
+    '<div class="admin-card admin-mb-24"><div class="admin-card-header"><span class="admin-card-title">' + icon + ' ' + label + '</span>' +
+    (hasFile ? '<span class="status-badge published">✅ Uploaded</span>' : '<span class="status-badge draft">Not uploaded</span>') + '</div>' +
+    '<div class="admin-card-body">' +
+    '<p style="font-size:13px;color:#9CA3AF;margin-bottom:16px;">Access: <strong style="color:' + (isFree ? '#34D399' : '#FBBF24') + '">' + (isFree ? '🟢 Free' : '🔒 Paid') + '</strong> — change below in settings</p>' +
+    '<form action="' + action + '" method="POST" enctype="multipart/form-data">' +
+    '<div class="admin-upload-zone" style="padding:24px;"><input type="file" name="' + fieldName + '" accept="' + accept + '" required>' +
+    '<div style="font-size:32px;margin-bottom:8px;">' + icon + '</div>' +
+    '<div class="upload-title">' + (hasFile ? 'Replace file' : 'Upload file') + '</div>' +
+    '<div class="upload-subtitle">' + (accept.includes('html') ? 'HTML file only' : 'MP4, MKV, MOV — max 2GB') + '</div></div>' +
+    '<div style="margin-top:12px;"><button type="submit" class="btn-admin btn-admin-primary">Upload ' + label + '</button></div></form></div></div>';
+
+  const content = alerts +
+    '<div style="margin-bottom:20px;"><a href="/admin/chapters" class="btn-admin btn-admin-secondary btn-admin-sm">← All Chapters</a></div>' +
+    '<div class="admin-card admin-mb-24"><div class="admin-card-header"><span class="admin-card-title">📖 ' + chapter.title + '</span></div><div class="admin-card-body">' +
+    '<form action="/admin/chapter/' + chapter._id + '/edit" method="POST">' +
+    '<div class="admin-form-row"><div class="admin-form-group"><label class="admin-form-label">Title</label><input type="text" name="title" class="admin-form-input" value="' + chapter.title + '" required></div><div class="admin-form-group"><label class="admin-form-label">Order</label><input type="number" name="order" class="admin-form-input" value="' + (chapter.order || 1) + '" min="1"></div></div>' +
+    '<div class="admin-form-group"><label class="admin-form-label">Description</label><textarea name="description" class="admin-form-textarea" style="min-height:70px;">' + (chapter.description || '') + '</textarea></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">' +
+    '<div><label class="admin-form-label">Notes</label><div class="admin-toggle-wrap" style="margin-top:8px;"><label class="admin-toggle"><input type="checkbox" name="notesFree"' + (chapter.notesFree ? ' checked' : '') + '><span class="admin-toggle-slider"></span></label><span class="admin-toggle-label">Free</span></div></div>' +
+    '<div><label class="admin-form-label">Video</label><div class="admin-toggle-wrap" style="margin-top:8px;"><label class="admin-toggle"><input type="checkbox" name="videoFree"' + (chapter.videoFree ? ' checked' : '') + '><span class="admin-toggle-slider"></span></label><span class="admin-toggle-label">Free</span></div></div>' +
+    '<div><label class="admin-form-label">Quiz</label><div class="admin-toggle-wrap" style="margin-top:8px;"><label class="admin-toggle"><input type="checkbox" name="quizFree"' + (chapter.quizFree ? ' checked' : '') + '><span class="admin-toggle-slider"></span></label><span class="admin-toggle-label">Free</span></div></div>' +
+    '</div>' +
+    '<div class="admin-form-group"><div class="admin-toggle-wrap"><label class="admin-toggle"><input type="checkbox" name="isVisible"' + (chapter.isVisible ? ' checked' : '') + '><span class="admin-toggle-slider"></span></label><span class="admin-toggle-label">Visible to students</span></div></div>' +
+    '<div class="admin-form-actions"><button type="submit" class="btn-admin btn-admin-primary">Save Settings</button></div></form></div></div>' +
+    uploadCard('Notes', '📄', !!chapter.notesFile, chapter.notesFree, '/admin/chapter/' + chapter._id + '/upload-notes', 'notesFile', '.html') +
+    uploadCard('Video', '🎬', !!chapter.videoFile, chapter.videoFree, '/admin/chapter/' + chapter._id + '/upload-video', 'videoFile', 'video/*') +
+    uploadCard('Quiz', '📝', !!chapter.quizFile, chapter.quizFree, '/admin/chapter/' + chapter._id + '/upload-quiz', 'quizFile', '.html');
+  return adminShell({ title: 'Chapter: ' + chapter.title, activePage: 'chapters', content, admin, breadcrumb: [{ label: 'Chapters', href: '/admin/chapters' }, { label: chapter.title }] });
+}
+
+// ============================================
+// STUDENT RENDER — SUBJECT LIST
+// ============================================
+function renderSubjectList({ category, subjects, user }) {
+  const cards = subjects.length === 0
+    ? '<div style="text-align:center;padding:64px;color:#6B7280;">No subjects yet. Check back soon!</div>'
+    : subjects.map(s =>
+        '<a href="/learn/' + category.slug + '/' + s.slug + '" style="text-decoration:none;">' +
+        '<div style="background:rgba(17,24,39,0.7);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;transition:all 0.3s;cursor:pointer;" onmouseover="this.style.borderColor=\'rgba(13,115,119,0.4)\';this.style.transform=\'translateY(-4px)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.08)\';this.style.transform=\'none\'">' +
+        '<div style="font-size:36px;margin-bottom:12px;">' + (s.icon || '📚') + '</div>' +
+        '<h3 style="font-family:Montserrat,sans-serif;font-size:18px;font-weight:700;margin-bottom:8px;color:#F9FAFB;">' + s.name + '</h3>' +
+        '<p style="font-size:13px;color:#9CA3AF;">' + (s.description || '') + '</p>' +
+        '</div></a>'
+      ).join('');
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>' + category.name + ' -- Learn with Saurab</title><link rel="stylesheet" href="/css/main.css"><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet"><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"></head><body><nav class="navbar"><div class="nav-container"><a href="/" class="nav-logo"><span class="logo-text">Learn<span class="logo-accent">with</span>Saurab</span></a><div class="nav-actions">' + (user ? '<a href="/dashboard" class="btn-nav-primary">Dashboard</a>' : '<a href="/login" class="btn-nav-ghost">Login</a><a href="/signup" class="btn-nav-primary">Sign Up Free</a>') + '</div></div></nav><div style="padding-top:72px;min-height:100vh;background:var(--bg-dark);"><div class="container" style="padding-top:48px;padding-bottom:48px;"><div style="margin-bottom:8px;font-size:13px;"><a href="/" style="color:#6B7280;">Home</a> <span style="color:#374151;"> &rsaquo; </span><span style="color:#9CA3AF;">' + category.name + '</span></div><h1 style="font-family:Montserrat,sans-serif;font-size:32px;font-weight:800;margin-bottom:8px;">' + category.name + '</h1><p style="color:#9CA3AF;margin-bottom:40px;">' + (category.description || '') + '</p><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px;">' + cards + '</div></div></div></body></html>';
+}
+
+// ============================================
+// STUDENT RENDER — CHAPTER LIST
+// ============================================
+function renderChapterList({ category, subject, chapters, user }) {
+  const rows = chapters.length === 0
+    ? '<div style="text-align:center;padding:48px;color:#6B7280;">No chapters yet!</div>'
+    : chapters.map((c, i) =>
+        '<a href="/learn/' + category.slug + '/' + subject.slug + '/' + c.slug + '" style="text-decoration:none;">' +
+        '<div style="display:flex;align-items:center;gap:16px;background:rgba(17,24,39,0.6);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:18px 20px;margin-bottom:10px;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(13,115,119,0.35)\';this.style.background=\'rgba(13,115,119,0.06)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.07)\';this.style.background=\'rgba(17,24,39,0.6)\'">' +
+        '<div style="width:36px;height:36px;border-radius:8px;background:rgba(13,115,119,0.15);display:flex;align-items:center;justify-content:center;font-family:Montserrat,sans-serif;font-weight:700;font-size:14px;color:#14A89D;flex-shrink:0;">' + (i+1) + '</div>' +
+        '<div style="flex:1;"><div style="font-weight:600;font-size:15px;color:#F9FAFB;margin-bottom:4px;">' + c.title + '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+        (c.notesFile ? '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(16,185,129,0.1);color:#34D399;border:1px solid rgba(16,185,129,0.2);">📄 ' + (c.notesFree ? 'Free' : 'Paid') + '</span>' : '') +
+        (c.videoFile ? '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,0.1);color:#60A5FA;border:1px solid rgba(59,130,246,0.2);">🎬 ' + (c.videoFree ? 'Free' : 'Paid') + '</span>' : '') +
+        (c.quizFile  ? '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(245,197,24,0.1);color:#F5C518;border:1px solid rgba(245,197,24,0.2);">📝 ' + (c.quizFree ? 'Free' : 'Paid') + '</span>' : '') +
+        '</div></div><div style="color:#6B7280;">&rsaquo;</div></div></a>'
+      ).join('');
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>' + subject.name + ' -- Learn with Saurab</title><link rel="stylesheet" href="/css/main.css"><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet"><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"></head><body><nav class="navbar"><div class="nav-container"><a href="/" class="nav-logo"><span class="logo-text">Learn<span class="logo-accent">with</span>Saurab</span></a><div class="nav-actions">' + (user ? '<a href="/dashboard" class="btn-nav-primary">Dashboard</a>' : '<a href="/login" class="btn-nav-ghost">Login</a><a href="/signup" class="btn-nav-primary">Sign Up Free</a>') + '</div></div></nav><div style="padding-top:72px;min-height:100vh;background:var(--bg-dark);"><div class="container" style="padding-top:48px;padding-bottom:48px;"><div style="margin-bottom:8px;font-size:13px;"><a href="/" style="color:#6B7280;">Home</a> <span style="color:#374151;">&rsaquo;</span> <a href="/learn/' + category.slug + '" style="color:#6B7280;">' + category.name + '</a> <span style="color:#374151;">&rsaquo;</span> <span style="color:#9CA3AF;">' + subject.name + '</span></div><div style="display:flex;align-items:center;gap:16px;margin-bottom:32px;"><div style="font-size:40px;">' + (subject.icon || '📚') + '</div><div><h1 style="font-family:Montserrat,sans-serif;font-size:28px;font-weight:800;margin-bottom:4px;">' + subject.name + '</h1><p style="color:#9CA3AF;font-size:14px;">' + chapters.length + ' chapters</p></div></div><div>' + rows + '</div></div></div></body></html>';
+}
+
+// ============================================
+// STUDENT RENDER — CHAPTER VIEWER
+// ============================================
+function renderChapterViewer({ category, subject, chapter, user, isLoggedIn }) {
+  const hasNotes = !!chapter.notesFile;
+  const hasVideo = !!chapter.videoFile;
+  const hasQuiz  = !!chapter.quizFile;
+  const canNotes = hasNotes && (chapter.notesFree || isLoggedIn);
+  const canVideo = hasVideo && (chapter.videoFree || isLoggedIn);
+  const canQuiz  = hasQuiz  && (chapter.quizFree  || isLoggedIn);
+  const loginPrompt = '<div style="text-align:center;padding:48px;background:rgba(17,24,39,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:16px;"><div style="font-size:48px;margin-bottom:16px;">🔒</div><h3 style="margin-bottom:8px;">Paid Content</h3><p style="color:#9CA3AF;margin-bottom:20px;">Login or enroll to access this content</p><a href="/login" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:linear-gradient(135deg,#0D7377,#0A5C60);color:white;font-weight:700;border-radius:10px;text-decoration:none;">Login to Access</a></div>';
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>' + chapter.title + ' -- Learn with Saurab</title><link rel="stylesheet" href="/css/main.css"><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet"><style>.tab-bar{display:flex;gap:4px;background:rgba(17,24,39,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:6px;margin-bottom:24px;}.tab-btn{flex:1;padding:10px 16px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;background:transparent;color:#9CA3AF;font-family:"Plus Jakarta Sans",sans-serif;}.tab-btn.active{background:rgba(13,115,119,0.2);color:#14A89D;border:1px solid rgba(13,115,119,0.3);}.tab-btn:disabled{opacity:0.4;cursor:not-allowed;}.tab-panel{display:none;}.tab-panel.active{display:block;}.notes-wrap{background:#fff;border-radius:12px;padding:32px;min-height:400px;color:#1a1a1a;}</style></head><body><nav class="navbar"><div class="nav-container"><a href="/" class="nav-logo"><span class="logo-text">Learn<span class="logo-accent">with</span>Saurab</span></a><div class="nav-actions">' + (user ? '<a href="/dashboard" class="btn-nav-primary">Dashboard</a>' : '<a href="/login" class="btn-nav-ghost">Login</a><a href="/signup" class="btn-nav-primary">Sign Up</a>') + '</div></div></nav><div style="padding-top:72px;min-height:100vh;background:var(--bg-dark);"><div class="container" style="padding-top:32px;padding-bottom:48px;"><div style="margin-bottom:20px;font-size:13px;"><a href="/" style="color:#6B7280;">Home</a> &rsaquo; <a href="/learn/' + category.slug + '" style="color:#6B7280;">' + category.name + '</a> &rsaquo; <a href="/learn/' + category.slug + '/' + subject.slug + '" style="color:#6B7280;">' + subject.name + '</a> &rsaquo; <span style="color:#9CA3AF;">' + chapter.title + '</span></div><h1 style="font-family:Montserrat,sans-serif;font-size:24px;font-weight:800;margin-bottom:6px;">' + chapter.title + '</h1><p style="color:#9CA3AF;font-size:14px;margin-bottom:24px;">' + (chapter.description || '') + '</p><div class="tab-bar"><button class="tab-btn' + (hasNotes ? ' active' : '') + '" onclick="showTab(\'notes\')" id="tab-notes"' + (!hasNotes ? ' disabled' : '') + '>📄 Notes ' + (chapter.notesFree ? '' : '🔒') + '</button><button class="tab-btn" onclick="showTab(\'video\')" id="tab-video"' + (!hasVideo ? ' disabled' : '') + '>🎬 Video ' + (chapter.videoFree ? '' : '🔒') + '</button><button class="tab-btn" onclick="showTab(\'quiz\')" id="tab-quiz"' + (!hasQuiz ? ' disabled' : '') + '>📝 Quiz ' + (chapter.quizFree ? '' : '🔒') + '</button></div><div class="tab-panel' + (hasNotes ? ' active' : '') + '" id="panel-notes">' + (!hasNotes ? '<div style="text-align:center;padding:48px;color:#6B7280;">Notes not available yet</div>' : !canNotes ? loginPrompt : '<div class="notes-wrap" id="notesWrap"><div style="text-align:center;padding:32px;color:#999;">Loading...</div></div>') + '</div><div class="tab-panel" id="panel-video">' + (!hasVideo ? '<div style="text-align:center;padding:48px;color:#6B7280;">Video not available yet</div>' : !canVideo ? loginPrompt : '<video controls style="width:100%;border-radius:12px;background:#000;" controlsList="nodownload"><source src="/' + chapter.videoFile + '" type="video/mp4">Your browser does not support video.</video>') + '</div><div class="tab-panel" id="panel-quiz">' + (!hasQuiz ? '<div style="text-align:center;padding:48px;color:#6B7280;">Quiz not available yet</div>' : !canQuiz ? loginPrompt : '<div id="quizWrap"><div style="text-align:center;padding:32px;color:#999;">Loading...</div></div>') + '</div></div></div><script>function showTab(t){document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));document.getElementById("panel-"+t).classList.add("active");document.getElementById("tab-"+t).classList.add("active");if(t==="notes"&&!window.nL){window.nL=true;fetch("/api/chapter/' + chapter._id + '/notes").then(r=>r.text()).then(h=>{const w=document.getElementById("notesWrap");if(w)w.innerHTML=h;}).catch(()=>{});}if(t==="quiz"&&!window.qL){window.qL=true;fetch("/api/chapter/' + chapter._id + '/quiz").then(r=>r.text()).then(h=>{const w=document.getElementById("quizWrap");if(w)w.innerHTML=h;}).catch(()=>{});}}window.addEventListener("load",()=>{' + (canNotes && hasNotes ? 'fetch("/api/chapter/' + chapter._id + '/notes").then(r=>r.text()).then(h=>{const w=document.getElementById("notesWrap");if(w)w.innerHTML=h;window.nL=true;});' : '') + '});<\/script></body></html>';
+}
+
+"""
+
+insert_pos = content.rfind('// START SERVER')
+content = content[:insert_pos] + new_routes + '\n\n' + content[insert_pos:]
+
+# Update admin nav to include Subjects and Chapters
+old_nav = "{ href: '/admin/site-settings',icon:'⚙️', label: 'Site Settings',key: 'settings' },"
+new_nav = """{ href: '/admin/subjects',      icon: '📚', label: 'Subjects',     key: 'subjects' },
+    { href: '/admin/chapters',      icon: '📖', label: 'Chapters',     key: 'chapters' },
+    { href: '/admin/site-settings', icon: '⚙️', label: 'Site Settings',key: 'settings' },"""
+content = content.replace(old_nav, new_nav)
+
+with open('/home/claude/server_final.js', 'w', encoding='utf-8') as f:
+    f.write(content)
+
+print(f"Lines: {len(content.split(chr(10)))}")
+print("Done!")
+PYEOF
+
+
 // ─── DASHBOARD HTML ───────────────────────────────────────────────────────
 function renderAdminDashboard({ totalUsers, totalCourses, totalCategories, totalEnrollments, publishedCourses, totalModules, recentUsers, recentCourses, admin }) {
 const content = `
