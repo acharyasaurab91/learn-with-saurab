@@ -3112,6 +3112,12 @@ print("Done!")
 PYEOF
 
 
+
+
+
+
+
+
 // ─── DASHBOARD HTML ───────────────────────────────────────────────────────
 function renderAdminDashboard({ totalUsers, totalCourses, totalCategories, totalEnrollments, publishedCourses, totalModules, recentUsers, recentCourses, admin }) {
 const content = `
