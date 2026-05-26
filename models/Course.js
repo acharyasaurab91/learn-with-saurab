@@ -8,10 +8,27 @@ const courseSchema = new mongoose.Schema({
   imageUrl:    String,
   category:    String,
   subject:     String,
-  level:       { type: String, enum: ['Beginner','Intermediate','Advanced'], default: 'Beginner' },
+  examType:    {
+    type: String,
+    enum: [
+      'CEE - Medical & Paramedical',
+      'CEE - BNS (B.N.Sc.)',
+      'IOE - Engineering',
+      'Loksewa / लोकसेवा',
+      'License Exam',
+      'SEE (Grade 10)',
+      'NEB - Grade 11',
+      'NEB - Grade 12'
+    ],
+    default: 'CEE - Medical & Paramedical'
+  },
   duration:    { type: Number, default: 0 },
   isFeatured:  { type: Boolean, default: false },
   isPublished: { type: Boolean, default: true },
+  // Demo lecture — YouTube URL or uploaded video for public preview
+  demoVideoUrl:  String,
+  demoVideoType: { type: String, enum: ['youtube', 'local'], default: 'youtube' },
+  demoTitle:     String,
   modules: [{
     moduleTitle:       String,
     moduleDescription: String,
