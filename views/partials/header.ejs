@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | Learn With Saurab</title>
+  <meta name="description" content="Nepal's #1 Ed-Tech Platform for CEE, Loksewa, License, SEE, NEB exams">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@700;800;900&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <%- typeof extraCss !== 'undefined' ? extraCss : '' %>
+</head>
+<body>
+  <div id="cursor" class="custom-cursor"></div>
+  <div id="cursor-follower" class="cursor-follower"></div>
+
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="/" class="nav-logo">
+        <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+        <div class="logo-text">
+          <span class="logo-main">Learn With</span>
+          <span class="logo-accent">Saurab</span>
+        </div>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/browse-courses" class="nav-link">Courses</a>
+        <a href="/free-tests" class="nav-link">Free Tests</a>
+        <a href="/about" class="nav-link">About</a>
+        <a href="/contact" class="nav-link">Contact</a>
+        <% if (user) { %>
+          <a href="/dashboard" class="nav-link">Dashboard</a>
+          <% if (user.isAdmin) { %><a href="/admin" class="nav-link admin-link"><i class="fas fa-shield-halved"></i> Admin</a><% } %>
+          <a href="/logout" class="btn btn-outline-sm">Logout</a>
+        <% } else { %>
+          <a href="/login" class="btn btn-outline-sm">Login</a>
+          <a href="/signup" class="btn btn-primary-sm">Get Started</a>
+        <% } %>
+      </div>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>

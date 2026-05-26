@@ -1,0 +1,43 @@
+<%- include('partials/header') %>
+<div class="dashboard-page">
+  <div class="dashboard-sidebar">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar"><%= user.firstName[0] %><%= user.lastName[0] %></div>
+      <div><strong><%= user.firstName %> <%= user.lastName %></strong><span><%= user.email %></span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard" class="sidebar-link"><i class="fas fa-th-large"></i> Dashboard</a>
+      <a href="/my-courses" class="sidebar-link"><i class="fas fa-book-open"></i> My Courses</a>
+      <a href="/my-tests" class="sidebar-link active"><i class="fas fa-clipboard-list"></i> My Tests</a>
+      <a href="/mistake-notebook" class="sidebar-link"><i class="fas fa-bolt"></i> Weakness Analyzer</a>
+      <a href="/profile" class="sidebar-link"><i class="fas fa-user-cog"></i> Profile</a>
+      <a href="/logout" class="sidebar-link logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+  </div>
+  <div class="dashboard-main">
+    <div class="dashboard-header"><h1><span class="gradient-text">My Tests</span></h1><p><%= attempts.length %> test<%= attempts.length !== 1 ? 's' : '' %> taken</p></div>
+    <% if (attempts.length === 0) { %>
+      <div class="empty-state"><i class="fas fa-clipboard-list"></i><h3>No tests taken yet</h3><p><a href="/free-tests">Try a free test!</a></p></div>
+    <% } else { %>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Test</th><th>Category</th><th>Score</th><th>Result</th><th>Time</th><th>Date</th><th></th></tr></thead>
+        <tbody>
+          <% attempts.forEach(a => { %>
+          <tr>
+            <td><strong><%= a.testId ? a.testId.title : 'Unknown' %></strong></td>
+            <td><%= a.testId ? a.testId.category : '-' %></td>
+            <td><%= a.score %>/<%= a.totalMarks %> (<%= Math.round((a.score/a.totalMarks)*100) %>%)</td>
+            <td><span class="badge-result <%= a.passed ? 'badge-pass' : 'badge-fail' %>"><%= a.passed ? 'PASS' : 'FAIL' %></span></td>
+            <td><%= Math.floor(a.timeTaken/60) %>:<%= String(a.timeTaken%60).padStart(2,'0') %></td>
+            <td><%= new Date(a.completedAt).toLocaleDateString() %></td>
+            <td><a href="/tests/result/<%= a._id %>" class="btn-xs">Review</a></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </div>
+</div>
+<%- include('partials/footer') %>

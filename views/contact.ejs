@@ -1,0 +1,35 @@
+<%- include('partials/header') %>
+<div class="page-hero page-hero-sm">
+  <div class="container"><h1>Contact <span class="gradient-text">Us</span></h1><p>We're here to help you succeed</p></div>
+</div>
+<div class="container contact-page">
+  <div class="contact-grid">
+    <div class="contact-info">
+      <h2>Get in Touch</h2>
+      <div class="contact-item"><i class="fas fa-envelope text-teal"></i><div><h4>Email</h4><p>learnwithsaurab@gmail.com</p></div></div>
+      <div class="contact-item"><i class="fab fa-telegram text-teal"></i><div><h4>Telegram</h4><p>@learnwithsaurab</p></div></div>
+      <div class="contact-item"><i class="fab fa-youtube text-red"></i><div><h4>YouTube</h4><p>Learn With Saurab</p></div></div>
+      <div class="contact-item"><i class="fas fa-map-marker-alt text-purple"></i><div><h4>Location</h4><p>Kathmandu, Nepal</p></div></div>
+    </div>
+    <div class="contact-form-wrap">
+      <h2>Send Message</h2>
+      <form class="auth-form" id="contactForm" onsubmit="sendContact(event)">
+        <div class="form-row-2">
+          <div class="form-group"><label>Name</label><input type="text" name="name" required placeholder="Your name"></div>
+          <div class="form-group"><label>Email</label><input type="email" name="email" required placeholder="your@email.com"></div>
+        </div>
+        <div class="form-group"><label>Subject</label><input type="text" name="subject" placeholder="How can we help?"></div>
+        <div class="form-group"><label>Message</label><textarea rows="5" name="message" placeholder="Describe your query..." required></textarea></div>
+        <button type="submit" class="btn-auth"><span>Send Message</span><i class="fas fa-paper-plane"></i></button>
+        <div id="contactMsg" style="display:none" class="alert alert-success"><i class="fas fa-check-circle"></i> Message sent! We'll respond within 24 hours.</div>
+      </form>
+    </div>
+  </div>
+</div>
+<%- include('partials/footer', { extraJs: `<script>
+function sendContact(e) {
+  e.preventDefault();
+  document.getElementById('contactMsg').style.display = 'flex';
+  e.target.reset();
+}
+</script>` }) %>

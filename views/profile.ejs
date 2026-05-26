@@ -1,0 +1,52 @@
+<%- include('partials/header') %>
+<div class="dashboard-page">
+  <div class="dashboard-sidebar">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar"><%= user.firstName[0] %><%= user.lastName[0] %></div>
+      <div><strong><%= user.firstName %> <%= user.lastName %></strong><span><%= user.email %></span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard" class="sidebar-link"><i class="fas fa-th-large"></i> Dashboard</a>
+      <a href="/my-courses" class="sidebar-link"><i class="fas fa-book-open"></i> My Courses</a>
+      <a href="/my-tests" class="sidebar-link"><i class="fas fa-clipboard-list"></i> My Tests</a>
+      <a href="/mistake-notebook" class="sidebar-link"><i class="fas fa-bolt"></i> Weakness Analyzer</a>
+      <a href="/profile" class="sidebar-link active"><i class="fas fa-user-cog"></i> Profile</a>
+      <a href="/logout" class="sidebar-link logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+  </div>
+  <div class="dashboard-main">
+    <div class="dashboard-header"><h1><span class="gradient-text">My Profile</span></h1><p>Manage your account information</p></div>
+    <% if (msg) { %><div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= msg %></div><% } %>
+    <% if (error) { %><div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= error %></div><% } %>
+    <div class="profile-card">
+      <div class="profile-avatar-big"><%= user.firstName[0] %><%= user.lastName[0] %></div>
+      <div class="profile-info">
+        <h2><%= user.firstName %> <%= user.lastName %></h2>
+        <p class="text-muted">@<%= user.username %></p>
+        <div class="profile-badges">
+          <span class="badge-green"><i class="fas fa-check-circle"></i> Verified</span>
+          <% if (user.isAdmin) { %><span class="badge-purple"><i class="fas fa-shield-halved"></i> Admin</span><% } %>
+        </div>
+      </div>
+    </div>
+    <form action="/profile" method="POST" class="auth-form profile-form">
+      <div class="form-row-2">
+        <div class="form-group"><label>First Name</label><input type="text" name="firstName" value="<%= user.firstName %>" required></div>
+        <div class="form-group"><label>Last Name</label><input type="text" name="lastName" value="<%= user.lastName %>" required></div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group"><label>Username</label><input type="text" value="<%= user.username %>" disabled class="input-disabled"></div>
+        <div class="form-group"><label>Mobile</label><input type="tel" name="mobile" value="<%= user.mobile %>"></div>
+      </div>
+      <div class="form-group"><label>Email</label><input type="email" value="<%= user.email %>" disabled class="input-disabled"></div>
+      <button type="submit" class="btn-auth"><span>Update Profile</span><i class="fas fa-save"></i></button>
+    </form>
+    <div class="profile-stats">
+      <div class="pstat"><i class="fas fa-book-open text-teal"></i><span><%= user.enrolledCourses.length %> Courses</span></div>
+      <div class="pstat"><i class="fas fa-clock text-purple"></i><span><%= user.progress.totalMinutesWatched %> Minutes</span></div>
+      <div class="pstat"><i class="fas fa-clipboard-check text-yellow"></i><span><%= user.progress.testsTaken %> Tests</span></div>
+      <div class="pstat"><i class="fas fa-chart-bar text-green"></i><span><%= user.progress.avgScore %>% Avg</span></div>
+    </div>
+  </div>
+</div>
+<%- include('partials/footer') %>

@@ -1,0 +1,115 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'dashboard' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-th-large"></i> Admin Dashboard</h1>
+      <div class="admin-user">
+        <span>Welcome, <%= admin.firstName %></span>
+        <a href="/logout" class="btn-xs btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+      </div>
+    </div>
+
+    <div class="admin-stats-grid">
+      <div class="admin-stat-card asc-blue">
+        <div class="asc-icon"><i class="fas fa-users"></i></div>
+        <div class="asc-body"><div class="asc-num"><%= stats.users %></div><div class="asc-label">Total Students</div></div>
+      </div>
+      <div class="admin-stat-card asc-purple">
+        <div class="asc-icon"><i class="fas fa-book-open"></i></div>
+        <div class="asc-body"><div class="asc-num"><%= stats.courses %></div><div class="asc-label">Courses</div></div>
+      </div>
+      <div class="admin-stat-card asc-yellow">
+        <div class="asc-icon"><i class="fas fa-clipboard-list"></i></div>
+        <div class="asc-body"><div class="asc-num"><%= stats.tests %></div><div class="asc-label">Tests</div></div>
+      </div>
+      <div class="admin-stat-card asc-green">
+        <div class="asc-icon"><i class="fas fa-coins"></i></div>
+        <div class="asc-body"><div class="asc-num">Rs. <%= stats.revenue.toLocaleString() %></div><div class="asc-label">Total Revenue</div></div>
+      </div>
+    </div>
+
+    <div class="admin-grid-2">
+      <div class="admin-section">
+        <div class="admin-section-header"><h2><i class="fas fa-chart-line"></i> Signups (Last 30 Days)</h2></div>
+        <div class="chart-wrap"><canvas id="signupChart"></canvas></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-section-header"><h2><i class="fas fa-bolt"></i> Quick Actions</h2></div>
+        <div class="quick-actions-grid">
+          <a href="/admin/courses/new" class="qa-btn"><i class="fas fa-plus-circle"></i><span>New Course</span></a>
+          <a href="/admin/tests" class="qa-btn"><i class="fas fa-plus-circle"></i><span>New Test</span></a>
+          <a href="/admin/categories" class="qa-btn"><i class="fas fa-th-large"></i><span>Categories</span></a>
+          <a href="/admin/users" class="qa-btn"><i class="fas fa-users"></i><span>Users</span></a>
+          <a href="/admin/transactions" class="qa-btn"><i class="fas fa-money-bill"></i><span>Payments</span></a>
+          <a href="/admin/analytics" class="qa-btn"><i class="fas fa-chart-bar"></i><span>Analytics</span></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-grid-2">
+      <div class="admin-section">
+        <div class="admin-section-header"><h2><i class="fas fa-users"></i> Recent Students</h2></div>
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Joined</th></tr></thead>
+          <tbody>
+            <% recentUsers.forEach(u => { %>
+            <tr>
+              <td><strong><%= u.firstName %> <%= u.lastName %></strong></td>
+              <td><%= u.email %></td>
+              <td><%= new Date(u.createdAt).toLocaleDateString() %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <a href="/admin/users" class="view-all-link">View all users <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="admin-section">
+        <div class="admin-section-header"><h2><i class="fas fa-money-bill-wave"></i> Recent Payments</h2></div>
+        <table class="data-table">
+          <thead><tr><th>Student</th><th>Course</th><th>Amount</th></tr></thead>
+          <tbody>
+            <% recentTxns.forEach(t => { %>
+            <tr>
+              <td><%= t.userId ? t.userId.firstName : 'Unknown' %></td>
+              <td><%= t.courseId ? t.courseId.title : 'Unknown' %></td>
+              <td><strong>Rs. <%= t.amount ? t.amount.toLocaleString() : '0' %></strong></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <a href="/admin/transactions" class="view-all-link">View all payments <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer', { extraJs: `
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const signupData = <%- signupData %>;
+const labels = signupData.map(d => d._id);
+const counts = signupData.map(d => d.count);
+new Chart(document.getElementById('signupChart'), {
+  type: 'line',
+  data: {
+    labels, datasets: [{
+      label: 'New Students',
+      data: counts,
+      borderColor: '#00D4FF',
+      backgroundColor: 'rgba(0,212,255,0.1)',
+      tension: 0.4, fill: true, pointBackgroundColor: '#00D4FF'
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: '#E5E7EB' } } },
+    scales: {
+      x: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' } },
+      y: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' }, beginAtZero: true }
+    }
+  }
+});
+</script>
+` }) %>

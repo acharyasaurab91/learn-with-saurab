@@ -1,0 +1,47 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'courses' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-book-open"></i> Course Manager</h1>
+      <a href="/admin/courses/new" class="btn-admin-primary"><i class="fas fa-plus"></i> New Course</a>
+    </div>
+    <div class="admin-section">
+      <form method="GET" class="admin-search-bar">
+        <input type="text" name="search" placeholder="Search courses..." value="<%= query.search || '' %>">
+        <button type="submit" class="btn-admin-primary"><i class="fas fa-search"></i></button>
+      </form>
+      <% if (courses.length === 0) { %>
+        <div class="empty-state"><i class="fas fa-book-open"></i><h3>No courses found</h3><p><a href="/admin/courses/new">Create your first course</a></p></div>
+      <% } else { %>
+      <table class="data-table">
+        <thead><tr><th>Course</th><th>Category</th><th>Price</th><th>Students</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          <% courses.forEach(c => { %>
+          <tr>
+            <td><strong><%= c.title %></strong></td>
+            <td><%= c.category || '—' %></td>
+            <td><%= c.price === 0 ? 'FREE' : 'Rs. ' + c.price.toLocaleString() %></td>
+            <td><%= c.enrolledCount || 0 %></td>
+            <td><span class="badge-<%= c.isPublished ? 'green' : 'gray' %>"><%= c.isPublished ? 'Published' : 'Draft' %></span></td>
+            <td class="actions-cell">
+              <a href="/admin/courses/<%= c._id %>/modules" class="btn-icon btn-blue" title="Modules"><i class="fas fa-video"></i></a>
+              <a href="/admin/courses/<%= c._id %>/edit" class="btn-icon btn-edit" title="Edit"><i class="fas fa-edit"></i></a>
+              <button onclick="deleteCourse('<%= c._id %>', '<%= c.title.replace(/'/g, '') %>')" class="btn-icon btn-delete" title="Delete"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer', { extraJs: `<script>
+async function deleteCourse(id, name) {
+  if (!confirm('Delete course "' + name + '"? This cannot be undone.')) return;
+  const res = await fetch('/admin/courses/' + id, { method: 'DELETE' });
+  if ((await res.json()).success) location.reload();
+  else alert('Delete failed');
+}
+</script>` }) %>

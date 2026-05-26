@@ -1,0 +1,82 @@
+<%- include('partials/header') %>
+
+<div class="result-page container">
+  <div class="result-hero <%= attempt.passed ? 'result-pass' : 'result-fail' %>">
+    <div class="result-icon">
+      <% if (attempt.passed) { %>
+        <i class="fas fa-trophy"></i>
+      <% } else { %>
+        <i class="fas fa-redo-alt"></i>
+      <% } %>
+    </div>
+    <h1><%= attempt.passed ? '🎉 Congratulations!' : 'Keep Going!' %></h1>
+    <p><%= attempt.passed ? 'You passed the test!' : 'You didn\'t pass this time, but you\'re learning!' %></p>
+    <div class="result-score-circle">
+      <div class="score-num"><%= attempt.score %></div>
+      <div class="score-total">/<%= attempt.totalMarks %></div>
+    </div>
+    <div class="result-stats-row">
+      <div class="r-stat">
+        <span><%= Math.round((attempt.score / attempt.totalMarks) * 100) %>%</span>
+        <label>Percentage</label>
+      </div>
+      <div class="r-stat">
+        <span><%= questionsWithResults.filter(q => q.isCorrect).length %></span>
+        <label>Correct</label>
+      </div>
+      <div class="r-stat">
+        <span><%= questionsWithResults.filter(q => !q.isCorrect && q.selected !== -1).length %></span>
+        <label>Wrong</label>
+      </div>
+      <div class="r-stat">
+        <span><%= questionsWithResults.filter(q => q.selected === -1).length %></span>
+        <label>Skipped</label>
+      </div>
+      <div class="r-stat">
+        <span><%= Math.floor(attempt.timeTaken / 60) %>:<%= String(attempt.timeTaken % 60).padStart(2, '0') %></span>
+        <label>Time Taken</label>
+      </div>
+    </div>
+    <div class="result-cta">
+      <a href="/free-tests" class="btn-hero-outline">Try Another Test</a>
+      <a href="/mistake-notebook" class="btn-hero-primary">⚡ View Weaknesses</a>
+    </div>
+  </div>
+
+  <div class="result-review">
+    <h2><i class="fas fa-search"></i> Question Review</h2>
+    <% questionsWithResults.forEach((q, i) => { %>
+    <div class="review-card <%= q.isCorrect ? 'review-correct' : q.selected === -1 ? 'review-skipped' : 'review-wrong' %>">
+      <div class="review-header">
+        <span class="review-num">Q<%= i + 1 %></span>
+        <span class="review-tag">
+          <% if (q.isCorrect) { %><i class="fas fa-check-circle text-green"></i> Correct
+          <% } else if (q.selected === -1) { %><i class="fas fa-minus-circle text-gray"></i> Skipped
+          <% } else { %><i class="fas fa-times-circle text-red"></i> Wrong<% } %>
+        </span>
+        <span class="review-diff diff-<%= q.difficulty ? q.difficulty.toLowerCase() : 'medium' %>"><%= q.difficulty || 'Medium' %></span>
+      </div>
+      <div class="review-question"><%= q.questionText %></div>
+      <% if (q.questionImage) { %><img src="<%= q.questionImage %>" alt="Q image" class="review-img"><% } %>
+      <div class="review-options">
+        <% q.options.forEach((opt, idx) => { %>
+        <div class="review-option
+          <%= idx === q.correctIdx ? 'opt-correct' : '' %>
+          <%= idx === q.selected && idx !== q.correctIdx ? 'opt-wrong' : '' %>">
+          <span class="opt-letter"><%= ['A','B','C','D'][idx] %></span>
+          <%= opt.text %>
+          <% if (idx === q.correctIdx) { %><i class="fas fa-check-circle"></i><% } %>
+          <% if (idx === q.selected && idx !== q.correctIdx) { %><i class="fas fa-times-circle"></i><% } %>
+          <% if (idx === q.selected) { %><span class="your-ans">(Your answer)</span><% } %>
+        </div>
+        <% }) %>
+      </div>
+      <% if (q.explanation) { %>
+        <div class="review-explanation"><strong><i class="fas fa-lightbulb"></i> Explanation:</strong> <%= q.explanation %></div>
+      <% } %>
+    </div>
+    <% }) %>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

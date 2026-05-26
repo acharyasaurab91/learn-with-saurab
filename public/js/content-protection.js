@@ -1,104 +1,76 @@
 /* ============================================
-   LEARN WITH SAURAB -- content-protection.js
-   Protects video content and course materials
+   LEARN WITH SAURAB - Content Protection
    ============================================ */
 
-(function() {
+(function () {
+  // Disable right-click globally
+  document.addEventListener('contextmenu', e => e.preventDefault());
 
-  // 1. Disable right-click
-  document.addEventListener('contextmenu', function(e) {
-    e.preventDefault();
-    return false;
-  });
-
-  // 2. Disable keyboard shortcuts
-  document.addEventListener('keydown', function(e) {
-    // F12
-    if (e.key === 'F12') {
-      e.preventDefault();
-      return false;
-    }
-    // Ctrl+Shift+I (DevTools)
-    if (e.ctrlKey && e.shiftKey && e.key === 'I') {
-      e.preventDefault();
-      return false;
-    }
-    // Ctrl+Shift+J (Console)
-    if (e.ctrlKey && e.shiftKey && e.key === 'J') {
-      e.preventDefault();
-      return false;
-    }
-    // Ctrl+Shift+C (Inspector)
-    if (e.ctrlKey && e.shiftKey && e.key === 'C') {
-      e.preventDefault();
-      return false;
-    }
-    // Ctrl+U (View source)
-    if (e.ctrlKey && e.key === 'u') {
-      e.preventDefault();
-      return false;
-    }
-    // Ctrl+S (Save page)
-    if (e.ctrlKey && e.key === 's') {
-      e.preventDefault();
-      return false;
-    }
-    // Ctrl+P (Print)
-    if (e.ctrlKey && e.key === 'p') {
-      e.preventDefault();
-      return false;
-    }
-  });
-
-  // 3. Disable drag on images and videos
-  document.addEventListener('dragstart', function(e) {
+  // Disable common keyboard shortcuts
+  document.addEventListener('keydown', e => {
     if (
-      e.target.tagName === 'IMG' ||
-      e.target.tagName === 'VIDEO'
+      (e.ctrlKey || e.metaKey) && ['s', 'u', 'i', 'j', 'c', 'a', 'p'].includes(e.key.toLowerCase()) ||
+      e.key === 'F12' ||
+      (e.ctrlKey && e.shiftKey && ['i', 'j', 'c', 'k'].includes(e.key.toLowerCase()))
     ) {
       e.preventDefault();
       return false;
     }
   });
 
-  // 4. Detect DevTools open → blur protected videos
-  const devToolsThreshold = 160;
+  // Disable text selection on video elements
+  document.querySelectorAll('video').forEach(v => {
+    v.addEventListener('contextmenu', e => e.preventDefault());
+  });
 
-  setInterval(function() {
-    const widthDiff  = window.outerWidth  - window.innerWidth;
+  // DevTools detection (basic)
+  let devToolsOpen = false;
+  const detectDevTools = () => {
+    const threshold = 160;
+    const widthDiff = window.outerWidth - window.innerWidth;
     const heightDiff = window.outerHeight - window.innerHeight;
-
-    if (widthDiff > devToolsThreshold ||
-        heightDiff > devToolsThreshold) {
-      // Blur and pause all protected videos
-      document.querySelectorAll('.protected-video').forEach(function(video) {
-        video.pause();
-        video.style.filter = 'blur(20px)';
-      });
+    if (widthDiff > threshold || heightDiff > threshold) {
+      if (!devToolsOpen) {
+        devToolsOpen = true;
+        console.warn('🔒 Content is protected. Unauthorized recording or distribution is prohibited.');
+      }
     } else {
-      // Restore videos when DevTools closed
-      document.querySelectorAll('.protected-video').forEach(function(video) {
-        video.style.filter = '';
-      });
+      devToolsOpen = false;
     }
-  }, 1000);
+  };
+  setInterval(detectDevTools, 3000);
 
-  // 5. Disable text selection on video player area
-  document.querySelectorAll('.video-player-wrap').forEach(function(el) {
-    el.style.userSelect = 'none';
-    el.style.webkitUserSelect = 'none';
+  // Watermark on video player
+  const watermarkEl = document.getElementById('watermarkText');
+  if (watermarkEl) {
+    let wmInterval = setInterval(() => {
+      const positions = [
+        { top: '10%', left: '5%' }, { top: '30%', left: '50%' },
+        { top: '60%', left: '15%' }, { top: '80%', left: '60%' },
+        { top: '45%', left: '35%' }
+      ];
+      const pos = positions[Math.floor(Math.random() * positions.length)];
+      watermarkEl.style.top = pos.top;
+      watermarkEl.style.left = pos.left;
+    }, 4000);
+  }
+
+  // Screenshot detection (best effort - fires on print)
+  window.addEventListener('beforeprint', () => {
+    const overlay = document.createElement('div');
+    overlay.id = 'print-block';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0A0E1A;display:flex;align-items:center;justify-content:center;color:#00D4FF;font-size:24px;font-family:Inter,sans-serif;font-weight:700';
+    overlay.innerHTML = '🔒 Content Protected – Learn With Saurab';
+    document.body.appendChild(overlay);
+  });
+  window.addEventListener('afterprint', () => {
+    const el = document.getElementById('print-block');
+    if (el) el.remove();
   });
 
-  // 6. Warn on page visibility change
-  // (when user switches tab -- optional logging)
-  document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-      // User switched tab -- could pause video here
-      document.querySelectorAll('.protected-video').forEach(function(video) {
-        // Uncomment to auto-pause on tab switch:
-        // video.pause();
-      });
-    }
+  // Disable drag on images
+  document.querySelectorAll('img').forEach(img => {
+    img.setAttribute('draggable', 'false');
+    img.addEventListener('dragstart', e => e.preventDefault());
   });
-
 })();

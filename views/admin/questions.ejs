@@ -1,0 +1,94 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'tests' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-question-circle"></i> Questions: <span class="text-teal"><%= test.title %></span></h1>
+      <div class="topbar-actions">
+        <span class="badge-blue"><%= test.questions.length %> questions</span>
+        <a href="/admin/tests" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+      </div>
+    </div>
+    <div class="admin-grid-2">
+      <div class="admin-section">
+        <div class="admin-section-header"><h2><i class="fas fa-plus"></i> Add Question</h2></div>
+        <form id="qForm" enctype="multipart/form-data" onsubmit="addQuestion(event)">
+          <div class="form-group"><label>Question Text *</label><textarea id="qText" rows="3" required placeholder="Enter question text..."></textarea></div>
+          <div class="form-group"><label>Question Image (optional)</label><input type="file" id="qImage" name="questionImage" accept="image/*"></div>
+          <div class="form-group">
+            <label>Options (check the correct one)</label>
+            <% ['A','B','C','D'].forEach((letter, idx) => { %>
+            <div class="option-input-row">
+              <input type="radio" name="correctOption" value="<%= idx %>" required id="opt<%= idx %>">
+              <label for="opt<%= idx %>" class="opt-letter"><%= letter %></label>
+              <input type="text" id="option<%= idx %>" placeholder="Option <%= letter %>" required class="option-text-input">
+            </div>
+            <% }) %>
+          </div>
+          <div class="form-group"><label>Explanation</label><textarea id="qExp" rows="2" placeholder="Explain the correct answer..."></textarea></div>
+          <div class="form-row-3">
+            <div class="form-group"><label>Marks</label><input type="number" id="qMarks" value="1" min="1"></div>
+            <div class="form-group"><label>Difficulty</label><select id="qDiff"><option>Easy</option><option selected>Medium</option><option>Hard</option></select></div>
+            <div class="form-group"><label>Topic</label><input type="text" id="qTopic" placeholder="e.g. Kinematics"></div>
+          </div>
+          <div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="qTags" placeholder="e.g. velocity, acceleration"></div>
+          <button type="submit" class="btn-admin-primary w-full" id="qSubmitBtn"><i class="fas fa-plus"></i> Add Question</button>
+        </form>
+      </div>
+      <div class="admin-section">
+        <div class="admin-section-header"><h2><i class="fas fa-list"></i> Questions (<%= test.questions.length %>)</h2></div>
+        <% if (test.questions.length === 0) { %>
+          <div class="empty-state-sm"><i class="fas fa-question-circle"></i><p>No questions yet. Add your first question.</p></div>
+        <% } else { %>
+        <div class="questions-admin-list">
+          <% test.questions.forEach((q, i) => { %>
+          <div class="question-admin-row">
+            <div class="question-admin-header">
+              <span class="qnum">Q<%= i + 1 %></span>
+              <span class="badge-diff diff-<%= q.difficulty.toLowerCase() %>"><%= q.difficulty %></span>
+              <span class="text-muted text-sm"><%= q.marks %> mark<%= q.marks !== 1 ? 's' : '' %></span>
+              <button onclick="deleteQuestion('<%= q._id %>')" class="btn-icon btn-delete ml-auto"><i class="fas fa-trash"></i></button>
+            </div>
+            <p class="question-admin-text"><%= q.questionText.substring(0, 120) %><%= q.questionText.length > 120 ? '...' : '' %></p>
+            <div class="options-preview">
+              <% q.options.forEach((opt, oi) => { %>
+              <span class="opt-preview <%= opt.isCorrect ? 'opt-correct' : '' %>"><%= ['A','B','C','D'][oi] %>. <%= opt.text.substring(0, 30) %></span>
+              <% }) %>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer', { extraJs: `<script>
+async function addQuestion(e) {
+  e.preventDefault();
+  const btn = document.getElementById('qSubmitBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+  const formData = new FormData();
+  formData.append('questionText', document.getElementById('qText').value);
+  const options = ['option0','option1','option2','option3'].map(id => document.getElementById(id).value);
+  options.forEach(o => formData.append('options', o));
+  const correctOpt = document.querySelector('input[name="correctOption"]:checked');
+  formData.append('correctOption', correctOpt ? correctOpt.value : '0');
+  formData.append('explanation', document.getElementById('qExp').value);
+  formData.append('marks', document.getElementById('qMarks').value);
+  formData.append('difficulty', document.getElementById('qDiff').value);
+  formData.append('topic', document.getElementById('qTopic').value);
+  formData.append('tags', document.getElementById('qTags').value);
+  const img = document.getElementById('qImage').files[0];
+  if (img) formData.append('questionImage', img);
+  const res = await fetch('/admin/tests/<%= test._id %>/questions', { method: 'POST', body: formData });
+  const data = await res.json();
+  if (data.success) { location.reload(); }
+  else { alert('Error: ' + data.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Add Question'; }
+}
+async function deleteQuestion(qId) {
+  if (!confirm('Delete this question?')) return;
+  const res = await fetch('/admin/tests/<%= test._id %>/questions/' + qId, { method: 'DELETE' });
+  if ((await res.json()).success) location.reload();
+}
+</script>` }) %>

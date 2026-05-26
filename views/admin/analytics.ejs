@@ -1,0 +1,58 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'analytics' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar"><h1><i class="fas fa-chart-bar"></i> Analytics</h1></div>
+    <div class="admin-grid-2">
+      <div class="admin-section">
+        <div class="admin-section-header"><h2>Student Signups (30 days)</h2></div>
+        <div class="chart-wrap"><canvas id="signupChart"></canvas></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-section-header"><h2>Revenue (30 days)</h2></div>
+        <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+      </div>
+    </div>
+    <div class="admin-section">
+      <div class="admin-section-header"><h2><i class="fas fa-trophy"></i> Top Courses by Enrollment</h2></div>
+      <table class="data-table">
+        <thead><tr><th>Course</th><th>Enrolled</th><th>Price</th><th>Revenue</th></tr></thead>
+        <tbody>
+          <% topCourses.forEach(c => { %>
+          <tr>
+            <td><strong><%= c.title %></strong></td>
+            <td><%= c.enrolledCount || 0 %></td>
+            <td><%= c.price === 0 ? 'FREE' : 'Rs. ' + c.price.toLocaleString() %></td>
+            <td>Rs. <%= ((c.enrolledCount || 0) * c.price).toLocaleString() %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer', { extraJs: `
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const signupData = <%- signupData %>;
+const revenueData = <%- revenueData %>;
+const chartDefaults = {
+  responsive: true,
+  plugins: { legend: { labels: { color: '#E5E7EB' } } },
+  scales: {
+    x: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' } },
+    y: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' }, beginAtZero: true }
+  }
+};
+new Chart(document.getElementById('signupChart'), {
+  type: 'bar',
+  data: { labels: signupData.map(d=>d._id), datasets: [{ label: 'Signups', data: signupData.map(d=>d.count), backgroundColor: 'rgba(0,212,255,0.6)', borderColor: '#00D4FF', borderWidth: 1 }] },
+  options: chartDefaults
+});
+new Chart(document.getElementById('revenueChart'), {
+  type: 'line',
+  data: { labels: revenueData.map(d=>d._id), datasets: [{ label: 'Revenue (Rs.)', data: revenueData.map(d=>d.total), borderColor: '#FFD700', backgroundColor: 'rgba(255,215,0,0.1)', tension: 0.4, fill: true }] },
+  options: chartDefaults
+});
+</script>
+` }) %>

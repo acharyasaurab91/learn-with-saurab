@@ -1,0 +1,42 @@
+<%- include('partials/header') %>
+<div class="dashboard-page">
+  <div class="dashboard-sidebar">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar"><%= user.firstName[0] %><%= user.lastName[0] %></div>
+      <div><strong><%= user.firstName %> <%= user.lastName %></strong><span><%= user.email %></span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard" class="sidebar-link"><i class="fas fa-th-large"></i> Dashboard</a>
+      <a href="/my-courses" class="sidebar-link active"><i class="fas fa-book-open"></i> My Courses</a>
+      <a href="/my-tests" class="sidebar-link"><i class="fas fa-clipboard-list"></i> My Tests</a>
+      <a href="/mistake-notebook" class="sidebar-link"><i class="fas fa-bolt"></i> Weakness Analyzer</a>
+      <a href="/profile" class="sidebar-link"><i class="fas fa-user-cog"></i> Profile</a>
+      <a href="/logout" class="sidebar-link logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+  </div>
+  <div class="dashboard-main">
+    <div class="dashboard-header"><h1><span class="gradient-text">My Courses</span></h1><p><%= courses.length %> enrolled course<%= courses.length !== 1 ? 's' : '' %></p></div>
+    <% if (courses.length === 0) { %>
+      <div class="empty-state"><i class="fas fa-book-open"></i><h3>No courses yet</h3><p><a href="/browse-courses">Browse and enroll in your first course!</a></p></div>
+    <% } else { %>
+    <div class="courses-grid">
+      <% courses.forEach(course => { %>
+      <div class="course-card">
+        <div class="course-img-wrap">
+          <% if (course.imageUrl) { %><img src="<%= course.imageUrl %>" alt="<%= course.title %>" loading="lazy"><% } else { %><div class="course-img-placeholder"><i class="fas fa-book-open"></i></div><% } %>
+          <div class="course-badge"><%= course.category %></div>
+        </div>
+        <div class="course-body">
+          <h3 class="course-title"><%= course.title %></h3>
+          <div class="course-meta">
+            <span><i class="fas fa-layer-group"></i> <%= course.level %></span>
+          </div>
+          <a href="/courses/<%= course._id %>/learn" class="btn-enroll"><span>Continue Learning</span><i class="fas fa-play"></i></a>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+    <% } %>
+  </div>
+</div>
+<%- include('partials/footer') %>

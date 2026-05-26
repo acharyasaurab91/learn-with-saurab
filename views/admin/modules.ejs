@@ -1,0 +1,110 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'courses' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-video"></i> Modules: <span class="text-teal"><%= course.title %></span></h1>
+      <div class="topbar-actions">
+        <a href="/courses/<%= course._id %>" class="btn-secondary" target="_blank"><i class="fas fa-external-link-alt"></i> Preview</a>
+        <a href="/admin/courses" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+      </div>
+    </div>
+
+    <div class="admin-grid-2">
+      <div class="admin-section">
+        <div class="admin-section-header"><h2><i class="fas fa-upload"></i> Add New Lesson</h2></div>
+        <form id="uploadForm" enctype="multipart/form-data">
+          <div class="form-group"><label>Lesson Title *</label><input type="text" id="modTitle" placeholder="e.g. Introduction to Kinematics" required></div>
+          <div class="form-group"><label>Description</label><textarea id="modDesc" rows="2" placeholder="Brief lesson description..."></textarea></div>
+          <div class="form-group"><label>Video File</label><input type="file" id="modVideo" name="video" accept="video/*"></div>
+          <div class="form-row-2">
+            <div class="form-group"><label>Order</label><input type="number" id="modOrder" value="<%= modules.length + 1 %>" min="1"></div>
+            <div class="form-group checkbox-form-group"><label class="checkbox-label"><input type="checkbox" id="modFree"> Free Preview</label></div>
+          </div>
+          <div class="upload-progress" id="uploadProgress" style="display:none">
+            <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+            <span id="progressText">Uploading... 0%</span>
+          </div>
+          <button type="submit" class="btn-admin-primary w-full" id="uploadBtn"><i class="fas fa-upload"></i> Upload & Add Lesson</button>
+        </form>
+      </div>
+
+      <div class="admin-section">
+        <div class="admin-section-header"><h2><i class="fas fa-list"></i> Lessons (<%= modules.length %>)</h2></div>
+        <% if (modules.length === 0) { %>
+          <div class="empty-state-sm"><i class="fas fa-video"></i><p>No lessons yet. Upload your first video.</p></div>
+        <% } else { %>
+        <div class="modules-admin-list" id="moduleList">
+          <% modules.forEach((mod, i) => { %>
+          <div class="module-admin-row" data-id="<%= mod._id %>" draggable="true">
+            <div class="module-drag-handle"><i class="fas fa-grip-vertical"></i></div>
+            <div class="module-number"><%= i + 1 %></div>
+            <div class="module-info">
+              <strong><%= mod.title %></strong>
+              <div class="module-meta">
+                <span class="badge-<%= mod.isFreePreview ? 'green' : 'yellow' %>"><%= mod.isFreePreview ? 'Free' : 'Premium' %></span>
+                <% if (mod.videoFilename) { %><span class="text-muted text-sm"><i class="fas fa-video"></i> Video uploaded</span><% } %>
+              </div>
+            </div>
+            <button onclick="deleteModule('<%= mod._id %>')" class="btn-icon btn-delete"><i class="fas fa-trash"></i></button>
+          </div>
+          <% }) %>
+        </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer', { extraJs: `<script>
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const formData = new FormData();
+  formData.append('title', document.getElementById('modTitle').value);
+  formData.append('description', document.getElementById('modDesc').value);
+  formData.append('isFreePreview', document.getElementById('modFree').checked);
+  formData.append('order', document.getElementById('modOrder').value);
+  const videoFile = document.getElementById('modVideo').files[0];
+  if (videoFile) formData.append('video', videoFile);
+  const progress = document.getElementById('uploadProgress');
+  const fill = document.getElementById('progressFill');
+  const text = document.getElementById('progressText');
+  progress.style.display = 'block';
+  const xhr = new XMLHttpRequest();
+  xhr.upload.addEventListener('progress', e => {
+    if (e.lengthComputable) {
+      const pct = Math.round((e.loaded / e.total) * 100);
+      fill.style.width = pct + '%';
+      text.textContent = 'Uploading... ' + pct + '%';
+    }
+  });
+  xhr.addEventListener('load', () => {
+    const res = JSON.parse(xhr.responseText);
+    if (res.success) { text.textContent = '✅ Uploaded successfully!'; setTimeout(() => location.reload(), 1000); }
+    else { text.textContent = '❌ Upload failed: ' + res.message; }
+  });
+  xhr.open('POST', '/admin/courses/<%= course._id %>/modules');
+  xhr.send(formData);
+});
+
+async function deleteModule(id) {
+  if (!confirm('Delete this lesson? The video file will also be deleted.')) return;
+  const res = await fetch('/admin/modules/' + id, { method: 'DELETE' });
+  if ((await res.json()).success) location.reload();
+}
+
+let dragSrc = null;
+const list = document.getElementById('moduleList');
+if (list) {
+  list.querySelectorAll('.module-admin-row').forEach(row => {
+    row.addEventListener('dragstart', () => { dragSrc = row; row.style.opacity = '0.5'; });
+    row.addEventListener('dragend', () => { row.style.opacity = '1'; saveOrder(); });
+    row.addEventListener('dragover', e => e.preventDefault());
+    row.addEventListener('drop', e => { e.preventDefault(); if (dragSrc !== row) list.insertBefore(dragSrc, row); });
+  });
+}
+async function saveOrder() {
+  const ids = [...list.querySelectorAll('.module-admin-row')].map(r => r.dataset.id);
+  await fetch('/admin/courses/<%= course._id %>/modules/reorder', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ order: ids }) });
+}
+</script>` }) %>

@@ -1,0 +1,135 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'categories' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-tags"></i> Category Manager</h1>
+      <button class="btn-admin-primary" onclick="openAddModal()"><i class="fas fa-plus"></i> Add Category</button>
+    </div>
+    <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
+    <div class="admin-section">
+      <p class="text-muted">Drag to reorder categories. Changes save automatically.</p>
+      <div class="categories-admin-list" id="catList">
+        <% categories.forEach((cat, i) => { %>
+        <div class="cat-admin-row" data-id="<%= cat._id %>" draggable="true">
+          <div class="cat-drag-handle"><i class="fas fa-grip-vertical"></i></div>
+          <div class="cat-icon-preview" style="background: <%= cat.color %>20; color: <%= cat.color %>">
+            <i class="<%= cat.icon %>"></i>
+          </div>
+          <div class="cat-info">
+            <strong><%= cat.name %></strong>
+            <span class="text-muted"><%= cat.slug %></span>
+            <div class="cat-subjects">
+              <% cat.subjects && cat.subjects.forEach(s => { %><span class="chip-sm"><%= s %></span><% }) %>
+            </div>
+          </div>
+          <div class="cat-status">
+            <span class="badge-<%= cat.isVisible ? 'green' : 'gray' %>"><%= cat.isVisible ? 'Visible' : 'Hidden' %></span>
+          </div>
+          <div class="cat-actions">
+            <button onclick="editCat('<%= cat._id %>', '<%= cat.name %>', '<%= cat.slug %>', '<%= cat.icon %>', '<%= cat.color %>', '<%= cat.description || '' %>', '<%= cat.subjects ? cat.subjects.join(',') : '' %>', <%= cat.isVisible %>, <%= cat.order %>)" class="btn-icon btn-edit"><i class="fas fa-edit"></i></button>
+            <button onclick="deleteCat('<%= cat._id %>', '<%= cat.name %>')" class="btn-icon btn-delete"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+    <% } else { %>
+    <div class="empty-state"><i class="fas fa-tags"></i><h3>No categories yet</h3><p>Add your first category to get started.</p></div>
+    <% } %>
+  </div>
+</div>
+
+<div class="modal-overlay" id="catModal" style="display:none">
+  <div class="modal-card modal-lg">
+    <div class="modal-header">
+      <h3 id="catModalTitle"><i class="fas fa-tag"></i> Add Category</h3>
+      <button onclick="closeCatModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <form id="catForm" onsubmit="saveCat(event)">
+      <input type="hidden" id="catId">
+      <div class="form-row-2">
+        <div class="form-group"><label>Name *</label><input type="text" id="catName" required placeholder="e.g. CEE"></div>
+        <div class="form-group"><label>Slug *</label><input type="text" id="catSlug" required placeholder="e.g. cee"></div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group"><label>Icon (Font Awesome class)</label><input type="text" id="catIcon" placeholder="fas fa-microscope"></div>
+        <div class="form-group"><label>Color</label><input type="color" id="catColor" value="#00D4FF"></div>
+      </div>
+      <div class="form-group"><label>Description</label><textarea id="catDesc" rows="2" placeholder="Brief description..."></textarea></div>
+      <div class="form-group">
+        <label>Subjects (comma-separated)</label>
+        <input type="text" id="catSubjects" placeholder="Physics, Chemistry, Biology, Math, MAT">
+        <small class="form-hint">For CEE: include MAT as a subject. For Loksewa: include IQ/Reasoning.</small>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group"><label>Order (display position)</label><input type="number" id="catOrder" min="0" value="0"></div>
+        <div class="form-group checkbox-form-group"><label class="checkbox-label"><input type="checkbox" id="catVisible" checked> Visible on homepage</label></div>
+      </div>
+      <div class="modal-actions"><button type="button" onclick="closeCatModal()" class="btn-secondary">Cancel</button><button type="submit" class="btn-admin-primary">Save Category</button></div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer', { extraJs: `<script>
+function openAddModal() { document.getElementById('catModalTitle').textContent = '+ Add Category'; document.getElementById('catId').value = ''; document.getElementById('catForm').reset(); document.getElementById('catVisible').checked = true; document.getElementById('catModal').style.display = 'flex'; }
+function closeCatModal() { document.getElementById('catModal').style.display = 'none'; }
+function editCat(id, name, slug, icon, color, desc, subjects, visible, order) {
+  document.getElementById('catModalTitle').textContent = 'Edit Category';
+  document.getElementById('catId').value = id;
+  document.getElementById('catName').value = name;
+  document.getElementById('catSlug').value = slug;
+  document.getElementById('catIcon').value = icon;
+  document.getElementById('catColor').value = color;
+  document.getElementById('catDesc').value = desc;
+  document.getElementById('catSubjects').value = subjects;
+  document.getElementById('catVisible').checked = visible;
+  document.getElementById('catOrder').value = order;
+  document.getElementById('catModal').style.display = 'flex';
+}
+async function saveCat(e) {
+  e.preventDefault();
+  const id = document.getElementById('catId').value;
+  const data = {
+    name: document.getElementById('catName').value,
+    slug: document.getElementById('catSlug').value,
+    icon: document.getElementById('catIcon').value,
+    color: document.getElementById('catColor').value,
+    description: document.getElementById('catDesc').value,
+    subjects: document.getElementById('catSubjects').value,
+    isVisible: String(document.getElementById('catVisible').checked),
+    order: document.getElementById('catOrder').value
+  };
+  if (id) {
+    const res = await fetch('/admin/categories/' + id, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const r = await res.json();
+    if (r.success) location.reload();
+    else alert('Error: ' + r.message);
+  } else {
+    const form = document.createElement('form');
+    form.method = 'POST'; form.action = '/admin/categories';
+    Object.entries(data).forEach(([k, v]) => { const i = document.createElement('input'); i.name = k; i.value = v; form.appendChild(i); });
+    document.body.appendChild(form); form.submit();
+  }
+}
+async function deleteCat(id, name) {
+  if (!confirm('Delete category "' + name + '"?')) return;
+  const res = await fetch('/admin/categories/' + id, { method: 'DELETE' });
+  if ((await res.json()).success) location.reload();
+}
+// Drag to reorder
+let dragSrc = null;
+const list = document.getElementById('catList');
+if (list) {
+  list.querySelectorAll('.cat-admin-row').forEach(row => {
+    row.addEventListener('dragstart', () => { dragSrc = row; row.style.opacity = '0.5'; });
+    row.addEventListener('dragend', () => { row.style.opacity = '1'; saveOrder(); });
+    row.addEventListener('dragover', e => e.preventDefault());
+    row.addEventListener('drop', e => { e.preventDefault(); if (dragSrc !== row) list.insertBefore(dragSrc, row); });
+  });
+}
+async function saveOrder() {
+  const ids = [...list.querySelectorAll('.cat-admin-row')].map(r => r.dataset.id);
+  await fetch('/admin/categories/reorder', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ order: ids }) });
+}
+</script>` }) %>

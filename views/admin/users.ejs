@@ -1,0 +1,77 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'users' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-users"></i> User Manager</h1>
+      <span class="badge-blue"><%= users.length %> students</span>
+    </div>
+    <div class="admin-section">
+      <form method="GET" class="admin-search-bar">
+        <input type="text" name="search" placeholder="Search by name or email..." value="<%= query.search || '' %>">
+        <button type="submit" class="btn-admin-primary"><i class="fas fa-search"></i></button>
+      </form>
+      <table class="data-table">
+        <thead><tr><th>Student</th><th>Email</th><th>Mobile</th><th>Enrolled</th><th>Joined</th><th>Actions</th></tr></thead>
+        <tbody>
+          <% users.forEach(u => { %>
+          <tr>
+            <td><strong><%= u.firstName %> <%= u.lastName %></strong><br><span class="text-muted text-sm">@<%= u.username %></span></td>
+            <td><%= u.email %></td>
+            <td><%= u.mobile %></td>
+            <td><%= u.enrolledCourses.length %> courses</td>
+            <td><%= new Date(u.createdAt).toLocaleDateString() %></td>
+            <td class="actions-cell">
+              <button onclick="openEnrollModal('<%= u._id %>', '<%= u.firstName %> <%= u.lastName %>')" class="btn-icon btn-blue" title="Enroll"><i class="fas fa-graduation-cap"></i></button>
+              <button onclick="deleteUser('<%= u._id %>', '<%= u.firstName %>')" class="btn-icon btn-delete" title="Delete"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="enrollModal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3><i class="fas fa-graduation-cap"></i> Manual Enrollment</h3>
+      <button onclick="document.getElementById('enrollModal').style.display='none'"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Enrolling: <strong id="enrollUserName"></strong></p>
+      <div class="form-group">
+        <label>Select Course</label>
+        <select id="enrollCourseId">
+          <% courses.forEach(c => { %><option value="<%= c._id %>"><%= c.title %></option><% }) %>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="document.getElementById('enrollModal').style.display='none'" class="btn-secondary">Cancel</button>
+      <button onclick="enrollUser()" class="btn-admin-primary"><i class="fas fa-check"></i> Enroll</button>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer', { extraJs: `<script>
+let enrollUserId = '';
+function openEnrollModal(userId, name) {
+  enrollUserId = userId;
+  document.getElementById('enrollUserName').textContent = name;
+  document.getElementById('enrollModal').style.display = 'flex';
+}
+async function enrollUser() {
+  const courseId = document.getElementById('enrollCourseId').value;
+  const res = await fetch('/admin/users/' + enrollUserId + '/enroll', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ courseId }) });
+  const data = await res.json();
+  if (data.success) { alert('Enrolled successfully!'); document.getElementById('enrollModal').style.display = 'none'; location.reload(); }
+  else alert('Error: ' + data.message);
+}
+async function deleteUser(id, name) {
+  if (!confirm('Delete user "' + name + '"? This cannot be undone.')) return;
+  const res = await fetch('/admin/users/' + id, { method: 'DELETE' });
+  if ((await res.json()).success) location.reload();
+}
+</script>` }) %>

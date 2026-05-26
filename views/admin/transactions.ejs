@@ -1,0 +1,39 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'transactions' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-money-bill-wave"></i> Transactions</h1>
+      <span class="badge-green">Rs. <%= transactions.filter(t=>t.status==='completed').reduce((a,t)=>a+(t.amount||0),0).toLocaleString() %> Total Revenue</span>
+    </div>
+    <div class="admin-section">
+      <table class="data-table">
+        <thead><tr><th>Student</th><th>Course</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody>
+          <% transactions.forEach(t => { %>
+          <tr>
+            <td><%= t.userId ? t.userId.firstName + ' ' + (t.userId.lastName||'') : 'Unknown' %><br><span class="text-muted text-sm"><%= t.userId ? t.userId.email : '' %></span></td>
+            <td><%= t.courseId ? t.courseId.title : 'Unknown' %></td>
+            <td><strong>Rs. <%= t.amount ? t.amount.toLocaleString() : '0' %></strong></td>
+            <td><span class="badge-blue"><%= t.paymentMethod %></span></td>
+            <td><span class="badge-<%= t.status === 'completed' ? 'green' : t.status === 'pending' ? 'yellow' : 'red' %>"><%= t.status.toUpperCase() %></span></td>
+            <td><%= new Date(t.createdAt).toLocaleDateString() %></td>
+            <td>
+              <% if (t.status === 'pending') { %>
+              <button onclick="completeTransaction('<%= t._id %>')" class="btn-icon btn-blue" title="Mark Complete"><i class="fas fa-check"></i></button>
+              <% } %>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer', { extraJs: `<script>
+async function completeTransaction(id) {
+  if (!confirm('Mark this transaction as completed and enroll the student?')) return;
+  const res = await fetch('/admin/transactions/' + id + '/complete', { method: 'PUT' });
+  if ((await res.json()).success) location.reload();
+}
+</script>` }) %>

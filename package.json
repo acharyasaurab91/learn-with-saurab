@@ -7,7 +7,12 @@
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
-  "keywords": ["education", "nepal", "cee", "loksewa"],
+  "keywords": [
+    "education",
+    "nepal",
+    "cee",
+    "loksewa"
+  ],
   "author": "Saurab",
   "license": "ISC",
   "dependencies": {
@@ -17,6 +22,7 @@
     "connect-mongo": "^5.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "ejs": "^6.0.1",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
     "express-session": "^1.17.3",

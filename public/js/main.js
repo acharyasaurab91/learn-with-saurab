@@ -1,127 +1,157 @@
-// ============================================
-// LEARN WITH SAURAB — main.js
-// Global JS: navbar scroll, reveal animations
-// ============================================
+/* ============================================
+   LEARN WITH SAURAB - Main JS
+   ============================================ */
 
-document.addEventListener(‘DOMContentLoaded’, function () {
-
-// ─── NAVBAR SCROLL EFFECT ───
-const navbar = document.getElementById(‘navbar’);
-if (navbar) {
-window.addEventListener(‘scroll’, function () {
-if (window.scrollY > 50) {
-navbar.classList.add(‘scrolled’);
-} else {
-navbar.classList.remove(‘scrolled’);
-}
-});
-}
-
-// ─── SCROLL REVEAL ───
-const revealElements = document.querySelectorAll(’.reveal’);
-
-if (revealElements.length > 0) {
-const revealObserver = new IntersectionObserver(function (entries) {
-entries.forEach(function (entry, index) {
-if (entry.isIntersecting) {
-// Stagger delay for grid children
-setTimeout(function () {
-entry.target.classList.add(‘visible’);
-}, index * 80);
-revealObserver.unobserve(entry.target);
-}
-});
-}, {
-threshold: 0.1,
-rootMargin: ‘0px 0px -40px 0px’
+document.addEventListener('DOMContentLoaded', () => {
+  initCursor();
+  initNavbar();
+  initGSAP();
+  initCounters();
+  initMobileNav();
+  initTiltCards();
+  initMagneticButtons();
 });
 
-```
-revealElements.forEach(function (el) {
-  revealObserver.observe(el);
-});
-```
-
+function initCursor() {
+  const cursor = document.getElementById('cursor');
+  const follower = document.getElementById('cursor-follower');
+  if (!cursor || !follower || window.matchMedia('(max-width: 768px)').matches) return;
+  let mx = 0, my = 0, fx = 0, fy = 0;
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx - 6 + 'px';
+    cursor.style.top = my - 6 + 'px';
+  });
+  (function animateFollower() {
+    fx += (mx - fx - 18) * 0.12;
+    fy += (my - fy - 18) * 0.12;
+    follower.style.left = fx + 'px';
+    follower.style.top = fy + 'px';
+    requestAnimationFrame(animateFollower);
+  })();
+  document.querySelectorAll('a, button, [data-tilt]').forEach(el => {
+    el.addEventListener('mouseenter', () => { cursor.style.transform = 'scale(2.5)'; follower.style.transform = 'scale(1.5)'; });
+    el.addEventListener('mouseleave', () => { cursor.style.transform = 'scale(1)'; follower.style.transform = 'scale(1)'; });
+  });
 }
 
-// ─── AUTO-APPLY REVEAL TO SECTIONS ───
-// Cards in grids get reveal class automatically
-const autoReveal = document.querySelectorAll(
-‘.category-card, .course-card, .feature-card, .test-card, .stat-card’
-);
-
-autoReveal.forEach(function (el) {
-if (!el.classList.contains(‘reveal’)) {
-el.classList.add(‘reveal’);
-}
-});
-
-// Re-observe after adding classes
-if (revealElements.length === 0 && autoReveal.length > 0) {
-const obs = new IntersectionObserver(function (entries) {
-entries.forEach(function (entry) {
-if (entry.isIntersecting) {
-entry.target.classList.add(‘visible’);
-obs.unobserve(entry.target);
-}
-});
-}, { threshold: 0.1 });
-
-```
-autoReveal.forEach(function (el) { obs.observe(el); });
-```
-
+function initNavbar() {
+  const nav = document.getElementById('navbar');
+  if (!nav) return;
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 50);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
 }
 
-// ─── ACTIVE NAV LINK ───
-const currentPath = window.location.pathname;
-const navLinks = document.querySelectorAll(’.nav-link’);
+function initGSAP() {
+  if (typeof gsap === 'undefined') return;
+  gsap.registerPlugin(ScrollTrigger);
 
-navLinks.forEach(function (link) {
-const href = link.getAttribute(‘href’);
-if (href === currentPath || (href !== ‘/’ && currentPath.startsWith(href))) {
-link.classList.add(‘active’);
-} else {
-link.classList.remove(‘active’);
+  const heroLines = document.querySelectorAll('.hero-line');
+  const heroBadge = document.querySelector('.hero-badge');
+  const heroDesc = document.querySelector('.hero-desc');
+  const heroCta = document.querySelector('.hero-cta');
+  const heroStats = document.querySelector('.hero-stats');
+
+  if (heroBadge || heroLines.length) {
+    const tl = gsap.timeline({ delay: 0.3 });
+    if (heroBadge) tl.to(heroBadge, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' });
+    if (heroLines.length) tl.to(heroLines, { opacity: 1, y: 0, duration: 0.7, stagger: 0.15, ease: 'power3.out' }, '-=0.4');
+    if (heroDesc) tl.to(heroDesc, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.3');
+    if (heroCta) tl.to(heroCta, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.3');
+    if (heroStats) tl.to(heroStats, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.2');
+  }
+
+  // Skip hero-section elements (handled by the timeline above)
+  document.querySelectorAll('[data-gsap="fade-up"]').forEach(el => {
+    if (el.closest('.hero-content')) return;
+    const delay = parseFloat(el.dataset.delay) || 0;
+    gsap.fromTo(el,
+      { opacity: 0, y: 40 },
+      {
+        opacity: 1, y: 0, duration: 0.7, delay,
+        ease: 'power3.out',
+        scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' }
+      }
+    );
+  });
+
+  document.querySelectorAll('.category-card').forEach((card, i) => {
+    const chips = card.querySelectorAll('.chip');
+    if (!chips.length) return;
+    gsap.fromTo(chips,
+      { opacity: 0, x: -10 },
+      { opacity: 1, x: 0, duration: 0.4, stagger: 0.06, ease: 'power2.out',
+        scrollTrigger: { trigger: card, start: 'top 85%' } }
+    );
+  });
 }
-});
 
-// ─── FLASH MESSAGES AUTO DISMISS ───
-const flashMessages = document.querySelectorAll(’.auth-error, .auth-success, .alert’);
-flashMessages.forEach(function (msg) {
-if (msg.style.display !== ‘none’) {
-setTimeout(function () {
-msg.style.opacity = ‘0’;
-msg.style.transform = ‘translateY(-8px)’;
-msg.style.transition = ‘all 0.4s ease’;
-setTimeout(function () { msg.style.display = ‘none’; }, 400);
-}, 6000);
+function initCounters() {
+  const counters = document.querySelectorAll('.stat-num[data-target]');
+  if (!counters.length) return;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      const target = parseInt(el.dataset.target);
+      const duration = 2000;
+      const step = target / (duration / 16);
+      let current = 0;
+      const timer = setInterval(() => {
+        current = Math.min(current + step, target);
+        el.textContent = Math.floor(current).toLocaleString();
+        if (current >= target) clearInterval(timer);
+      }, 16);
+      observer.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+  counters.forEach(c => observer.observe(c));
 }
-});
 
-// ─── SMOOTH ANCHOR SCROLLING ───
-document.querySelectorAll(‘a[href^=”#”]’).forEach(function (anchor) {
-anchor.addEventListener(‘click’, function (e) {
-const target = document.querySelector(this.getAttribute(‘href’));
-if (target) {
-e.preventDefault();
-target.scrollIntoView({ behavior: ‘smooth’, block: ‘start’ });
+function initMobileNav() {
+  const toggle = document.getElementById('navToggle');
+  const links = document.getElementById('navLinks');
+  if (!toggle || !links) return;
+  toggle.addEventListener('click', () => {
+    links.classList.toggle('open');
+    const spans = toggle.querySelectorAll('span');
+    const isOpen = links.classList.contains('open');
+    spans[0].style.transform = isOpen ? 'translateY(7px) rotate(45deg)' : '';
+    spans[1].style.opacity = isOpen ? '0' : '1';
+    spans[2].style.transform = isOpen ? 'translateY(-7px) rotate(-45deg)' : '';
+  });
+  document.addEventListener('click', e => {
+    if (!toggle.contains(e.target) && !links.contains(e.target)) {
+      links.classList.remove('open');
+    }
+  });
 }
-});
-});
 
-// ─── CATEGORY CARD ICON BACKGROUND ───
-// Sets icon bg to match category color with opacity
-document.querySelectorAll(’.category-card’).forEach(function (card) {
-const color = getComputedStyle(card).getPropertyValue(’–card-color’).trim();
-const icon = card.querySelector(’.category-icon’);
-if (icon && color) {
-// Convert hex to rgba with low opacity
-icon.style.background = color + ‘22’; // 22 = ~13% opacity in hex
-icon.style.border = ’1px solid ’ + color + ‘44’;
-icon.style.color = color;
+function initTiltCards() {
+  if (window.matchMedia('(max-width: 768px)').matches) return;
+  document.querySelectorAll('[data-tilt]').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const rx = ((y - rect.height / 2) / rect.height) * -10;
+      const ry = ((x - rect.width / 2) / rect.width) * 10;
+      card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-8px)`;
+    });
+    card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+  });
 }
-});
 
-console.log(‘✅ Learn with Saurab — main.js loaded’);
-});
+function initMagneticButtons() {
+  if (window.matchMedia('(max-width: 768px)').matches) return;
+  document.querySelectorAll('.btn-magnetic').forEach(btn => {
+    btn.addEventListener('mousemove', e => {
+      const rect = btn.getBoundingClientRect();
+      const x = (e.clientX - rect.left - rect.width / 2) * 0.35;
+      const y = (e.clientY - rect.top - rect.height / 2) * 0.35;
+      btn.style.transform = `translate(${x}px, ${y}px)`;
+    });
+    btn.addEventListener('mouseleave', () => { btn.style.transform = ''; });
+  });
+}

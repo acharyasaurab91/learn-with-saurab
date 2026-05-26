@@ -1,0 +1,46 @@
+<%- include('partials/header') %>
+
+<div class="page-hero page-hero-sm">
+  <div class="container">
+    <h1>Free <span class="gradient-text">Practice Tests</span></h1>
+    <p>Test your knowledge with our expertly crafted practice tests — 100% free</p>
+  </div>
+</div>
+
+<div class="container tests-page">
+  <% if (tests.length === 0) { %>
+    <div class="empty-state">
+      <i class="fas fa-clipboard-list"></i>
+      <h3>No tests available yet</h3>
+      <p>Check back soon — new tests are being added regularly.</p>
+    </div>
+  <% } else { %>
+  <div class="tests-grid">
+    <% tests.forEach((test, i) => { %>
+    <div class="test-card" data-gsap="fade-up" data-delay="<%= i * 0.1 %>">
+      <div class="test-card-header">
+        <div class="test-icon"><i class="fas fa-clipboard-list"></i></div>
+        <div class="test-badges">
+          <span class="badge-category"><%= test.category || 'General' %></span>
+          <% if (test.isFree) { %><span class="badge-free">FREE</span><% } %>
+        </div>
+      </div>
+      <h3><%= test.title %></h3>
+      <% if (test.description) { %><p><%= test.description.substring(0, 100) %>...</p><% } %>
+      <div class="test-meta">
+        <span><i class="fas fa-clock"></i> <%= test.duration %> min</span>
+        <span><i class="fas fa-question-circle"></i> <%= test.questions ? test.questions.length : 0 %> questions</span>
+        <% if (test.negativeMarking) { %><span class="text-red"><i class="fas fa-minus-circle"></i> Negative marking</span><% } %>
+      </div>
+      <a href="<% if (user) { %>/tests/<%= test._id %>/take<% } else { %>/login?msg=Login+to+take+test<% } %>"
+         class="btn-enroll">
+        <span>Start Test</span>
+        <i class="fas fa-arrow-right"></i>
+      </a>
+    </div>
+    <% }) %>
+  </div>
+  <% } %>
+</div>
+
+<%- include('partials/footer') %>

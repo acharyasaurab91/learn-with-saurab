@@ -1,0 +1,169 @@
+<%- include('partials/header') %>
+
+<div class="dashboard-page">
+  <div class="dashboard-sidebar">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar"><%= user.firstName[0] %><%= user.lastName[0] %></div>
+      <div><strong><%= user.firstName %> <%= user.lastName %></strong><span><%= user.email %></span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard" class="sidebar-link"><i class="fas fa-th-large"></i> Dashboard</a>
+      <a href="/my-courses" class="sidebar-link"><i class="fas fa-book-open"></i> My Courses</a>
+      <a href="/my-tests" class="sidebar-link"><i class="fas fa-clipboard-list"></i> My Tests</a>
+      <a href="/mistake-notebook" class="sidebar-link active"><i class="fas fa-bolt"></i> Weakness Analyzer</a>
+      <a href="/profile" class="sidebar-link"><i class="fas fa-user-cog"></i> Profile</a>
+      <a href="/logout" class="sidebar-link logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+  </div>
+  <div class="dashboard-main">
+    <div class="weakness-header">
+      <div>
+        <h1>⚡ <span class="gradient-text">Weakness Analyzer Pro</span></h1>
+        <p>Auto-tracked from your test performance. Master your weaknesses, ace the exam.</p>
+      </div>
+      <button class="btn-add-manual" onclick="openManualModal()">
+        <i class="fas fa-plus"></i> Add Manual Entry
+      </button>
+    </div>
+
+    <div class="weakness-stats">
+      <div class="wstat-card wstat-critical">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div class="wstat-num"><%= criticalCount %></div>
+        <div class="wstat-label">Critical Weaknesses (3+ mistakes)</div>
+      </div>
+      <div class="wstat-card wstat-total">
+        <i class="fas fa-list"></i>
+        <div class="wstat-num"><%= mistakes.length %></div>
+        <div class="wstat-label">Total Weak Areas</div>
+      </div>
+      <div class="wstat-card wstat-mastered">
+        <i class="fas fa-trophy"></i>
+        <div class="wstat-num"><%= masteredCount %></div>
+        <div class="wstat-label">Mastered</div>
+      </div>
+    </div>
+
+    <div class="weakness-filters">
+      <form method="GET" action="/mistake-notebook" class="filter-bar">
+        <select name="topic" onchange="this.form.submit()">
+          <option value="">All Topics</option>
+          <% topics.forEach(t => { %><option value="<%= t %>" <%= query.topic === t ? 'selected' : '' %>><%= t %></option><% }) %>
+        </select>
+        <select name="difficulty" onchange="this.form.submit()">
+          <option value="">All Difficulties</option>
+          <option value="Easy" <%= query.difficulty === 'Easy' ? 'selected' : '' %>>Easy</option>
+          <option value="Medium" <%= query.difficulty === 'Medium' ? 'selected' : '' %>>Medium</option>
+          <option value="Hard" <%= query.difficulty === 'Hard' ? 'selected' : '' %>>Hard</option>
+        </select>
+        <select name="mastered" onchange="this.form.submit()">
+          <option value="">Active & Mastered</option>
+          <option value="false" <%= query.mastered === 'false' ? 'selected' : '' %>>Active only</option>
+          <option value="true" <%= query.mastered === 'true' ? 'selected' : '' %>>Mastered only</option>
+        </select>
+        <a href="/mistake-notebook" class="btn-clear">Clear</a>
+      </form>
+    </div>
+
+    <% if (mistakes.length === 0) { %>
+      <div class="empty-state">
+        <i class="fas fa-trophy"></i>
+        <h3>No weaknesses found!</h3>
+        <p>Take a practice test to start tracking your performance. <a href="/free-tests">Try a free test.</a></p>
+      </div>
+    <% } else { %>
+    <div class="mistakes-list">
+      <% mistakes.forEach(m => { %>
+      <div class="mistake-card <%= m.timesMistaken >= 3 ? 'critical' : '' %> <%= m.mastered ? 'mastered' : '' %>" id="mistake-<%= m._id %>">
+        <div class="mistake-card-header">
+          <div class="mistake-badges">
+            <span class="badge-topic"><%= m.topic || 'General' %></span>
+            <span class="badge-diff diff-<%= m.difficulty.toLowerCase() %>"><%= m.difficulty %></span>
+            <% if (m.timesMistaken >= 3 && !m.mastered) { %>
+              <span class="badge-critical-tag"><i class="fas fa-fire"></i> Critical Weakness</span>
+            <% } %>
+            <% if (m.mastered) { %>
+              <span class="badge-mastered-tag"><i class="fas fa-check-circle"></i> Mastered</span>
+            <% } %>
+          </div>
+          <div class="mistake-actions">
+            <span class="mistake-times"><%= m.timesMistaken %>x wrong</span>
+            <% if (!m.mastered) { %>
+            <button class="btn-master" onclick="markMastered('<%= m._id %>')">
+              <i class="fas fa-check"></i> Mark Mastered
+            </button>
+            <% } %>
+          </div>
+        </div>
+        <div class="mistake-question"><%= m.questionText %></div>
+        <% if (m.questionImage) { %>
+          <img src="<%= m.questionImage %>" alt="Question image" class="mistake-img">
+        <% } %>
+        <% if (m.options && m.options.length > 0) { %>
+        <div class="mistake-options">
+          <% m.options.forEach((opt, idx) => { %>
+          <div class="mistake-option
+            <%= idx === m.correctAnswer ? 'option-correct' : '' %>
+            <%= idx === m.studentAnswer && idx !== m.correctAnswer ? 'option-wrong' : '' %>">
+            <span class="option-letter"><%= ['A','B','C','D'][idx] %></span>
+            <%= opt.text %>
+            <% if (idx === m.correctAnswer) { %><i class="fas fa-check-circle"></i><% } %>
+            <% if (idx === m.studentAnswer && idx !== m.correctAnswer) { %><i class="fas fa-times-circle"></i><% } %>
+          </div>
+          <% }) %>
+        </div>
+        <% } %>
+        <% if (m.explanation) { %>
+          <div class="mistake-explanation"><strong>Explanation:</strong> <%= m.explanation %></div>
+        <% } %>
+        <div class="mistake-notes-section">
+          <textarea class="notes-textarea" placeholder="Add your notes here..." id="notes-<%= m._id %>" onchange="saveNotes('<%= m._id %>', this.value)"><%= m.studentNotes || '' %></textarea>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+
+    <div class="weakness-actions">
+      <button class="btn-primary" onclick="generateMasterQuiz()">
+        <i class="fas fa-brain"></i> Generate "Master This" Quiz
+      </button>
+    </div>
+    <% } %>
+  </div>
+</div>
+
+<div class="modal-overlay" id="manualModal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3><i class="fas fa-plus-circle"></i> Add Manual Entry</h3>
+      <button onclick="closeManualModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <form id="manualForm">
+      <div class="form-group">
+        <label>Question / Topic</label>
+        <textarea name="questionText" rows="3" placeholder="Describe what you got wrong..." required></textarea>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>Topic</label>
+          <input type="text" name="topic" placeholder="e.g. Physics">
+        </div>
+        <div class="form-group">
+          <label>Difficulty</label>
+          <select name="difficulty">
+            <option value="Easy">Easy</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Your Notes</label>
+        <textarea name="studentNotes" rows="2" placeholder="Why did you get this wrong?"></textarea>
+      </div>
+      <button type="submit" class="btn-auth">Add Entry</button>
+    </form>
+  </div>
+</div>
+
+<%- include('partials/footer', { extraJs: `<script src="/js/mistake-notebook.js"></script>` }) %>

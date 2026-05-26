@@ -1,0 +1,122 @@
+<%- include('partials/header') %>
+
+<div class="course-preview-page">
+  <div class="course-hero">
+    <div class="container">
+      <div class="course-hero-grid">
+        <div class="course-hero-info">
+          <div class="breadcrumb">
+            <a href="/browse-courses">Courses</a> <i class="fas fa-chevron-right"></i>
+            <span><%= course.category %></span> <i class="fas fa-chevron-right"></i>
+            <span><%= course.title %></span>
+          </div>
+          <% if (course.isFeatured) { %><div class="featured-tag"><i class="fas fa-star"></i> Featured Course</div><% } %>
+          <h1><%= course.title %></h1>
+          <p class="course-hero-desc"><%= course.description %></p>
+          <div class="course-hero-meta">
+            <span><i class="fas fa-layer-group"></i> <%= course.level %></span>
+            <span><i class="fas fa-tag"></i> <%= course.category %></span>
+            <% if (course.subject) { %><span><i class="fas fa-book"></i> <%= course.subject %></span><% } %>
+            <span><i class="fas fa-users"></i> <%= course.enrolledCount || 0 %> students</span>
+          </div>
+        </div>
+        <div class="course-hero-card">
+          <% if (course.imageUrl) { %>
+            <img src="<%= course.imageUrl %>" alt="<%= course.title %>" class="course-card-img">
+          <% } else { %>
+            <div class="course-card-placeholder"><i class="fas fa-play-circle"></i></div>
+          <% } %>
+          <div class="course-card-pricing">
+            <% if (course.price === 0) { %>
+              <div class="price-free-big">FREE</div>
+            <% } else { %>
+              <div class="price-big">Rs. <%= course.price.toLocaleString() %></div>
+            <% } %>
+            <% if (isEnrolled) { %>
+              <a href="/courses/<%= course._id %>/learn" class="btn-enroll-big btn-continue">
+                <i class="fas fa-play"></i> Continue Learning
+              </a>
+            <% } else if (course.price === 0) { %>
+              <a href="/payment/enroll/<%= course._id %>" class="btn-enroll-big">
+                <i class="fas fa-graduation-cap"></i> Enroll Free
+              </a>
+            <% } else { %>
+              <a href="/payment/enroll/<%= course._id %>" class="btn-enroll-big btn-pay">
+                <i class="fas fa-lock-open"></i> Enroll Now
+              </a>
+              <div class="payment-logos">
+                <span>Pay with</span>
+                <img src="/images/esewa.png" alt="eSewa" onerror="this.style.display='none'">
+                <img src="/images/khalti.png" alt="Khalti" onerror="this.style.display='none'">
+              </div>
+            <% } %>
+            <div class="course-guarantees">
+              <span><i class="fas fa-infinity"></i> Lifetime access</span>
+              <span><i class="fas fa-mobile-screen"></i> Mobile friendly</span>
+              <span><i class="fas fa-certificate"></i> Certificate</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container course-detail-body">
+    <div class="course-detail-grid">
+      <div class="course-detail-main">
+        <% if (course.modules && course.modules.length > 0) { %>
+        <div class="detail-section">
+          <h2><i class="fas fa-list-check"></i> Course Curriculum</h2>
+          <div class="curriculum-list">
+            <% let totalVideos = 0; course.modules.forEach((mod, mi) => { %>
+            <div class="curriculum-module">
+              <div class="module-header" onclick="toggleModule(<%= mi %>)">
+                <span class="module-num">Module <%= mi + 1 %></span>
+                <h3><%= mod.moduleTitle %></h3>
+                <span class="module-toggle" id="toggle-<%= mi %>"><i class="fas fa-chevron-down"></i></span>
+              </div>
+              <div class="module-videos" id="module-<%= mi %>">
+                <% mod.videos && mod.videos.forEach(v => { totalVideos++; %>
+                <div class="video-item">
+                  <i class="fas fa-<%= v.isFree ? 'play-circle text-teal' : 'lock text-gray' %>"></i>
+                  <span><%= v.videoTitle %></span>
+                  <span class="video-badge"><%= v.isFree ? 'Free' : 'Premium' %></span>
+                </div>
+                <% }) %>
+              </div>
+            </div>
+            <% }) %>
+          </div>
+          <p class="curriculum-total"><%= totalVideos %> total lessons across <%= course.modules.length %> modules</p>
+        </div>
+        <% } %>
+      </div>
+      <% if (related && related.length > 0) { %>
+      <div class="course-detail-sidebar">
+        <h3>Related Courses</h3>
+        <% related.forEach(r => { %>
+        <a href="/courses/<%= r._id %>" class="related-course-card">
+          <div class="related-img">
+            <% if (r.imageUrl) { %><img src="<%= r.imageUrl %>" alt="<%= r.title %>"><% } else { %><i class="fas fa-book"></i><% } %>
+          </div>
+          <div>
+            <h4><%= r.title %></h4>
+            <span><%= r.price === 0 ? 'FREE' : 'Rs. ' + r.price.toLocaleString() %></span>
+          </div>
+        </a>
+        <% }) %>
+      </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer', { extraJs: `<script>
+function toggleModule(idx) {
+  const el = document.getElementById('module-' + idx);
+  const tog = document.getElementById('toggle-' + idx);
+  el.classList.toggle('open');
+  tog.querySelector('i').className = el.classList.contains('open') ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+}
+document.querySelector('.curriculum-module .module-header') && toggleModule(0);
+</script>` }) %>

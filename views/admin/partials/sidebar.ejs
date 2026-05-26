@@ -1,0 +1,17 @@
+<div class="admin-sidebar">
+  <div class="admin-logo">
+    <a href="/admin"><i class="fas fa-graduation-cap"></i><span>LWS Admin</span></a>
+  </div>
+  <nav class="admin-nav">
+    <a href="/admin" class="admin-nav-link <%= activePage === 'dashboard' ? 'active' : '' %>"><i class="fas fa-th-large"></i> Dashboard</a>
+    <a href="/admin/categories" class="admin-nav-link <%= activePage === 'categories' ? 'active' : '' %>"><i class="fas fa-tags"></i> Categories</a>
+    <a href="/admin/courses" class="admin-nav-link <%= activePage === 'courses' ? 'active' : '' %>"><i class="fas fa-book-open"></i> Courses</a>
+    <a href="/admin/tests" class="admin-nav-link <%= activePage === 'tests' ? 'active' : '' %>"><i class="fas fa-clipboard-list"></i> Tests</a>
+    <a href="/admin/users" class="admin-nav-link <%= activePage === 'users' ? 'active' : '' %>"><i class="fas fa-users"></i> Users</a>
+    <a href="/admin/transactions" class="admin-nav-link <%= activePage === 'transactions' ? 'active' : '' %>"><i class="fas fa-money-bill-wave"></i> Transactions</a>
+    <a href="/admin/analytics" class="admin-nav-link <%= activePage === 'analytics' ? 'active' : '' %>"><i class="fas fa-chart-bar"></i> Analytics</a>
+    <div class="admin-nav-divider"></div>
+    <a href="/" class="admin-nav-link" target="_blank"><i class="fas fa-external-link-alt"></i> View Site</a>
+    <a href="/logout" class="admin-nav-link nav-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+  </nav>
+</div>

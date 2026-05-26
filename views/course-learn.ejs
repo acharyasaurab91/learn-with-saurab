@@ -1,0 +1,112 @@
+<%- include('partials/header', { extraCss: '<link rel="stylesheet" href="/css/player.css">' }) %>
+
+<div class="learn-page" id="learnPage">
+  <div class="learn-sidebar" id="learnSidebar">
+    <div class="learn-sidebar-header">
+      <h3><%= course.title %></h3>
+      <button onclick="toggleSidebar()" class="sidebar-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modules-list">
+      <% let vIdx = 0; course.modules && course.modules.forEach((mod, mi) => { %>
+      <div class="learn-module">
+        <div class="learn-module-title" onclick="toggleLModule('<%= mi %>')">
+          <i class="fas fa-chevron-right" id="lmod-<%= mi %>"></i>
+          <span>Module <%= mi + 1 %>: <%= mod.moduleTitle %></span>
+        </div>
+        <div class="learn-module-videos" id="lmod-videos-<%= mi %>">
+          <% mod.videos && mod.videos.forEach((v, vi) => { const globalIdx = vIdx++; %>
+          <div class="learn-video-item <%= currentModule === mi && currentVideo === vi ? 'active' : '' %>"
+               onclick="loadVideo('<%= v.videoUrl || '' %>', '<%= v.videoPath || '' %>', '<%= v.videoTitle %>', <%= mi %>, <%= vi %>)"
+               id="lvi-<%= mi %>-<%= vi %>">
+            <i class="fas fa-<%= v.isFree || isEnrolled ? 'play-circle' : 'lock' %> <%= v.isFree || isEnrolled ? 'text-teal' : 'text-gray' %>"></i>
+            <span><%= v.videoTitle %></span>
+            <span class="video-duration"></span>
+          </div>
+          <% }) %>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+  </div>
+
+  <div class="learn-main">
+    <div class="learn-topbar">
+      <button onclick="toggleSidebar()" class="btn-toggle-sidebar">
+        <i class="fas fa-bars"></i>
+      </button>
+      <span id="currentVideoTitle">Select a lesson to begin</span>
+    </div>
+
+    <div class="video-container" id="videoContainer">
+      <div class="video-placeholder" id="videoPlaceholder">
+        <i class="fas fa-play-circle"></i>
+        <p>Select a lesson from the sidebar</p>
+      </div>
+      <video id="mainVideo" class="main-video" style="display:none" controlsList="nodownload nofullscreen" disablePictureInPicture oncontextmenu="return false">
+        <source id="videoSource" src="" type="video/mp4">
+      </video>
+      <div class="watermark-overlay" id="watermarkOverlay">
+        <div class="watermark-text" id="watermarkText"><%= user.email %></div>
+      </div>
+      <div class="video-controls" id="videoControls" style="display:none">
+        <div class="controls-row">
+          <button onclick="togglePlay()" id="playBtn"><i class="fas fa-play" id="playIcon"></i></button>
+          <div class="progress-wrap" id="videoProgress" onclick="seekVideo(event)">
+            <div class="progress-played" id="videoPlayed"></div>
+            <div class="progress-thumb" id="videoThumb"></div>
+          </div>
+          <span id="timeDisplay">0:00 / 0:00</span>
+          <select id="speedSelect" onchange="setSpeed(this.value)">
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+          </select>
+          <button onclick="toggleMute()" id="muteBtn"><i class="fas fa-volume-up"></i></button>
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1" oninput="setVolume(this.value)">
+        </div>
+      </div>
+    </div>
+
+    <div class="learn-tabs">
+      <button class="learn-tab active" onclick="switchTab('notes')">📝 Notes</button>
+      <button class="learn-tab" onclick="switchTab('resources')">📎 Resources</button>
+    </div>
+    <div class="learn-tab-content" id="tab-notes">
+      <textarea id="notesArea" placeholder="Take notes while watching..."></textarea>
+      <div class="notes-actions">
+        <button onclick="saveNote()" class="btn-sm"><i class="fas fa-save"></i> Save Note</button>
+      </div>
+    </div>
+    <div class="learn-tab-content" id="tab-resources" style="display:none">
+      <% let hasResources = false; course.modules && course.modules.forEach(mod => { %>
+        <% mod.resources && mod.resources.forEach(r => { hasResources = true; %>
+          <div class="resource-item">
+            <i class="fas fa-file-pdf text-red"></i>
+            <span><%= r.title %></span>
+            <% if (r.isFree || isEnrolled) { %>
+              <a href="<%= r.fileUrl %>" download class="btn-xs"><i class="fas fa-download"></i></a>
+            <% } else { %>
+              <span class="text-gray"><i class="fas fa-lock"></i></span>
+            <% } %>
+          </div>
+        <% }) %>
+      <% }) %>
+      <% if (!hasResources) { %><p class="text-gray">No resources attached to this course.</p><% } %>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer', { extraJs: `
+<script>
+const COURSE_DATA = {
+  courseId: '<%= course._id %>',
+  userEmail: '<%= user.email %>',
+  userPhone: '<%= user.mobile || "" %>'
+};
+</script>
+<script src="/js/video-player.js"></script>
+<script src="/js/content-protection.js"></script>
+` }) %>

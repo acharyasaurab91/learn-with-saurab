@@ -1,0 +1,103 @@
+<%- include('../partials/header') %>
+
+<div class="auth-page">
+  <div class="auth-bg">
+    <div class="auth-orb auth-orb-1"></div>
+    <div class="auth-orb auth-orb-2"></div>
+  </div>
+  <div class="auth-container">
+    <div class="auth-card auth-card-wide">
+      <div class="auth-header">
+        <a href="/" class="auth-logo"><i class="fas fa-graduation-cap"></i><span>Learn With Saurab</span></a>
+        <h1>Create Your Account</h1>
+        <p>Join 10,000+ students already learning</p>
+      </div>
+      <% if (error) { %>
+        <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
+      <% } %>
+      <form action="/signup" method="POST" class="auth-form" id="signupForm">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label><i class="fas fa-user"></i> First Name</label>
+            <input type="text" name="firstName" placeholder="Aarav" required>
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-user"></i> Last Name</label>
+            <input type="text" name="lastName" placeholder="Sharma" required>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label><i class="fas fa-at"></i> Username</label>
+            <input type="text" name="username" placeholder="aarav_sharma" required>
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-phone"></i> Mobile</label>
+            <input type="tel" name="mobile" placeholder="98XXXXXXXX" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-envelope"></i> Email</label>
+          <input type="email" name="email" placeholder="your@email.com" required>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label><i class="fas fa-lock"></i> Password</label>
+            <div class="input-password-wrap">
+              <input type="password" id="pwd1" name="password" placeholder="Min 8 characters" required minlength="8">
+              <button type="button" class="toggle-pwd" onclick="togglePwd('pwd1','i1')"><i class="fas fa-eye" id="i1"></i></button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-lock"></i> Confirm Password</label>
+            <div class="input-password-wrap">
+              <input type="password" id="pwd2" name="confirmPassword" placeholder="Repeat password" required>
+              <button type="button" class="toggle-pwd" onclick="togglePwd('pwd2','i2')"><i class="fas fa-eye" id="i2"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="password-strength" id="pwdStrength"></div>
+        <label class="checkbox-label terms-label">
+          <input type="checkbox" required> I agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>
+        </label>
+        <button type="submit" class="btn-auth" id="submitBtn">
+          <span>Create Account</span>
+          <i class="fas fa-user-plus"></i>
+        </button>
+      </form>
+      <div class="auth-footer">Already have an account? <a href="/login">Login here</a></div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer', { extraJs: `<script>
+function togglePwd(id, iconId) {
+  const inp = document.getElementById(id);
+  const icon = document.getElementById(iconId);
+  if (inp.type === 'password') { inp.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+  else { inp.type = 'password'; icon.className = 'fas fa-eye'; }
+}
+const pwd = document.getElementById('pwd1');
+const strength = document.getElementById('pwdStrength');
+pwd.addEventListener('input', () => {
+  const v = pwd.value;
+  let s = 0;
+  if (v.length >= 8) s++;
+  if (/[A-Z]/.test(v)) s++;
+  if (/[0-9]/.test(v)) s++;
+  if (/[^A-Za-z0-9]/.test(v)) s++;
+  const levels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+  const colors = ['', '#EF4444', '#F59E0B', '#10B981', '#00D4FF'];
+  strength.innerHTML = v.length ? '<div style="height:4px;border-radius:2px;background:' + colors[s] + ';width:' + (s * 25) + '%;transition:all .3s"></div><span style="font-size:12px;color:' + colors[s] + '">' + levels[s] + '</span>' : '';
+});
+document.getElementById('signupForm').addEventListener('submit', function(e) {
+  if (document.getElementById('pwd1').value !== document.getElementById('pwd2').value) {
+    e.preventDefault();
+    alert('Passwords do not match!');
+    return;
+  }
+  const btn = document.getElementById('submitBtn');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+  btn.disabled = true;
+});
+</script>` }) %>

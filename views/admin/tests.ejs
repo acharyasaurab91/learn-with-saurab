@@ -1,0 +1,118 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'tests' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-clipboard-list"></i> Test Manager</h1>
+      <button class="btn-admin-primary" onclick="document.getElementById('newTestModal').style.display='flex'"><i class="fas fa-plus"></i> New Test</button>
+    </div>
+    <div class="admin-section">
+      <% if (tests.length === 0) { %>
+        <div class="empty-state"><i class="fas fa-clipboard-list"></i><h3>No tests yet</h3><p>Create your first test.</p></div>
+      <% } else { %>
+      <table class="data-table">
+        <thead><tr><th>Title</th><th>Category</th><th>Questions</th><th>Duration</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          <% tests.forEach(t => { %>
+          <tr>
+            <td><strong><%= t.title %></strong></td>
+            <td><%= t.category || '—' %></td>
+            <td><%= t.questions ? t.questions.length : 0 %></td>
+            <td><%= t.duration %> min</td>
+            <td>
+              <span class="badge-<%= t.isPublished ? 'green' : 'gray' %>"><%= t.isPublished ? 'Published' : 'Draft' %></span>
+              <% if (t.isFree) { %><span class="badge-blue">Free</span><% } %>
+            </td>
+            <td class="actions-cell">
+              <a href="/admin/tests/<%= t._id %>/questions" class="btn-icon btn-blue" title="Questions"><i class="fas fa-question-circle"></i></a>
+              <button onclick='editTest(<%- JSON.stringify({_id:t._id, title:t.title, description:t.description||"", category:t.category||"", subject:t.subject||"", duration:t.duration, passMarks:t.passMarks||0, negativeMarking:t.negativeMarking, negativeMarkValue:t.negativeMarkValue, isFree:t.isFree, isPublished:t.isPublished}) %>)' class="btn-icon btn-edit"><i class="fas fa-edit"></i></button>
+              <button onclick="deleteTest('<%= t._id %>', '<%= t.title.replace(/'/g,'') %>')" class="btn-icon btn-delete"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="newTestModal" style="display:none">
+  <div class="modal-card modal-lg">
+    <div class="modal-header">
+      <h3 id="testModalTitle"><i class="fas fa-plus"></i> New Test</h3>
+      <button onclick="document.getElementById('newTestModal').style.display='none'"><i class="fas fa-times"></i></button>
+    </div>
+    <form id="testForm" onsubmit="saveTest(event)">
+      <input type="hidden" id="testId">
+      <div class="form-row-2">
+        <div class="form-group"><label>Title *</label><input type="text" id="testTitle" required placeholder="e.g. CEE Physics Mock Test 1"></div>
+        <div class="form-group"><label>Category</label><input type="text" id="testCategory" placeholder="e.g. CEE"></div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group"><label>Subject</label><input type="text" id="testSubject" placeholder="e.g. Physics"></div>
+        <div class="form-group"><label>Duration (minutes)</label><input type="number" id="testDuration" value="30" min="5"></div>
+      </div>
+      <div class="form-group"><label>Description</label><textarea id="testDesc" rows="2"></textarea></div>
+      <div class="form-row-3">
+        <div class="form-group"><label>Pass Marks</label><input type="number" id="testPassMarks" value="0" min="0"></div>
+        <div class="form-group"><label>Negative Mark Value</label><input type="number" id="testNegVal" value="0.25" min="0" step="0.25"></div>
+        <div class="form-group"></div>
+      </div>
+      <div class="form-row-3">
+        <label class="checkbox-label"><input type="checkbox" id="testNeg"> Negative Marking</label>
+        <label class="checkbox-label"><input type="checkbox" id="testFree"> Free Test</label>
+        <label class="checkbox-label"><input type="checkbox" id="testPublished"> Published</label>
+      </div>
+      <div class="modal-actions"><button type="button" onclick="document.getElementById('newTestModal').style.display='none'" class="btn-secondary">Cancel</button><button type="submit" class="btn-admin-primary">Save Test</button></div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer', { extraJs: `<script>
+function editTest(t) {
+  document.getElementById('testModalTitle').textContent = 'Edit Test';
+  document.getElementById('testId').value = t._id;
+  document.getElementById('testTitle').value = t.title;
+  document.getElementById('testCategory').value = t.category;
+  document.getElementById('testSubject').value = t.subject;
+  document.getElementById('testDuration').value = t.duration;
+  document.getElementById('testDesc').value = t.description;
+  document.getElementById('testPassMarks').value = t.passMarks;
+  document.getElementById('testNegVal').value = t.negativeMarkValue;
+  document.getElementById('testNeg').checked = t.negativeMarking;
+  document.getElementById('testFree').checked = t.isFree;
+  document.getElementById('testPublished').checked = t.isPublished;
+  document.getElementById('newTestModal').style.display = 'flex';
+}
+async function saveTest(e) {
+  e.preventDefault();
+  const id = document.getElementById('testId').value;
+  const data = {
+    title: document.getElementById('testTitle').value,
+    description: document.getElementById('testDesc').value,
+    category: document.getElementById('testCategory').value,
+    subject: document.getElementById('testSubject').value,
+    duration: document.getElementById('testDuration').value,
+    passMarks: document.getElementById('testPassMarks').value,
+    negativeMarkValue: document.getElementById('testNegVal').value,
+    negativeMarking: String(document.getElementById('testNeg').checked),
+    isFree: String(document.getElementById('testFree').checked),
+    isPublished: String(document.getElementById('testPublished').checked)
+  };
+  if (id) {
+    const res = await fetch('/admin/tests/' + id, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    if ((await res.json()).success) location.reload();
+  } else {
+    const form = document.createElement('form');
+    form.method = 'POST'; form.action = '/admin/tests';
+    Object.entries(data).forEach(([k,v]) => { const i = document.createElement('input'); i.name=k; i.value=v; form.appendChild(i); });
+    document.body.appendChild(form); form.submit();
+  }
+}
+async function deleteTest(id, name) {
+  if (!confirm('Delete test "' + name + '"?')) return;
+  const res = await fetch('/admin/tests/' + id, { method: 'DELETE' });
+  if ((await res.json()).success) location.reload();
+}
+</script>` }) %>
