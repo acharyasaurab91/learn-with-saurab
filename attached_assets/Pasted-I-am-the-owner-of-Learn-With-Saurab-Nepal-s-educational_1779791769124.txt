@@ -1,0 +1,152 @@
+I am the owner of "Learn With Saurab" - Nepal's educational platform for CEE, Loksewa, License, SEE, NEB exams. I have a PARTIAL codebase on GitHub.
+
+Build me a COMPLETE, PRODUCTION-READY, 3D-ANIMATED website with ALL features below. Use your best judgment on colors and layout - improve everything. Make it look worth $50,000.
+
+## CRITICAL BUSINESS RULES:
+- MAT is a subject INSIDE CEE category (NOT separate category)
+- IQ/Reasoning is a subject INSIDE Loksewa category (NOT separate category)
+- Admin can create/edit/reorder/delete category cards anytime from admin panel
+- Admin can upload videos and mark them as free or paid per course
+- Free content accessible without login
+- Paid courses require eSewa/Khalti payment
+
+## 3D ANIMATIONS REQUIRED:
+Hero section: 3D rotating torus knot (Three.js) + particle field + staggered text fade-in + magnetic CTA buttons + custom glowing cursor
+Category cards: Mouse-follow 3D tilt + glow border + icon pulse + subject chips slide-in
+Course cards: Image zoom on hover + price gold pulse + enroll button slide-up
+Scroll animations: Fade-up reveal + number counters + progress bar fill
+Mobile: Reduced complexity, GPU-accelerated only
+
+## VIDEO PROTECTION (Students CANNOT copy/screenshot/record):
+- Disable PrtScn, Ctrl+S, Ctrl+P, F12, Ctrl+Shift+I, right-click
+- Detect DevTools open → pause + blur video
+- Dynamic watermark: student's email + phone floats randomly on video (changes position every 15 seconds)
+- Signed URLs: expire in 1 hour, IP binding, one-time use
+- Forensic tracking: log all accesses, flag simultaneous IPs
+
+## SMART MISTAKE NOTEBOOK (Auto-track wrong answers):
+- Every wrong answer in test automatically saved to MistakeEntry
+- Track frequency: wrong 3x → "Critical Weakness"
+- Dashboard widget: "Top 5 Mistakes This Week"
+- Page: /mistake-notebook with filters by topic/difficulty/tags
+- "Master This" button generates custom quiz from similar questions
+- Student can add manual notes + export as PDF
+- Name on UI: "⚡ Weakness Analyzer Pro"
+
+## DATABASE SCHEMAS (Build ALL):
+User: username, email, mobile, password(bcrypt), isAdmin, enrolledCourses array, progress
+Course: title, description, price, thumbnail, category, subject, modules(videos with isFree, resources with fileUrl), isFeatured
+Test: title, duration, totalMarks, negativeMarking, questions(array with text, image, options, correctOption, explanation), isFree, isPublished
+Category: name, slug, icon, color, description, subjects array, order, isVisible
+Transaction: userId, courseId, amount, transactionId, status, paymentMethod
+TestAttempt: userId, testId, answers array, score, timeTaken
+MistakeEntry: studentId, questionId, questionText, correctAnswer, studentAnswer, timesMistaken, mastered, studentNotes
+StudentNote: studentId, title, content, tags, isStarred
+
+## BACKEND API ROUTES (All working):
+Auth: POST /api/auth/register, /login, /logout, /forgot-password, /reset-password/:token
+Courses: GET /api/courses, GET /api/courses/:id, POST/PUT/DELETE (admin)
+Tests: GET /api/tests, POST /api/tests/:id/submit
+Admin: GET /api/admin/stats, CRUD /api/admin/categories (with reorder), /api/admin/users, /api/admin/transactions
+Progress: POST /api/progress/video
+Mistakes: GET /api/mistakes, POST /api/mistakes/manual, PUT /api/mistakes/:id/mastered
+
+## ADMIN PANEL (Fully functional):
+- Dashboard: Stats cards + Chart.js graph (signups last 30 days)
+- Category Manager: Drag-drop reorder, add/edit/delete cards, toggle visibility, add subject chips (MAT inside CEE, IQ inside Loksewa)
+- Course Manager: List with search, add/edit/delete, module builder with video upload (mark free/paid), resource upload
+- Test Builder: Create tests, add questions with image upload, negative marking toggle, publish/unpublish
+- User Manager: List users, manually enroll in courses
+- Transaction Manager: View payments, mark manual as completed
+
+## STUDENT DASHBOARD (After login):
+- Welcome greeting + progress cards (enrolled, tests taken, avg score, minutes watched)
+- Continue Learning: last course with progress bar
+- My Courses grid with progress percentage
+- Top 5 Mistakes widget (from MistakeEntry)
+- Recent Test Results table
+- Profile editor
+
+## PAGES (All 32):
+Public: / (homepage with 3D), /browse-courses, /course/:id, /free-tests, /about, /contact, /login, /signup, /forgot-password, /reset-password/:token
+Student: /dashboard, /my-courses, /course/:id/learn (video player with protection), /mistake-notebook, /take-test/:testId, /test-result/:attemptId, /profile, /my-tests
+Admin: /admin, /admin/categories, /admin/courses, /admin/course/:id/modules, /admin/tests, /admin/test/:id/questions, /admin/users, /admin/transactions, /admin/analytics
+
+## VIDEO PLAYER (Course page):
+- Custom HTML5 player with speed control (0.5x-2x)
+- NO download, NO screenshot - watermark with student email floats randomly
+- All protection layers above enabled
+- Module sidebar with video list + checkmarks for completed
+- Notes section below video
+- Resources download (if free or enrolled)
+
+## TEST INTERFACE:
+- Timer countdown with color change (green→yellow→red at 10%)
+- Question navigator grid (unanswered gray, answered green, marked yellow)
+- Previous/Mark for Review/Next buttons
+- Submit confirmation dialog
+- Result page: score card + pass/fail + question-by-question review with explanations
+
+## PAYMENT INTEGRATION:
+- eSewa: redirect, callback, verify, enroll user
+- Khalti: add as secondary
+- Manual enrollment: admin can enroll any student
+- Transaction record for every payment
+
+## TECH STACK:
+Backend: Node.js + Express.js (single server.js)
+Database: MongoDB + Mongoose (create indexes)
+Session: express-session + connect-mongo (NOT JWT)
+Templating: EJS
+3D: Three.js (CDN)
+Animations: GSAP + CSS transitions
+Icons: Font Awesome 6
+Fonts: Inter, Montserrat, Noto Sans Devanagari
+Uploads: Multer (local) + Cloudinary (production)
+Email: Nodemailer
+Security: helmet, cors, rate-limit, mongo-sanitize, xss-clean
+
+## PROJECT STRUCTURE (Create exactly):
+learn-with-saurab/
+├── server.js
+├── package.json
+├── .env (PORT, MONGODB_URI, SESSION_SECRET, EMAIL_USER, EMAIL_PASS)
+├── models/ (User, Course, Test, Category, Transaction, TestAttempt, MistakeEntry, StudentNote)
+├── middleware/ (auth.js, admin.js, rateLimiter.js)
+├── routes/ (auth.js, courses.js, tests.js, dashboard.js, admin.js, api.js, mistakes.js)
+├── public/
+│   ├── css/ (style.css, admin.css, responsive.css)
+│   ├── js/ (main.js, three-init.js, video-player.js, test-timer.js, content-protection.js, mistake-notebook.js)
+│   └── images/
+├── views/
+│   ├── partials/ (header.ejs, footer.ejs)
+│   ├── index.ejs (homepage with all 3D)
+│   ├── courses.ejs, course-preview.ejs, course-learn.ejs
+│   ├── dashboard.ejs, mistake-notebook.ejs
+│   ├── take-test.ejs, test-result.ejs
+│   ├── admin/ (all admin ejs files)
+│   └── auth/ (login, signup, forgot-password)
+└── uploads/ (videos/, resources/, question-images/, course-images/)
+
+## FIXES TO MY EXISTING CODE:
+1. Remove duplicate dotenv.config() calls
+2. Remove duplicate multer storage definitions
+3. Add database indexes before server starts
+4. Require SESSION_SECRET in .env (no fallback)
+5. Add CSRF protection for all POST forms
+6. Move inline HTML to EJS templates
+7. Add proper error handling (try/catch everywhere)
+8. Never expose raw video URLs - use signed URLs only
+
+## SUCCESS CRITERIA:
+- Homepage loads under 2 seconds on 3G
+- 3D animations at 60fps (no lag)
+- Google Lighthouse: 90+ Performance, Accessibility, SEO
+- Mobile responsive: 320px to 4K
+- Admin creates category card in under 30 seconds
+- Student enrolls, watches protected video, takes test, sees results - under 5 minutes
+- No console errors
+- Videos cannot be downloaded
+
+## MY FINAL WORDS:
+"You have complete creative freedom on colors and layout. Make it the most impressive educational website in Nepal. Build everything. Leave nothing half-done. Production-ready code only. GO."
