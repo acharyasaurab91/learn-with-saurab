@@ -1,0 +1,26 @@
+Agent
+In about section CEE exam and IOE exam medical falls under cee and engineering under IOE so make it clear under CEE MBBS,BDS,Bsc Nursing, B pharmacy falls make option to choose inside cee course mbbs,bds,bsc nursing paramedic falls under one and BNS is seperate that is also under CEE
+Mail: contactsaurabsir@gmail.com
+Facebook: https://www.facebook.com/share/1B9GkvjhNV/
+Instagram: https://www.instagram.com/learnwithsaurab?igsh=MTB3cWR4cGZzNm05ag==
+Youtube: https://youtube.com/@learnwithsaurabsir?si=TThoHekkNLAHlL1B
+Tiktok: https://www.tiktok.com/%40learnwithsaurab?_r=1&_t=ZS-93hWy8BbNbu&utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAb21jcASCX-xleHRuA2FlbQIxMQBzcnRjBmFwcF9pZA81NjcwNjczNDMzNTI0MjcAAaf8k8qmKFNHKl1sQ06d-2oifFeOrB2eQN_9ZUWQfR5tAUmRk91n6px5vxZY2w_aem_1kRO9qZ5Jf9twiPCV_s5Tg
+
+Also make features of watching demo lectures on website which i can add from admin panal and that will redirect or open video uploaded on youtube for demo or uploaded on website by me own
+
+In course section begineer intermediate is not correct choose make them able to choose course of cee(Medical and paramedical), CEE(BNS),IOE, LOKSEWA, LISCENSE PREPARE
+In cee course we don't have math remove it
+In loksewa remove nepali english
+In liscense keep for nursing liscense, cmlt liscense, pharmacy liscense, nhpc ha liscense keep the name what it is called searching from official sites
+In SEE and NEB keep SEE Grade 11 and grade 12 later we will add science management under that grade make features to add in the following ways from admin panal
+In home page also update the letters typography and colour correction include IOE too
+And yes make it mobile friendly some letters are getting cut in mobile in display and does signup conform valid email registration only when email is incorrect no registration admin panal is not professional and doesn't include any features i tell you to addMake such mechanism ki student are not able to copy sreenshot or screenrecord the videos content of paid course ...
+
+In each student dashboard keep mistake copy or mistake notes section where the things that student do mistakes repeatedly during practice and model exam from question bank pyqs those will be stored automatically through sofftware evaluation in mistake copy or notes section you give this section best name that sound attractive and also student themselves are able to add content by themselves which they do mistakes repeatedly
+
+How to go live and convert website into app
+Seo marketing
+When app get crashed who will fix
+Analytics
+Integrate payment gateway
+Where will user data store is it secure

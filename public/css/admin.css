@@ -18,6 +18,7 @@
 .admin-nav-link.active { color: #00D4FF; background: rgba(0,212,255,0.12); font-weight: 700; }
 .admin-nav-link i { width: 18px; font-size: 15px; }
 .admin-nav-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 12px 0; }
+.admin-nav-section { display: block; font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #374151; padding: 12px 14px 4px; }
 .nav-logout:hover { color: #EF4444 !important; background: rgba(239,68,68,0.08) !important; }
 .admin-main { flex: 1; padding: 32px; overflow-y: auto; }
 .admin-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }

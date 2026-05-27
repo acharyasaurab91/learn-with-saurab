@@ -60,6 +60,11 @@ router.post('/signup', authLimiter, async (req, res) => {
     if (!firstName || !lastName || !username || !email || !mobile || !password) {
       return res.render('auth/signup', { title: 'Sign Up', error: 'All fields are required.', user: null });
     }
+    // Strict email format validation
+    const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.render('auth/signup', { title: 'Sign Up', error: 'Please enter a valid email address (e.g. yourname@gmail.com).', user: null });
+    }
     if (password !== confirmPassword) {
       return res.render('auth/signup', { title: 'Sign Up', error: 'Passwords do not match.', user: null });
     }

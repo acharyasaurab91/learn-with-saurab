@@ -1,0 +1,108 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'demo-lectures' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-play-circle"></i> Demo Lectures</h1>
+      <span class="text-muted" style="font-size:14px">Manage all free demo previews per course</span>
+    </div>
+
+    <% if (typeof msg !== 'undefined' && msg) { %>
+      <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= msg %></div>
+    <% } %>
+
+    <div class="admin-section">
+      <p style="color:#9CA3AF;font-size:14px;margin-bottom:20px">
+        <i class="fas fa-info-circle" style="color:#00D4FF"></i>
+        Demo lectures are free preview videos added to each course. Students can watch them without logging in.
+        To add a demo, <a href="/admin/courses" style="color:#00D4FF">go to a Course → Edit</a> and fill in the Demo Lecture section.
+      </p>
+
+      <% if (courses && courses.length > 0) { %>
+        <% const withDemo = courses.filter(c => c.demoVideoUrl); %>
+        <% const withoutDemo = courses.filter(c => !c.demoVideoUrl); %>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+          <div class="admin-stat-card asc-blue" style="margin:0">
+            <div class="asc-icon"><i class="fas fa-play-circle"></i></div>
+            <div class="asc-body"><div class="asc-num"><%= withDemo.length %></div><div class="asc-label">Courses with Demo</div></div>
+          </div>
+          <div class="admin-stat-card asc-yellow" style="margin:0">
+            <div class="asc-icon"><i class="fas fa-exclamation-circle"></i></div>
+            <div class="asc-body"><div class="asc-num"><%= withoutDemo.length %></div><div class="asc-label">Courses Missing Demo</div></div>
+          </div>
+        </div>
+
+        <h3 style="margin-bottom:16px;font-size:16px"><i class="fas fa-check-circle" style="color:#10B981"></i> Courses with Demo Lectures</h3>
+        <% if (withDemo.length === 0) { %>
+          <div class="empty-state"><i class="fas fa-play-circle"></i><h3>No demos added yet</h3><p>Edit any course to add a YouTube or uploaded demo video.</p></div>
+        <% } else { %>
+        <div class="demo-lectures-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:32px">
+          <% withDemo.forEach(course => { %>
+          <div class="demo-card" style="background:#161D2E;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden">
+            <div style="padding:16px">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px">
+                <div>
+                  <h4 style="font-size:14px;margin-bottom:4px"><%= course.title %></h4>
+                  <span style="font-size:11px;background:rgba(0,212,255,0.1);color:#00D4FF;padding:2px 8px;border-radius:20px"><%= course.examType || course.category %></span>
+                </div>
+                <a href="/admin/courses/<%= course._id %>/edit" class="btn-icon btn-edit" title="Edit Demo"><i class="fas fa-edit"></i></a>
+              </div>
+              <% if (course.demoTitle) { %>
+                <p style="font-size:12px;color:#9CA3AF;margin-bottom:8px"><i class="fas fa-heading"></i> <%= course.demoTitle %></p>
+              <% } %>
+              <div style="display:flex;align-items:center;gap:8px">
+                <% if (course.demoVideoType === 'youtube') { %>
+                  <span style="background:rgba(239,68,68,0.1);color:#EF4444;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700"><i class="fab fa-youtube"></i> YouTube</span>
+                  <a href="<%= course.demoVideoUrl %>" target="_blank" style="font-size:11px;color:#00D4FF;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px" title="<%= course.demoVideoUrl %>">
+                    <%= course.demoVideoUrl ? course.demoVideoUrl.replace('https://', '').substring(0, 30) + '...' : '' %>
+                  </a>
+                <% } else { %>
+                  <span style="background:rgba(124,58,237,0.1);color:#7C3AED;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700"><i class="fas fa-upload"></i> Uploaded</span>
+                  <span style="font-size:11px;color:#9CA3AF"><%= course.demoVideoUrl ? course.demoVideoUrl.split('/').pop() : '' %></span>
+                <% } %>
+              </div>
+              <div style="margin-top:12px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;display:flex;gap:8px">
+                <a href="/courses/<%= course._id %>" target="_blank" class="btn-secondary" style="font-size:12px;padding:6px 12px"><i class="fas fa-eye"></i> Preview</a>
+                <button onclick="clearDemo('<%= course._id %>')" class="btn-icon btn-delete" title="Remove demo from this course" style="padding:6px 12px;font-size:12px;border-radius:6px"><i class="fas fa-trash"></i> Remove</button>
+              </div>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+        <% } %>
+
+        <% if (withoutDemo.length > 0) { %>
+        <h3 style="margin-bottom:16px;font-size:16px"><i class="fas fa-exclamation-circle" style="color:#F59E0B"></i> Courses Missing Demo Lectures</h3>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Course</th><th>Category</th><th>Price</th><th>Action</th></tr></thead>
+            <tbody>
+              <% withoutDemo.forEach(c => { %>
+              <tr>
+                <td><strong><%= c.title %></strong></td>
+                <td><span class="badge-category"><%= c.examType || c.category || '—' %></span></td>
+                <td><%= c.price === 0 ? 'FREE' : 'Rs. ' + c.price.toLocaleString() %></td>
+                <td><a href="/admin/courses/<%= c._id %>/edit" class="btn-xs"><i class="fas fa-plus"></i> Add Demo</a></td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <% } %>
+      <% } else { %>
+        <div class="empty-state"><i class="fas fa-play-circle"></i><h3>No courses yet</h3><p><a href="/admin/courses/new">Create a course</a> first, then add a demo lecture.</p></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer', { extraJs: `<script>
+async function clearDemo(courseId) {
+  if (!confirm('Remove the demo lecture from this course?')) return;
+  const res = await fetch('/admin/courses/' + courseId + '/clear-demo', { method: 'POST' });
+  const r = await res.json();
+  if (r.success) location.reload();
+  else alert('Error: ' + r.message);
+}
+</script>` }) %>

@@ -125,18 +125,23 @@ router.get('/courses/new', async (req, res) => {
   res.render('admin/course-form', { title: 'New Course', course: null, categories, admin: req.admin, user: req.admin });
 });
 
-router.post('/courses', upload.single('image'), async (req, res) => {
+router.post('/courses', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'demoVideo', maxCount: 1 }]), async (req, res) => {
   try {
-    const { title, description, price, category, subject, level, isFeatured, isPublished } = req.body;
+    const { title, description, price, category, subject, examType, demoVideoUrl, demoVideoType, demoTitle, isFeatured, isPublished } = req.body;
     const course = new Course({
       title, description, price: parseFloat(price) || 0,
-      category, subject, level,
+      category, subject, examType,
+      demoVideoUrl, demoVideoType: demoVideoType || 'youtube', demoTitle,
       isFeatured: isFeatured === 'on',
       isPublished: isPublished === 'on'
     });
-    if (req.file) {
-      course.imagePath = req.file.path;
-      course.imageUrl = '/' + req.file.path.replace(/\\/g, '/');
+    if (req.files && req.files.demoVideo) {
+      course.demoVideoUrl = '/' + req.files.demoVideo[0].path.replace(/\\/g, '/');
+      course.demoVideoType = 'local';
+    }
+    if (req.files && req.files.image) {
+      course.imagePath = req.files.image[0].path;
+      course.imageUrl = '/' + req.files.image[0].path.replace(/\\/g, '/');
     }
     await course.save();
     res.redirect('/admin/courses?msg=Course+created');
@@ -155,13 +160,23 @@ router.get('/courses/:id/edit', async (req, res) => {
   }
 });
 
-router.post('/courses/:id', upload.single('image'), async (req, res) => {
+router.post('/courses/:id', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'demoVideo', maxCount: 1 }]), async (req, res) => {
   try {
-    const { title, description, price, category, subject, level, isFeatured, isPublished } = req.body;
-    const update = { title, description, price: parseFloat(price) || 0, category, subject, level, isFeatured: isFeatured === 'on', isPublished: isPublished === 'on' };
-    if (req.file) {
-      update.imagePath = req.file.path;
-      update.imageUrl = '/' + req.file.path.replace(/\\/g, '/');
+    const { title, description, price, category, subject, examType, demoVideoUrl, demoVideoType, demoTitle, isFeatured, isPublished } = req.body;
+    const update = {
+      title, description, price: parseFloat(price) || 0,
+      category, subject, examType,
+      demoTitle, demoVideoType: demoVideoType || 'youtube',
+      isFeatured: isFeatured === 'on', isPublished: isPublished === 'on'
+    };
+    if (demoVideoUrl) update.demoVideoUrl = demoVideoUrl;
+    if (req.files && req.files.image) {
+      update.imagePath = req.files.image[0].path;
+      update.imageUrl = '/' + req.files.image[0].path.replace(/\\/g, '/');
+    }
+    if (req.files && req.files.demoVideo) {
+      update.demoVideoUrl = '/' + req.files.demoVideo[0].path.replace(/\\/g, '/');
+      update.demoVideoType = 'local';
     }
     await Course.findByIdAndUpdate(req.params.id, update);
     res.redirect('/admin/courses?msg=Course+updated');
@@ -418,6 +433,26 @@ router.get('/analytics', async (req, res) => {
     });
   } catch (err) {
     res.render('error', { title: 'Error', message: err.message, user: req.admin });
+  }
+});
+
+// Demo Lectures management page
+router.get('/demo-lectures', async (req, res) => {
+  try {
+    const courses = await Course.find().sort({ createdAt: -1 }).select('title category examType price demoVideoUrl demoVideoType demoTitle');
+    res.render('admin/demo-lectures', { title: 'Demo Lectures', courses, admin: req.admin, user: req.admin, msg: req.query.msg });
+  } catch (err) {
+    res.render('error', { title: 'Error', message: err.message, user: req.admin });
+  }
+});
+
+// Clear demo lecture from a course
+router.post('/courses/:id/clear-demo', async (req, res) => {
+  try {
+    await Course.findByIdAndUpdate(req.params.id, { $unset: { demoVideoUrl: 1, demoTitle: 1 }, demoVideoType: 'youtube' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

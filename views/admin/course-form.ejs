@@ -4,35 +4,133 @@
   <div class="admin-main">
     <div class="admin-topbar">
       <h1><i class="fas fa-<%= course ? 'edit' : 'plus-circle' %>"></i> <%= course ? 'Edit Course' : 'New Course' %></h1>
-      <a href="/admin/courses" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+      <a href="/admin/courses" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back to Courses</a>
     </div>
+
+    <% if (typeof query !== 'undefined' && query && query.msg) { %>
+      <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= query.msg %></div>
+    <% } %>
+
     <div class="admin-section">
       <form action="<%= course ? '/admin/courses/' + course._id : '/admin/courses' %>" method="POST" enctype="multipart/form-data" class="admin-form">
+
+        <!-- Basic Info -->
+        <div class="form-section-title"><i class="fas fa-info-circle"></i> Basic Information</div>
         <div class="form-row-2">
-          <div class="form-group"><label>Course Title *</label><input type="text" name="title" value="<%= course ? course.title : '' %>" required placeholder="e.g. Complete CEE Physics"></div>
           <div class="form-group">
-            <label>Category</label>
+            <label>Course Title *</label>
+            <input type="text" name="title" value="<%= course ? course.title : '' %>" required placeholder="e.g. Complete CEE Biology 2024">
+          </div>
+          <div class="form-group">
+            <label>Exam Category</label>
             <select name="category">
               <option value="">Select Category</option>
-              <% categories.forEach(cat => { %><option value="<%= cat.slug %>" <%= course && course.category === cat.slug ? 'selected' : '' %>><%= cat.name %></option><% }) %>
+              <% categories.forEach(cat => { %>
+                <option value="<%= cat.slug %>" <%= course && course.category === cat.slug ? 'selected' : '' %>><%= cat.name %></option>
+              <% }) %>
             </select>
           </div>
         </div>
-        <div class="form-group"><label>Description *</label><textarea name="description" rows="4" required><%= course ? course.description : '' %></textarea></div>
+
+        <div class="form-group">
+          <label>Description *</label>
+          <textarea name="description" rows="4" required placeholder="Describe what students will learn..."><%= course ? course.description : '' %></textarea>
+        </div>
+
         <div class="form-row-3">
-          <div class="form-group"><label>Price (Rs.)</label><input type="number" name="price" value="<%= course ? course.price : 0 %>" min="0"></div>
-          <div class="form-group"><label>Subject</label><input type="text" name="subject" value="<%= course ? course.subject || '' : '' %>" placeholder="e.g. Physics"></div>
-          <div class="form-group"><label>Level</label><select name="level"><option value="Beginner" <%= course && course.level === 'Beginner' ? 'selected' : '' %>>Beginner</option><option value="Intermediate" <%= course && course.level === 'Intermediate' ? 'selected' : '' %>>Intermediate</option><option value="Advanced" <%= course && course.level === 'Advanced' ? 'selected' : '' %>>Advanced</option></select></div>
+          <div class="form-group">
+            <label>Price (Rs.)</label>
+            <input type="number" name="price" value="<%= course ? course.price : 0 %>" min="0" placeholder="0 = Free">
+          </div>
+          <div class="form-group">
+            <label>Subject / Topic</label>
+            <input type="text" name="subject" value="<%= course ? course.subject || '' : '' %>" placeholder="e.g. Biology, Physics">
+          </div>
+          <div class="form-group">
+            <label>Exam Type</label>
+            <select name="examType">
+              <option value="CEE - Medical & Paramedical" <%= course && course.examType === 'CEE - Medical & Paramedical' ? 'selected' : '' %>>CEE — Medical & Paramedical (MBBS, BDS, BSc Nursing, B.Pharmacy, Paramedic)</option>
+              <option value="CEE - BNS (B.N.Sc.)" <%= course && course.examType === 'CEE - BNS (B.N.Sc.)' ? 'selected' : '' %>>CEE — BNS (Bachelor of Nursing Science)</option>
+              <option value="IOE - Engineering" <%= course && course.examType === 'IOE - Engineering' ? 'selected' : '' %>>IOE — Engineering (BE, B.Arch, BEI)</option>
+              <option value="Loksewa / लोकसेवा" <%= course && course.examType === 'Loksewa / लोकसेवा' ? 'selected' : '' %>>Loksewa / लोकसेवा (PSC)</option>
+              <option value="License Exam" <%= course && course.examType === 'License Exam' ? 'selected' : '' %>>License Exam</option>
+              <option value="SEE (Grade 10)" <%= course && course.examType === 'SEE (Grade 10)' ? 'selected' : '' %>>SEE — Grade 10</option>
+              <option value="NEB - Grade 11" <%= course && course.examType === 'NEB - Grade 11' ? 'selected' : '' %>>NEB — Grade 11</option>
+              <option value="NEB - Grade 12" <%= course && course.examType === 'NEB - Grade 12' ? 'selected' : '' %>>NEB — Grade 12</option>
+            </select>
+          </div>
         </div>
-        <div class="form-group"><label>Course Thumbnail</label><input type="file" name="image" accept="image/*"></div>
-        <% if (course && course.imageUrl) { %><div class="current-img"><img src="<%= course.imageUrl %>" alt="Current" style="max-height:120px;border-radius:8px"><span class="text-muted">Current thumbnail</span></div><% } %>
+
+        <div class="form-group">
+          <label>Course Thumbnail Image</label>
+          <input type="file" name="image" accept="image/*">
+          <small class="form-hint">Recommended: 1280×720px (16:9). JPG/PNG/WebP.</small>
+          <% if (course && course.imageUrl) { %>
+            <div class="current-img">
+              <img src="<%= course.imageUrl %>" alt="Thumbnail" style="max-height:100px;border-radius:8px">
+              <span class="text-muted">Current thumbnail</span>
+            </div>
+          <% } %>
+        </div>
+
         <div class="form-row-2">
-          <label class="checkbox-label"><input type="checkbox" name="isFeatured" <%= course && course.isFeatured ? 'checked' : '' %>> Featured Course</label>
-          <label class="checkbox-label"><input type="checkbox" name="isPublished" <%= !course || course.isPublished ? 'checked' : '' %>> Published</label>
+          <label class="checkbox-label"><input type="checkbox" name="isFeatured" <%= course && course.isFeatured ? 'checked' : '' %>> <i class="fas fa-star text-yellow"></i> Featured Course</label>
+          <label class="checkbox-label"><input type="checkbox" name="isPublished" <%= !course || course.isPublished ? 'checked' : '' %>> <i class="fas fa-eye text-teal"></i> Published (Visible to Students)</label>
         </div>
-        <div class="form-actions"><button type="submit" class="btn-admin-primary"><i class="fas fa-save"></i> <%= course ? 'Update Course' : 'Create Course' %></button></div>
+
+        <!-- Demo Lecture Section -->
+        <div class="form-section-title" style="margin-top:28px"><i class="fas fa-play-circle" style="color:#00D4FF"></i> Demo Lecture <span style="font-size:12px;font-weight:400;color:#9CA3AF;margin-left:8px">Free preview shown to everyone — no login needed</span></div>
+
+        <div class="form-group">
+          <label>Demo Lecture Title</label>
+          <input type="text" name="demoTitle" value="<%= course && course.demoTitle ? course.demoTitle : '' %>" placeholder="e.g. Introduction to CEE Biology — Free Preview">
+        </div>
+
+        <div class="form-group">
+          <label>Demo Video Type</label>
+          <div style="display:flex;gap:16px;margin-top:8px">
+            <label class="checkbox-label">
+              <input type="radio" name="demoVideoType" value="youtube" <%= !course || !course.demoVideoType || course.demoVideoType === 'youtube' ? 'checked' : '' %> onchange="toggleDemoType(this.value)"> YouTube Video
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" name="demoVideoType" value="local" <%= course && course.demoVideoType === 'local' ? 'checked' : '' %> onchange="toggleDemoType(this.value)"> Upload from Computer
+            </label>
+          </div>
+        </div>
+
+        <div id="demoYoutube" style="display:<%= course && course.demoVideoType === 'local' ? 'none' : 'block' %>">
+          <div class="form-group">
+            <label>YouTube Video URL</label>
+            <input type="text" name="demoVideoUrl" value="<%= course && course.demoVideoType !== 'local' ? (course.demoVideoUrl || '') : '' %>" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/...">
+            <small class="form-hint">Paste the full YouTube URL. The video will be embedded on the course page.</small>
+          </div>
+        </div>
+
+        <div id="demoLocal" style="display:<%= course && course.demoVideoType === 'local' ? 'block' : 'none' %>">
+          <div class="form-group">
+            <label>Upload Demo Video</label>
+            <input type="file" name="demoVideo" accept="video/*">
+            <small class="form-hint">Upload MP4/WebM. Max 500MB. Video is protected with watermark.</small>
+            <% if (course && course.demoVideoType === 'local' && course.demoVideoUrl) { %>
+              <div style="margin-top:8px;color:#10B981;font-size:13px"><i class="fas fa-check-circle"></i> Demo video uploaded: <%= course.demoVideoUrl.split('/').pop() %></div>
+            <% } %>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-admin-primary">
+            <i class="fas fa-save"></i> <%= course ? 'Update Course' : 'Create Course' %>
+          </button>
+          <a href="/admin/courses" class="btn-secondary">Cancel</a>
+        </div>
       </form>
     </div>
   </div>
 </div>
-<%- include('../partials/footer') %>
+
+<%- include('../partials/footer', { extraJs: `<script>
+function toggleDemoType(val) {
+  document.getElementById('demoYoutube').style.display = val === 'youtube' ? 'block' : 'none';
+  document.getElementById('demoLocal').style.display = val === 'local' ? 'block' : 'none';
+}
+</script>` }) %>

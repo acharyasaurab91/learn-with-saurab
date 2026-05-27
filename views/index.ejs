@@ -92,10 +92,12 @@
         <% }) %>
       <% } else { %>
         <% [
-          { name: 'CEE', icon: 'fas fa-microscope', color: '#00D4FF', desc: 'Complete Medical & Engineering entrance preparation', subjects: ['Physics', 'Chemistry', 'Biology', 'Math', 'MAT'], slug: 'cee' },
-          { name: 'Loksewa', icon: 'fas fa-landmark', color: '#7C3AED', desc: 'Nepal Public Service Commission exam prep', subjects: ['GK', 'Nepali', 'English', 'Math', 'IQ/Reasoning'], slug: 'loksewa' },
-          { name: 'License Exams', icon: 'fas fa-id-card', color: '#F59E0B', desc: 'NMCL, CMA, Engineering Council exams', subjects: ['NMCL', 'CMA', 'NEC', 'NEB License'], slug: 'license' },
-          { name: 'SEE & NEB', icon: 'fas fa-school', color: '#10B981', desc: 'School leaving & board exam preparation', subjects: ['Grade 10 SEE', 'Grade 11', 'Grade 12', 'NEB'], slug: 'see-neb' }
+          { name: 'CEE — Medical & Paramedical', icon: 'fas fa-stethoscope', color: '#00D4FF', desc: 'MBBS, BDS, BSc Nursing, B.Pharmacy & Paramedic entrance exam', subjects: ['MBBS / BDS', 'BSc Nursing', 'B.Pharmacy', 'Paramedic', 'Biology', 'Chemistry', 'Physics'], slug: 'cee-medical' },
+          { name: 'CEE — BNS (B.N.Sc.)', icon: 'fas fa-heart-pulse', color: '#EC4899', desc: 'Bachelor of Nursing Science entrance — separate CEE track', subjects: ['Biology', 'Chemistry', 'Physics', 'English'], slug: 'cee-bns' },
+          { name: 'IOE — Engineering', icon: 'fas fa-microchip', color: '#7C3AED', desc: 'Institute of Engineering entrance — BE, B.Arch, BEI programs', subjects: ['Mathematics', 'Physics', 'Chemistry', 'English'], slug: 'ioe-engineering' },
+          { name: 'Loksewa / लोकसेवा', icon: 'fas fa-landmark', color: '#F59E0B', desc: 'Nepal Public Service Commission — all levels', subjects: ['GK / सामान्य ज्ञान', 'Current Affairs', 'IQ / Reasoning', 'Constitution'], slug: 'loksewa' },
+          { name: 'License Exams', icon: 'fas fa-id-card', color: '#10B981', desc: 'Professional license exams for healthcare fields', subjects: ['Nursing License (NMCL)', 'CMLT License', 'Pharmacy License', 'NHPC HA License'], slug: 'license' },
+          { name: 'SEE & NEB', icon: 'fas fa-school', color: '#F97316', desc: 'Secondary Education & National Examinations Board prep', subjects: ['SEE — Grade 10', 'NEB — Grade 11', 'NEB — Grade 12'], slug: 'see-neb' }
         ].forEach((cat, i) => { %>
         <div class="category-card" data-tilt data-delay="<%= i * 0.1 %>" style="--card-color: <%= cat.color %>">
           <div class="card-glow"></div>
