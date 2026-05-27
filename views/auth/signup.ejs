@@ -29,7 +29,11 @@
         <div class="form-row-2">
           <div class="form-group">
             <label><i class="fas fa-at"></i> Username</label>
-            <input type="text" name="username" placeholder="aarav_sharma" required>
+            <div style="position:relative">
+              <input type="text" name="username" id="usernameInput" placeholder="aarav_sharma" required autocomplete="off" style="padding-right:36px">
+              <span id="usernameStatus" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px"></span>
+            </div>
+            <small id="usernameHint" style="font-size:12px;color:#6B7280;margin-top:4px;display:none"></small>
           </div>
           <div class="form-group">
             <label><i class="fas fa-phone"></i> Mobile</label>
@@ -90,11 +94,49 @@ pwd.addEventListener('input', () => {
   const colors = ['', '#EF4444', '#F59E0B', '#10B981', '#00D4FF'];
   strength.innerHTML = v.length ? '<div style="height:4px;border-radius:2px;background:' + colors[s] + ';width:' + (s * 25) + '%;transition:all .3s"></div><span style="font-size:12px;color:' + colors[s] + '">' + levels[s] + '</span>' : '';
 });
+// Username availability check
+let usernameTimeout;
+const usernameInput = document.getElementById('usernameInput');
+const usernameStatus = document.getElementById('usernameStatus');
+const usernameHint = document.getElementById('usernameHint');
+let usernameAvailable = false;
+if (usernameInput) {
+  usernameInput.addEventListener('input', function() {
+    clearTimeout(usernameTimeout);
+    const val = this.value.trim();
+    if (!val || val.length < 3) {
+      usernameStatus.textContent = '';
+      usernameHint.style.display = 'none';
+      usernameAvailable = false;
+      return;
+    }
+    usernameStatus.textContent = '⏳';
+    usernameTimeout = setTimeout(async () => {
+      try {
+        const res = await fetch('/check-username?username=' + encodeURIComponent(val));
+        const data = await res.json();
+        usernameAvailable = data.available;
+        usernameStatus.textContent = data.available ? '✅' : '❌';
+        usernameHint.textContent = data.message;
+        usernameHint.style.display = 'block';
+        usernameHint.style.color = data.available ? '#10B981' : '#EF4444';
+      } catch(e) { usernameStatus.textContent = ''; }
+    }, 500);
+  });
+}
 document.getElementById('signupForm').addEventListener('submit', function(e) {
   if (document.getElementById('pwd1').value !== document.getElementById('pwd2').value) {
     e.preventDefault();
     alert('Passwords do not match!');
     return;
+  }
+  if (usernameInput && usernameInput.value && !usernameAvailable) {
+    const hint = usernameHint.textContent;
+    if (hint && hint !== 'Available!') {
+      e.preventDefault();
+      alert('Please choose a valid, available username.');
+      return;
+    }
   }
   const btn = document.getElementById('submitBtn');
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';

@@ -21,6 +21,7 @@ const watermark = document.getElementById('watermarkText');
 let currentModule = -1;
 let currentVideo = -1;
 let progressReported = false;
+let autoSaveInterval = null;
 
 function loadVideo(url, path, title, modIdx, vidIdx) {
   if (!url && !path) {
@@ -43,6 +44,24 @@ function loadVideo(url, path, title, modIdx, vidIdx) {
   currentModule = modIdx;
   currentVideo = vidIdx;
   progressReported = false;
+
+  // Auto-save progress every 30 seconds
+  if (autoSaveInterval) clearInterval(autoSaveInterval);
+  autoSaveInterval = setInterval(() => {
+    if (!video.paused && video.currentTime > 0 && COURSE_DATA) {
+      fetch('/dashboard/progress/video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId: COURSE_DATA.courseId,
+          videoId: currentVideo,
+          moduleId: currentModule,
+          duration: Math.floor(video.currentTime),
+          autoSave: true
+        })
+      }).catch(() => {});
+    }
+  }, 30000);
 
   video.play().catch(() => {});
 
@@ -127,6 +146,25 @@ if (video) {
     if (['F11', 'F12'].includes(e.key)) e.preventDefault();
   });
 }
+
+function toggleFullscreen() {
+  const container = document.getElementById('videoContainer');
+  const icon = document.querySelector('#fsBtn i');
+  if (!document.fullscreenElement) {
+    container.requestFullscreen().then(() => {
+      if (icon) icon.className = 'fas fa-compress';
+    }).catch(() => {});
+  } else {
+    document.exitFullscreen().then(() => {
+      if (icon) icon.className = 'fas fa-expand';
+    }).catch(() => {});
+  }
+}
+
+document.addEventListener('fullscreenchange', () => {
+  const icon = document.querySelector('#fsBtn i');
+  if (icon) icon.className = document.fullscreenElement ? 'fas fa-compress' : 'fas fa-expand';
+});
 
 function toggleSidebar() {
   const sidebar = document.querySelector('.learn-sidebar');

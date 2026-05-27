@@ -12,8 +12,6 @@ const transactionSchema = new mongoose.Schema({
   notes:         String
 }, { timestamps: true });
 
-transactionSchema.index({ userId: 1 });
-transactionSchema.index({ status: 1 });
-transactionSchema.index({ transactionId: 1 });
+transactionSchema.index({ userId: 1, status: 1 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

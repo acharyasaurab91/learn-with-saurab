@@ -23,6 +23,19 @@ async function sendEmail(to, subject, html) {
   }
 }
 
+router.get('/check-username', async (req, res) => {
+  const { username } = req.query;
+  if (!username || username.length < 3) return res.json({ available: false, message: 'Min 3 characters' });
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) return res.json({ available: false, message: 'Only letters, numbers, underscores' });
+  try {
+    const exists = await User.findOne({ username: username.toLowerCase() });
+    if (exists) return res.json({ available: false, message: 'Username taken' });
+    return res.json({ available: true, message: 'Available!' });
+  } catch (e) {
+    return res.json({ available: false, message: 'Error checking' });
+  }
+});
+
 router.get('/login', (req, res) => {
   if (req.session.userId) return res.redirect('/dashboard');
   res.render('auth/login', { title: 'Login', msg: req.query.msg || '', error: '', user: null });
