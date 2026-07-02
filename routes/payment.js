@@ -6,6 +6,8 @@ const Course = require('../models/Course');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const crypto = require('crypto');
+const { sendEmail } = require('../utils/mailer');
+const { enrollmentEmailHtml } = require('../utils/enrollmentEmail');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -43,6 +45,27 @@ function httpsPost(url, data, headers) {
   });
 }
 
+// ─── Send enrollment confirmation email (non-blocking) ────────────────────────
+
+async function sendEnrollmentEmail({ user, course, txnId, paymentMethod, amount, baseUrl }) {
+  const studentName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Student';
+  const courseUrl = `${baseUrl}/courses/${course._id}/learn`;
+  const html = enrollmentEmailHtml({
+    studentName,
+    courseTitle: course.title,
+    courseUrl,
+    txnId,
+    amount,
+    paymentMethod,
+    examType: course.examType || course.category || ''
+  });
+  await sendEmail(
+    user.email,
+    `✅ Enrollment Confirmed: ${course.title} — Learn With Saurab`,
+    html
+  );
+}
+
 // ─── Enroll (entry point) ─────────────────────────────────────────────────────
 
 router.get('/enroll/:courseId', requireLogin, async (req, res) => {
@@ -56,6 +79,15 @@ router.get('/enroll/:courseId', requireLogin, async (req, res) => {
     if (course.price === 0) {
       await User.findByIdAndUpdate(req.user._id, { $addToSet: { enrolledCourses: course._id } });
       await Course.findByIdAndUpdate(course._id, { $inc: { enrolledCount: 1 } });
+      // Fire-and-forget confirmation for free enroll
+      sendEnrollmentEmail({
+        user: req.user,
+        course,
+        txnId: 'FREE',
+        paymentMethod: 'Free',
+        amount: 0,
+        baseUrl: getBaseUrl(req)
+      }).catch(err => console.error('Free enroll email error:', err));
       return res.redirect(`/courses/${course._id}/learn?welcome=1`);
     }
 
@@ -119,6 +151,19 @@ router.get('/esewa/success', requireLogin, async (req, res) => {
     await User.findByIdAndUpdate(txn.userId, { $addToSet: { enrolledCourses: txn.courseId } });
     await Course.findByIdAndUpdate(txn.courseId, { $inc: { enrolledCount: 1 } });
 
+    // Send confirmation email (fire-and-forget — don't block the redirect)
+    const course = await Course.findById(txn.courseId);
+    if (course) {
+      sendEnrollmentEmail({
+        user: req.user,
+        course,
+        txnId: pid,
+        paymentMethod: 'eSewa',
+        amount: txn.amount,
+        baseUrl: getBaseUrl(req)
+      }).catch(err => console.error('eSewa enroll email error:', err));
+    }
+
     res.redirect(`/courses/${txn.courseId}/learn?enrolled=1`);
   } catch (err) {
     console.error('eSewa success error:', err);
@@ -155,7 +200,7 @@ router.post('/khalti/initiate', requireLogin, async (req, res) => {
     });
 
     const baseUrl = getBaseUrl(req);
-    const amountInPaisa = Math.round(course.price * 100); // Khalti expects paisa
+    const amountInPaisa = Math.round(course.price * 100);
 
     const khaltiPayload = {
       return_url: `${baseUrl}/payment/khalti/callback`,
@@ -207,7 +252,6 @@ router.get('/khalti/callback', requireLogin, async (req, res) => {
 
     if (!orderId) return res.redirect('/payment/failed?method=khalti&reason=missing_order');
 
-    // Verify with Khalti lookup API
     const secretKey = process.env.KHALTI_SECRET_KEY || 'test_secret_key_c9f20e5e87d74b8f9fdbb0fcbdac0f31';
     const khaltiBaseUrl = process.env.KHALTI_SECRET_KEY ? 'https://khalti.com' : 'https://a.khalti.com';
 
@@ -221,7 +265,6 @@ router.get('/khalti/callback', requireLogin, async (req, res) => {
       verified = lookupRes.status === 200 && lookupRes.data.status === 'Completed';
     } catch (lookupErr) {
       console.error('Khalti lookup error:', lookupErr);
-      // In test mode, treat status=Completed from query param as success
       verified = status === 'Completed';
     }
 
@@ -234,6 +277,20 @@ router.get('/khalti/callback', requireLogin, async (req, res) => {
       await txn.save();
       await User.findByIdAndUpdate(txn.userId, { $addToSet: { enrolledCourses: txn.courseId } });
       await Course.findByIdAndUpdate(txn.courseId, { $inc: { enrolledCount: 1 } });
+
+      // Send confirmation email (fire-and-forget)
+      const course = await Course.findById(txn.courseId);
+      if (course) {
+        sendEnrollmentEmail({
+          user: req.user,
+          course,
+          txnId: orderId,
+          paymentMethod: 'Khalti',
+          amount: txn.amount,
+          baseUrl: getBaseUrl(req)
+        }).catch(err => console.error('Khalti enroll email error:', err));
+      }
+
       return res.redirect(`/courses/${txn.courseId}/learn?enrolled=1`);
     } else {
       txn.status = 'failed';
@@ -264,6 +321,23 @@ router.post('/manual-enroll', async (req, res) => {
     });
     await User.findByIdAndUpdate(userId, { $addToSet: { enrolledCourses: courseId } });
     await Course.findByIdAndUpdate(courseId, { $inc: { enrolledCount: 1 } });
+
+    // Send confirmation email to the student (fire-and-forget)
+    const [user, course] = await Promise.all([
+      User.findById(userId),
+      Course.findById(courseId)
+    ]);
+    if (user && course) {
+      const baseUrl = getBaseUrl(req);
+      sendEnrollmentEmail({
+        user,
+        course,
+        txnId,
+        paymentMethod: 'manual',
+        amount: amount || 0,
+        baseUrl
+      }).catch(err => console.error('Manual enroll email error:', err));
+    }
 
     res.json({ success: true });
   } catch (err) {

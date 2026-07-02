@@ -3,25 +3,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const User = require('../models/User');
 const { authLimiter } = require('../middleware/rateLimiter');
-const nodemailer = require('nodemailer');
-
-function getTransporter() {
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-  });
-}
-
-async function sendEmail(to, subject, html) {
-  try {
-    const t = getTransporter();
-    await t.sendMail({ from: `"Learn With Saurab" <${process.env.EMAIL_USER}>`, to, subject, html });
-  } catch (e) {
-    console.error('Email error:', e.message);
-  }
-}
+const { sendEmail } = require('../utils/mailer');
 
 router.get('/check-username', async (req, res) => {
   const { username } = req.query;
