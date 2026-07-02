@@ -1,42 +1,257 @@
 <%- include('partials/header') %>
+
 <div class="dashboard-page">
-  <div class="dashboard-sidebar">
-    <div class="sidebar-user">
-      <div class="sidebar-avatar"><%= user.firstName[0] %><%= user.lastName[0] %></div>
-      <div><strong><%= user.firstName %> <%= user.lastName %></strong><span><%= user.email %></span></div>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="/dashboard" class="sidebar-link"><i class="fas fa-th-large"></i> Dashboard</a>
-      <a href="/my-courses" class="sidebar-link active"><i class="fas fa-book-open"></i> My Courses</a>
-      <a href="/my-tests" class="sidebar-link"><i class="fas fa-clipboard-list"></i> My Tests</a>
-      <a href="/mistake-notebook" class="sidebar-link"><i class="fas fa-bolt"></i> Weakness Analyzer</a>
-      <a href="/profile" class="sidebar-link"><i class="fas fa-user-cog"></i> Profile</a>
-      <a href="/logout" class="sidebar-link logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
-    </nav>
-  </div>
+
+  <%- include('partials/sidebar', { active: 'my-courses' }) %>
+
   <div class="dashboard-main">
-    <div class="dashboard-header"><h1><span class="gradient-text">My Courses</span></h1><p><%= courses.length %> enrolled course<%= courses.length !== 1 ? 's' : '' %></p></div>
+
+    <!-- Header -->
+    <div class="mc-header">
+      <div>
+        <h1><span class="gradient-text">My Courses</span></h1>
+        <p><%= courses.length %> enrolled course<%= courses.length !== 1 ? 's' : '' %> · <%= totalLessons %> total lessons</p>
+      </div>
+      <a href="/browse-courses" class="btn-add-course"><i class="fas fa-plus"></i> Find More Courses</a>
+    </div>
+
     <% if (courses.length === 0) { %>
-      <div class="empty-state"><i class="fas fa-book-open"></i><h3>No courses yet</h3><p><a href="/browse-courses">Browse and enroll in your first course!</a></p></div>
+    <!-- Empty state -->
+    <div class="mc-empty">
+      <div class="mc-empty-icon"><i class="fas fa-book-open"></i></div>
+      <h2>No courses yet</h2>
+      <p>Enroll in a course to start your exam preparation journey.</p>
+      <a href="/browse-courses" class="btn-primary-lg">
+        <i class="fas fa-search"></i> Browse Courses
+      </a>
+    </div>
+
     <% } else { %>
-    <div class="courses-grid">
-      <% courses.forEach(course => { %>
-      <div class="course-card">
-        <div class="course-img-wrap">
-          <% if (course.imageUrl) { %><img src="<%= course.imageUrl %>" alt="<%= course.title %>" loading="lazy"><% } else { %><div class="course-img-placeholder"><i class="fas fa-book-open"></i></div><% } %>
-          <div class="course-badge"><%= course.category %></div>
+
+    <!-- Quick stats row -->
+    <div class="mc-stats-row">
+      <div class="mc-stat">
+        <span class="mc-stat-num"><%= courses.length %></span>
+        <span class="mc-stat-label">Enrolled</span>
+      </div>
+      <div class="mc-stat-div"></div>
+      <div class="mc-stat">
+        <span class="mc-stat-num text-teal"><%= inProgress.length %></span>
+        <span class="mc-stat-label">In Progress</span>
+      </div>
+      <div class="mc-stat-div"></div>
+      <div class="mc-stat">
+        <span class="mc-stat-num text-green"><%= completed.length %></span>
+        <span class="mc-stat-label">Completed</span>
+      </div>
+      <div class="mc-stat-div"></div>
+      <div class="mc-stat">
+        <span class="mc-stat-num text-yellow"><%= user.progress.totalMinutesWatched %></span>
+        <span class="mc-stat-label">Min Watched</span>
+      </div>
+    </div>
+
+    <!-- Search + Filter -->
+    <div class="mc-controls">
+      <div class="mc-search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" id="mcSearch" placeholder="Search your courses..." oninput="filterCourses()">
+      </div>
+      <select id="mcFilter" onchange="filterCourses()">
+        <option value="all">All Courses</option>
+        <option value="in-progress">In Progress</option>
+        <option value="not-started">Not Started</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+
+    <!-- Courses grid -->
+    <div class="mc-grid" id="mcGrid">
+      <% courses.forEach(course => {
+        const cid = course._id.toString();
+        const pct = courseProgress[cid] || 0;
+        const totalVids = course.modules.reduce((s, m) => s + m.videos.length, 0);
+        const doneVids  = Math.round(pct * totalVids / 100);
+        const numMods   = course.modules.length;
+        const statusClass = pct === 100 ? 'completed' : pct > 0 ? 'in-progress' : 'not-started';
+        const last = lastWatched[cid];
+      %>
+      <div class="mc-card" data-title="<%= course.title.toLowerCase() %>" data-status="<%= statusClass %>">
+
+        <!-- Thumbnail -->
+        <div class="mc-card-thumb">
+          <% if (course.imageUrl) { %>
+            <img src="<%= course.imageUrl %>" alt="<%= course.title %>" loading="lazy">
+          <% } else { %>
+            <div class="mc-thumb-placeholder">
+              <i class="fas fa-book-open"></i>
+            </div>
+          <% } %>
+          <% if (pct === 100) { %>
+            <div class="mc-thumb-badge mc-badge-done"><i class="fas fa-check-circle"></i> Completed</div>
+          <% } else if (pct > 0) { %>
+            <div class="mc-thumb-badge mc-badge-progress"><i class="fas fa-play-circle"></i> In Progress</div>
+          <% } %>
         </div>
-        <div class="course-body">
-          <h3 class="course-title"><%= course.title %></h3>
-          <div class="course-meta">
-            <span><i class="fas fa-layer-group"></i> <%= course.level %></span>
+
+        <!-- Body -->
+        <div class="mc-card-body">
+          <% if (course.examType) { %>
+            <span class="mc-exam-badge"><%= course.examType %></span>
+          <% } else if (course.category) { %>
+            <span class="mc-exam-badge"><%= course.category %></span>
+          <% } %>
+
+          <h3 class="mc-card-title"><%= course.title %></h3>
+
+          <div class="mc-card-meta">
+            <span><i class="fas fa-layer-group"></i> <%= numMods %> module<%= numMods !== 1 ? 's' : '' %></span>
+            <span><i class="fas fa-play-circle"></i> <%= totalVids %> lesson<%= totalVids !== 1 ? 's' : '' %></span>
+            <% if (course.duration) { %><span><i class="fas fa-clock"></i> <%= course.duration %>h</span><% } %>
           </div>
-          <a href="/courses/<%= course._id %>/learn" class="btn-enroll"><span>Continue Learning</span><i class="fas fa-play"></i></a>
+
+          <!-- Progress bar -->
+          <div class="mc-progress-wrap">
+            <div class="mc-progress-bar">
+              <div class="mc-progress-fill <% if (pct === 100) { %>mc-fill-done<% } %>" style="width:<%= pct %>%"></div>
+            </div>
+            <div class="mc-progress-label">
+              <span><%= doneVids %>/<%= totalVids %> lessons</span>
+              <span class="<% if (pct === 100) { %>text-green<% } else if (pct > 0) { %>text-teal<% } %>"><%= pct %>%</span>
+            </div>
+          </div>
+
+          <% if (last) { %>
+            <div class="mc-last-watched">
+              <i class="fas fa-history"></i>
+              <span>Last: <%= last.length > 40 ? last.substring(0, 40) + '…' : last %></span>
+            </div>
+          <% } %>
+
+          <!-- Action -->
+          <a href="/courses/<%= course._id %>/learn" class="mc-cta-btn <% if (pct === 100) { %>mc-cta-done<% } %>">
+            <% if (pct === 0) { %>
+              <i class="fas fa-rocket"></i> Start Learning
+            <% } else if (pct === 100) { %>
+              <i class="fas fa-redo"></i> Review Course
+            <% } else { %>
+              <i class="fas fa-play"></i> Continue Learning
+            <% } %>
+          </a>
         </div>
       </div>
       <% }) %>
     </div>
+
+    <!-- No results message -->
+    <div id="mcNoResults" style="display:none" class="mc-no-results">
+      <i class="fas fa-search"></i>
+      <p>No courses match your search.</p>
+    </div>
+
     <% } %>
   </div>
 </div>
+
+<style>
+/* ── My Courses Layout ──────────────────────────────── */
+.mc-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; gap:16px; flex-wrap:wrap; }
+.mc-header h1 { font-family:'Montserrat',sans-serif; font-size:28px; font-weight:900; margin:0 0 4px; }
+.mc-header p  { font-size:14px; color:#6B7280; margin:0; }
+.btn-add-course { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; background:rgba(0,212,255,0.1); border:1px solid rgba(0,212,255,0.25); color:#00D4FF; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none; white-space:nowrap; transition:all 0.2s; }
+.btn-add-course:hover { background:rgba(0,212,255,0.18); }
+
+/* Empty state */
+.mc-empty { text-align:center; padding:80px 24px; }
+.mc-empty-icon { width:80px; height:80px; background:rgba(0,212,255,0.08); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; border:1px solid rgba(0,212,255,0.15); }
+.mc-empty-icon i { font-size:32px; color:#00D4FF; }
+.mc-empty h2 { font-family:'Montserrat',sans-serif; font-size:22px; font-weight:800; color:#F9FAFB; margin:0 0 8px; }
+.mc-empty p  { color:#6B7280; font-size:14px; margin:0 0 24px; }
+.btn-primary-lg { display:inline-flex; align-items:center; gap:10px; padding:14px 32px; background:linear-gradient(135deg,#00D4FF,#7C3AED); color:#fff; border-radius:12px; text-decoration:none; font-weight:800; font-size:15px; }
+
+/* Stats row */
+.mc-stats-row { display:flex; align-items:center; gap:0; background:#161D2E; border:1px solid rgba(255,255,255,0.07); border-radius:12px; padding:16px 28px; margin-bottom:20px; flex-wrap:wrap; gap:16px; }
+.mc-stat { display:flex; flex-direction:column; align-items:center; gap:2px; min-width:60px; }
+.mc-stat-num { font-family:'Montserrat',sans-serif; font-size:22px; font-weight:900; color:#F9FAFB; line-height:1; }
+.mc-stat-label { font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px; }
+.mc-stat-div { width:1px; height:36px; background:rgba(255,255,255,0.08); }
+
+/* Controls */
+.mc-controls { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.mc-search-wrap { flex:1; min-width:200px; display:flex; align-items:center; gap:10px; background:#161D2E; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:0 16px; }
+.mc-search-wrap i { color:#4B5563; font-size:14px; }
+.mc-search-wrap input { background:none; border:none; outline:none; color:#F9FAFB; font-size:14px; padding:12px 0; width:100%; }
+.mc-search-wrap input::placeholder { color:#4B5563; }
+#mcFilter { background:#161D2E; border:1px solid rgba(255,255,255,0.08); color:#F9FAFB; border-radius:10px; padding:12px 16px; font-size:14px; cursor:pointer; outline:none; }
+
+/* Grid */
+.mc-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:20px; }
+
+/* Card */
+.mc-card { background:#161D2E; border:1px solid rgba(255,255,255,0.07); border-radius:16px; overflow:hidden; transition:transform 0.2s, border-color 0.2s; display:flex; flex-direction:column; }
+.mc-card:hover { transform:translateY(-3px); border-color:rgba(0,212,255,0.2); }
+
+/* Thumbnail */
+.mc-card-thumb { position:relative; height:160px; overflow:hidden; background:#0A0F1E; flex-shrink:0; }
+.mc-card-thumb img { width:100%; height:100%; object-fit:cover; }
+.mc-thumb-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0A0F1E,#1A2240); }
+.mc-thumb-placeholder i { font-size:40px; color:rgba(0,212,255,0.25); }
+.mc-thumb-badge { position:absolute; bottom:10px; left:10px; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; display:flex; align-items:center; gap:5px; }
+.mc-badge-done     { background:rgba(16,185,129,0.9); color:#fff; }
+.mc-badge-progress { background:rgba(0,212,255,0.85); color:#0A0F1E; }
+
+/* Card body */
+.mc-card-body { padding:18px 20px 20px; display:flex; flex-direction:column; gap:10px; flex:1; }
+.mc-exam-badge { display:inline-block; font-size:11px; font-weight:700; color:#00D4FF; background:rgba(0,212,255,0.08); border:1px solid rgba(0,212,255,0.15); border-radius:20px; padding:3px 10px; text-transform:uppercase; letter-spacing:0.4px; }
+.mc-card-title { font-family:'Montserrat',sans-serif; font-size:15px; font-weight:800; color:#F9FAFB; line-height:1.4; margin:0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.mc-card-meta { display:flex; flex-wrap:wrap; gap:12px; font-size:12px; color:#6B7280; }
+.mc-card-meta i { color:#4B5563; margin-right:3px; }
+
+/* Progress */
+.mc-progress-wrap { display:flex; flex-direction:column; gap:6px; }
+.mc-progress-bar { height:6px; background:rgba(255,255,255,0.07); border-radius:3px; overflow:hidden; }
+.mc-progress-fill { height:100%; background:linear-gradient(90deg,#00D4FF,#7C3AED); border-radius:3px; transition:width 0.6s ease; }
+.mc-fill-done { background:linear-gradient(90deg,#10B981,#34D399); }
+.mc-progress-label { display:flex; justify-content:space-between; font-size:12px; color:#6B7280; }
+
+/* Last watched */
+.mc-last-watched { display:flex; align-items:center; gap:6px; font-size:12px; color:#4B5563; background:rgba(255,255,255,0.02); border-radius:6px; padding:6px 10px; }
+.mc-last-watched i { color:#6B7280; flex-shrink:0; }
+
+/* CTA button */
+.mc-cta-btn { display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; background:linear-gradient(135deg,#00D4FF,#7C3AED); color:#fff; border-radius:10px; text-decoration:none; font-weight:700; font-size:14px; margin-top:auto; transition:opacity 0.2s, transform 0.2s; }
+.mc-cta-btn:hover { opacity:0.9; transform:translateY(-1px); }
+.mc-cta-done { background:linear-gradient(135deg,#10B981,#34D399); }
+
+/* No results */
+.mc-no-results { text-align:center; padding:60px 24px; color:#4B5563; }
+.mc-no-results i { font-size:36px; margin-bottom:12px; display:block; }
+
+/* Mobile */
+@media(max-width:768px) {
+  .mc-header { flex-direction:column; }
+  .mc-stats-row { justify-content:space-around; }
+  .mc-stat-div { display:none; }
+  .mc-grid { grid-template-columns:1fr; }
+  .mc-controls { flex-direction:column; }
+}
+</style>
+
+<script>
+function filterCourses() {
+  const q = document.getElementById('mcSearch').value.toLowerCase().trim();
+  const f = document.getElementById('mcFilter').value;
+  const cards = document.querySelectorAll('.mc-card');
+  let visible = 0;
+  cards.forEach(card => {
+    const titleMatch = !q || card.dataset.title.includes(q);
+    const statusMatch = f === 'all' || card.dataset.status === f;
+    const show = titleMatch && statusMatch;
+    card.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('mcNoResults').style.display = visible === 0 ? 'flex' : 'none';
+}
+</script>
+
 <%- include('partials/footer') %>

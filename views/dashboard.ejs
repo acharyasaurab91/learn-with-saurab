@@ -1,24 +1,7 @@
 <%- include('partials/header') %>
 
 <div class="dashboard-page">
-  <div class="dashboard-sidebar">
-    <div class="sidebar-user">
-      <div class="sidebar-avatar"><%= user.firstName[0] %><%= user.lastName[0] %></div>
-      <div>
-        <strong><%= user.firstName %> <%= user.lastName %></strong>
-        <span><%= user.email %></span>
-      </div>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="/dashboard" class="sidebar-link active"><i class="fas fa-th-large"></i> Dashboard</a>
-      <a href="/my-courses" class="sidebar-link"><i class="fas fa-book-open"></i> My Courses</a>
-      <a href="/my-tests" class="sidebar-link"><i class="fas fa-clipboard-list"></i> My Tests</a>
-      <a href="/mistake-notebook" class="sidebar-link"><i class="fas fa-bolt"></i> Weakness Analyzer</a>
-      <a href="/profile" class="sidebar-link"><i class="fas fa-user-cog"></i> Profile</a>
-      <% if (user.isAdmin) { %><a href="/admin" class="sidebar-link admin-link"><i class="fas fa-shield-halved"></i> Admin Panel</a><% } %>
-      <a href="/logout" class="sidebar-link logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
-    </nav>
-  </div>
+  <%- include('partials/sidebar', { active: 'dashboard' }) %>
   <div class="dashboard-main">
     <% if (welcome) { %>
     <div class="welcome-banner" id="welcomeBanner">
@@ -78,19 +61,22 @@
             <p>No courses yet. <a href="/browse-courses">Find your first course!</a></p>
           </div>
         <% } else { %>
-          <% enrolledCourses.slice(0, 3).forEach(course => { %>
+          <% enrolledCourses.slice(0, 3).forEach(course => {
+            const pct = (courseProgress && courseProgress[course._id.toString()]) || 0;
+          %>
           <div class="enrolled-course-row">
             <div class="enrolled-course-img">
               <% if (course.imageUrl) { %><img src="<%= course.imageUrl %>" alt="<%= course.title %>"><% } else { %><i class="fas fa-book"></i><% } %>
             </div>
             <div class="enrolled-course-info">
               <h4><%= course.title %></h4>
-              <span class="badge-category"><%= course.category %></span>
+              <span class="badge-category"><%= course.category || course.examType || '' %></span>
               <div class="progress-bar-wrap">
-                <div class="progress-bar-fill" style="width: 0%"></div>
+                <div class="progress-bar-fill" style="width: <%= pct %>%"></div>
               </div>
+              <span style="font-size:11px;color:#6B7280;"><%= pct %>% complete</span>
             </div>
-            <a href="/courses/<%= course._id %>/learn" class="btn-sm-outline">Continue</a>
+            <a href="/courses/<%= course._id %>/learn" class="btn-sm-outline"><%= pct === 100 ? 'Review' : pct > 0 ? 'Continue' : 'Start' %></a>
           </div>
           <% }) %>
           <% if (enrolledCourses.length > 3) { %>

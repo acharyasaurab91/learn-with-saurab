@@ -1,19 +1,6 @@
 <%- include('partials/header') %>
 <div class="dashboard-page">
-  <div class="dashboard-sidebar">
-    <div class="sidebar-user">
-      <div class="sidebar-avatar"><%= user.firstName[0] %><%= user.lastName[0] %></div>
-      <div><strong><%= user.firstName %> <%= user.lastName %></strong><span><%= user.email %></span></div>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="/dashboard" class="sidebar-link"><i class="fas fa-th-large"></i> Dashboard</a>
-      <a href="/my-courses" class="sidebar-link"><i class="fas fa-book-open"></i> My Courses</a>
-      <a href="/my-tests" class="sidebar-link active"><i class="fas fa-clipboard-list"></i> My Tests</a>
-      <a href="/mistake-notebook" class="sidebar-link"><i class="fas fa-bolt"></i> Weakness Analyzer</a>
-      <a href="/profile" class="sidebar-link"><i class="fas fa-user-cog"></i> Profile</a>
-      <a href="/logout" class="sidebar-link logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
-    </nav>
-  </div>
+  <%- include('partials/sidebar', { active: 'my-tests' }) %>
   <div class="dashboard-main">
     <div class="dashboard-header"><h1><span class="gradient-text">My Tests</span></h1><p><%= attempts.length %> test<%= attempts.length !== 1 ? 's' : '' %> taken</p></div>
     <% if (attempts.length === 0) { %>
