@@ -5,6 +5,28 @@ const Category = require('../models/Category');
 const Review = require('../models/Review');
 const mongoose = require('mongoose');
 const { requireLogin } = require('../middleware/auth');
+const { sendEmail } = require('../utils/mailer');
+const { reviewNotificationEmailHtml } = require('../utils/reviewNotificationEmail');
+
+function getBaseUrl(req) {
+  return process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+}
+
+async function sendReviewNotification({ req, user, course, rating, comment }) {
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || 'contactsaurabsir@gmail.com';
+  const studentName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Student';
+  const baseUrl = getBaseUrl(req);
+  const html = reviewNotificationEmailHtml({
+    studentName,
+    studentEmail: user.email,
+    courseTitle: course.title,
+    courseUrl: `${baseUrl}/courses/${course._id}`,
+    rating,
+    comment,
+    adminReviewsUrl: `${baseUrl}/admin/reviews`
+  });
+  await sendEmail(adminEmail, `⭐ New Review (${rating}/5) on "${course.title}"`, html);
+}
 
 async function recalcCourseRating(courseId) {
   const stats = await Review.aggregate([
@@ -70,12 +92,17 @@ router.post('/:id/review', requireLogin, async (req, res) => {
     if (!rating || rating < 1 || rating > 5) {
       return res.redirect(`/courses/${course._id}?error=Please+select+a+rating+from+1+to+5`);
     }
+    const existingReview = await Review.findOne({ courseId: course._id, userId: req.user._id });
     await Review.findOneAndUpdate(
       { courseId: course._id, userId: req.user._id },
       { rating, comment },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     await recalcCourseRating(course._id);
+    if (!existingReview) {
+      sendReviewNotification({ req, user: req.user, course, rating, comment })
+        .catch(err => console.error('Review notification email error:', err));
+    }
     res.redirect(`/courses/${course._id}?msg=Thanks+for+your+review!#reviews`);
   } catch (err) {
     console.error(err);
