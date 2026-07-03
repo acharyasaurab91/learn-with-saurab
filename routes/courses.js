@@ -2,7 +2,19 @@ const express = require('express');
 const router = express.Router();
 const Course = require('../models/Course');
 const Category = require('../models/Category');
+const Review = require('../models/Review');
+const mongoose = require('mongoose');
 const { requireLogin } = require('../middleware/auth');
+
+async function recalcCourseRating(courseId) {
+  const stats = await Review.aggregate([
+    { $match: { courseId: new mongoose.Types.ObjectId(courseId) } },
+    { $group: { _id: '$courseId', avg: { $avg: '$rating' }, count: { $sum: 1 } } }
+  ]);
+  const avg = stats.length ? stats[0].avg : 0;
+  const count = stats.length ? stats[0].count : 0;
+  await Course.findByIdAndUpdate(courseId, { rating: Math.round(avg * 10) / 10, totalRatings: count });
+}
 
 router.get('/', async (req, res) => {
   try {
@@ -33,10 +45,51 @@ router.get('/:id', async (req, res) => {
     }
     const isEnrolled = req.user ? req.user.enrolledCourses.some(id => id.toString() === course._id.toString()) : false;
     const related = await Course.find({ category: course.category, _id: { $ne: course._id }, isPublished: true }).limit(3);
-    res.render('course-preview', { title: course.title, course, isEnrolled, related, user: req.user || null });
+    const reviews = await Review.find({ courseId: course._id }).populate('userId', 'firstName lastName').sort({ createdAt: -1 }).limit(50);
+    const myReview = req.user ? reviews.find(r => r.userId && r.userId._id.toString() === req.user._id.toString()) : null;
+    const ratingBreakdown = [5, 4, 3, 2, 1].map(star => ({
+      star, count: reviews.filter(r => r.rating === star).length
+    }));
+    res.render('course-preview', { title: course.title, course, isEnrolled, related, reviews, myReview, ratingBreakdown, query: req.query, user: req.user || null });
   } catch (err) {
     console.error(err);
     res.render('error', { title: 'Error', message: 'Could not load course.', user: req.user || null });
+  }
+});
+
+router.post('/:id/review', requireLogin, async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.redirect('/browse-courses');
+    const isEnrolled = req.user.enrolledCourses.some(id => id.toString() === course._id.toString());
+    if (!isEnrolled) {
+      return res.redirect(`/courses/${course._id}?error=Enroll+in+this+course+to+leave+a+review`);
+    }
+    const rating = parseInt(req.body.rating);
+    const comment = (req.body.comment || '').trim();
+    if (!rating || rating < 1 || rating > 5) {
+      return res.redirect(`/courses/${course._id}?error=Please+select+a+rating+from+1+to+5`);
+    }
+    await Review.findOneAndUpdate(
+      { courseId: course._id, userId: req.user._id },
+      { rating, comment },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    await recalcCourseRating(course._id);
+    res.redirect(`/courses/${course._id}?msg=Thanks+for+your+review!#reviews`);
+  } catch (err) {
+    console.error(err);
+    res.redirect(`/courses/${req.params.id}?error=Could+not+submit+review`);
+  }
+});
+
+router.delete('/:id/review', requireLogin, async (req, res) => {
+  try {
+    await Review.findOneAndDelete({ courseId: req.params.id, userId: req.user._id });
+    await recalcCourseRating(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false });
   }
 });
 

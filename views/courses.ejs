@@ -69,6 +69,7 @@
             <% if (course.examType) { %><span><i class="fas fa-layer-group"></i> <%= course.examType %></span><% } %>
             <span><i class="fas fa-users"></i> <%= course.enrolledCount || 0 %></span>
             <% if (course.duration) { %><span><i class="fas fa-clock"></i> <%= course.duration %>h</span><% } %>
+            <% if (course.totalRatings > 0) { %><span><i class="fas fa-star" style="color:#F59E0B"></i> <%= course.rating.toFixed(1) %></span><% } %>
           </div>
           <% if (course.targetPrograms && course.targetPrograms.length > 0) { %>
           <div class="course-meta" style="margin-top:-6px">

@@ -18,6 +18,9 @@
             <span><i class="fas fa-tag"></i> <%= course.category %></span>
             <% if (course.subject) { %><span><i class="fas fa-book"></i> <%= course.subject %></span><% } %>
             <span><i class="fas fa-users"></i> <%= course.enrolledCount || 0 %> students</span>
+            <% if (course.totalRatings > 0) { %>
+            <span><i class="fas fa-star" style="color:#F59E0B"></i> <%= course.rating.toFixed(1) %> (<%= course.totalRatings %> review<%= course.totalRatings !== 1 ? 's' : '' %>)</span>
+            <% } %>
           </div>
         </div>
         <div class="course-hero-card">
@@ -136,6 +139,89 @@
           <p class="curriculum-total"><%= totalVideos %> total lessons across <%= course.modules.length %> modules</p>
         </div>
         <% } %>
+
+        <div class="detail-section" id="reviews">
+          <h2><i class="fas fa-star" style="color:#F59E0B"></i> Student Reviews</h2>
+
+          <% if (typeof query !== 'undefined' && query.msg) { %>
+            <div class="alert alert-success" style="margin-bottom:16px"><%= query.msg %></div>
+          <% } %>
+          <% if (typeof query !== 'undefined' && query.error) { %>
+            <div class="alert alert-error" style="margin-bottom:16px"><%= query.error %></div>
+          <% } %>
+
+          <div class="review-summary">
+            <div class="review-summary-score">
+              <div class="review-score-big"><%= course.totalRatings > 0 ? course.rating.toFixed(1) : '0.0' %></div>
+              <div class="review-stars-big">
+                <% for (let s = 1; s <= 5; s++) { %><i class="fas fa-star <%= s <= Math.round(course.rating) ? 'star-filled' : 'star-empty' %>"></i><% } %>
+              </div>
+              <div class="review-count-label"><%= course.totalRatings || 0 %> review<%= course.totalRatings !== 1 ? 's' : '' %></div>
+            </div>
+            <div class="review-breakdown">
+              <% ratingBreakdown.forEach(b => { const pct = course.totalRatings ? Math.round((b.count / course.totalRatings) * 100) : 0; %>
+              <div class="review-bar-row">
+                <span class="review-bar-label"><%= b.star %> <i class="fas fa-star"></i></span>
+                <div class="review-bar-track"><div class="review-bar-fill" style="width:<%= pct %>%"></div></div>
+                <span class="review-bar-count"><%= b.count %></span>
+              </div>
+              <% }) %>
+            </div>
+          </div>
+
+          <% if (isEnrolled) { %>
+          <div class="review-form-box">
+            <h3><%= myReview ? 'Update Your Review' : 'Write a Review' %></h3>
+            <form action="/courses/<%= course._id %>/review" method="POST" class="review-form">
+              <div class="review-star-input" id="reviewStarInput">
+                <% for (let s = 1; s <= 5; s++) { %>
+                <i class="fas fa-star review-star-select" data-value="<%= s %>" onclick="setReviewRating(<%= s %>)"></i>
+                <% } %>
+              </div>
+              <input type="hidden" name="rating" id="reviewRatingInput" value="<%= myReview ? myReview.rating : '' %>" required>
+              <textarea name="comment" rows="3" maxlength="1000" placeholder="Share your experience with this course (optional)"><%= myReview ? myReview.comment : '' %></textarea>
+              <button type="submit" class="btn-enroll-big" style="max-width:220px"><i class="fas fa-paper-plane"></i> Submit Review</button>
+            </form>
+          </div>
+          <script>
+            (function() {
+              var initial = <%= myReview ? myReview.rating : 0 %>;
+              function paint(val) {
+                document.querySelectorAll('#reviewStarInput .review-star-select').forEach(function(el) {
+                  el.classList.toggle('star-filled', parseInt(el.dataset.value) <= val);
+                });
+              }
+              window.setReviewRating = function(val) {
+                document.getElementById('reviewRatingInput').value = val;
+                paint(val);
+              };
+              paint(initial);
+            })();
+          </script>
+          <% } %>
+
+          <div class="review-list">
+            <% if (reviews && reviews.length > 0) { %>
+              <% reviews.forEach(r => { %>
+              <div class="review-item">
+                <div class="review-item-head">
+                  <div class="review-avatar"><%= r.userId ? r.userId.firstName.charAt(0).toUpperCase() : '?' %></div>
+                  <div>
+                    <div class="review-author"><%= r.userId ? (r.userId.firstName + ' ' + r.userId.lastName) : 'Student' %></div>
+                    <div class="review-item-stars">
+                      <% for (let s = 1; s <= 5; s++) { %><i class="fas fa-star <%= s <= r.rating ? 'star-filled' : 'star-empty' %>"></i><% } %>
+                    </div>
+                  </div>
+                  <div class="review-date"><%= new Date(r.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %></div>
+                </div>
+                <% if (r.comment) { %><p class="review-comment"><%= r.comment %></p><% } %>
+              </div>
+              <% }) %>
+            <% } else { %>
+              <p style="color:#9CA3AF">No reviews yet. Be the first to review this course!</p>
+            <% } %>
+          </div>
+        </div>
       </div>
       <% if (related && related.length > 0) { %>
       <div class="course-detail-sidebar">
