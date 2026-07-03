@@ -514,4 +514,31 @@ router.delete('/reviews/:id', async (req, res) => {
   }
 });
 
+router.put('/reviews/:id/reply', async (req, res) => {
+  try {
+    const reply = (req.body.reply || '').trim();
+    if (!reply) {
+      return res.status(400).json({ success: false, message: 'Reply cannot be empty.' });
+    }
+    const review = await Review.findByIdAndUpdate(
+      req.params.id,
+      { adminReply: reply, adminReplyAt: new Date() },
+      { new: true }
+    );
+    if (!review) return res.status(404).json({ success: false, message: 'Review not found.' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/reviews/:id/reply', async (req, res) => {
+  try {
+    await Review.findByIdAndUpdate(req.params.id, { $unset: { adminReply: 1, adminReplyAt: 1 } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

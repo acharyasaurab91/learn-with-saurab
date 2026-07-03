@@ -215,6 +215,12 @@
                   <div class="review-date"><%= new Date(r.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %></div>
                 </div>
                 <% if (r.comment) { %><p class="review-comment"><%= r.comment %></p><% } %>
+                <% if (r.adminReply) { %>
+                <div class="review-admin-reply">
+                  <span class="review-admin-reply-label"><i class="fas fa-graduation-cap"></i> Learn With Saurab Team</span>
+                  <p><%= r.adminReply %></p>
+                </div>
+                <% } %>
               </div>
               <% }) %>
             <% } else { %>

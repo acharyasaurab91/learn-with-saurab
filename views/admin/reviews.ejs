@@ -41,9 +41,21 @@
                 <% for (let s = 1; s <= 5; s++) { %><i class="fas fa-star" style="<%= s > r.rating ? 'opacity:0.2' : '' %>"></i><% } %>
               </span>
             </td>
-            <td style="max-width:320px"><%= r.comment || '—' %></td>
+            <td style="max-width:320px">
+              <%= r.comment || '—' %>
+              <% if (r.adminReply) { %>
+                <div class="admin-reply-box">
+                  <span class="admin-reply-label"><i class="fas fa-reply"></i> Your reply:</span>
+                  <p class="admin-reply-text"><%= r.adminReply %></p>
+                </div>
+              <% } %>
+            </td>
             <td><%= new Date(r.createdAt).toLocaleDateString() %></td>
             <td>
+              <button onclick="openReplyModal('<%= r._id %>', <%- JSON.stringify(r.adminReply || '') %>)" class="btn-icon btn-blue" title="<%= r.adminReply ? 'Edit Reply' : 'Reply' %>"><i class="fas fa-reply"></i></button>
+              <% if (r.adminReply) { %>
+              <button onclick="deleteReply('<%= r._id %>')" class="btn-icon btn-red" title="Remove Reply"><i class="fas fa-comment-slash"></i></button>
+              <% } %>
               <button onclick="deleteReview('<%= r._id %>')" class="btn-icon btn-red" title="Delete Review"><i class="fas fa-trash"></i></button>
             </td>
           </tr>
@@ -53,11 +65,56 @@
     </div>
   </div>
 </div>
+
+<div id="replyModal" class="reply-modal-overlay" style="display:none">
+  <div class="reply-modal">
+    <h3><i class="fas fa-reply"></i> Reply to Review</h3>
+    <textarea id="replyTextarea" rows="5" placeholder="Write your response to this student..." maxlength="1000"></textarea>
+    <div class="reply-modal-actions">
+      <button type="button" class="btn-clear" onclick="closeReplyModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="submitReply()">Post Reply</button>
+    </div>
+  </div>
+</div>
+
 <%- include('../partials/footer', { extraJs: `<script>
 async function deleteReview(id) {
   if (!confirm('Delete this review? This cannot be undone.')) return;
   const res = await fetch('/admin/reviews/' + id, { method: 'DELETE' });
   if ((await res.json()).success) location.reload();
   else alert('Could not delete review.');
+}
+
+let currentReplyReviewId = null;
+
+function openReplyModal(id, existingReply) {
+  currentReplyReviewId = id;
+  document.getElementById('replyTextarea').value = existingReply || '';
+  document.getElementById('replyModal').style.display = 'flex';
+}
+
+function closeReplyModal() {
+  document.getElementById('replyModal').style.display = 'none';
+  currentReplyReviewId = null;
+}
+
+async function submitReply() {
+  const reply = document.getElementById('replyTextarea').value.trim();
+  if (!reply) { alert('Please write a reply.'); return; }
+  const res = await fetch('/admin/reviews/' + currentReplyReviewId + '/reply', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reply })
+  });
+  const data = await res.json();
+  if (data.success) location.reload();
+  else alert(data.message || 'Could not post reply.');
+}
+
+async function deleteReply(id) {
+  if (!confirm('Remove your reply from this review?')) return;
+  const res = await fetch('/admin/reviews/' + id + '/reply', { method: 'DELETE' });
+  if ((await res.json()).success) location.reload();
+  else alert('Could not remove reply.');
 }
 </script>` }) %>
