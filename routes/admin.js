@@ -11,6 +11,8 @@ const Category = require('../models/Category');
 const Transaction = require('../models/Transaction');
 const TestAttempt = require('../models/TestAttempt');
 const Module = require('../models/Module');
+const Review = require('../models/Review');
+const mongoose = require('mongoose');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -458,6 +460,54 @@ router.get('/demo-lectures', async (req, res) => {
 router.post('/courses/:id/clear-demo', async (req, res) => {
   try {
     await Course.findByIdAndUpdate(req.params.id, { $unset: { demoVideoUrl: 1, demoTitle: 1 }, demoVideoType: 'youtube' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+async function recalcCourseRating(courseId) {
+  const stats = await Review.aggregate([
+    { $match: { courseId: new mongoose.Types.ObjectId(courseId) } },
+    { $group: { _id: '$courseId', avg: { $avg: '$rating' }, count: { $sum: 1 } } }
+  ]);
+  const avg = stats.length ? stats[0].avg : 0;
+  const count = stats.length ? stats[0].count : 0;
+  await Course.findByIdAndUpdate(courseId, { rating: Math.round(avg * 10) / 10, totalRatings: count });
+}
+
+// Reviews moderation
+router.get('/reviews', async (req, res) => {
+  try {
+    const { course: courseFilter, rating: ratingFilter } = req.query;
+    const filter = {};
+    if (courseFilter) filter.courseId = courseFilter;
+    if (ratingFilter) filter.rating = parseInt(ratingFilter);
+    const [reviews, courses] = await Promise.all([
+      Review.find(filter)
+        .populate('userId', 'firstName lastName email')
+        .populate('courseId', 'title')
+        .sort({ createdAt: -1 }),
+      Course.find().sort({ title: 1 }).select('title')
+    ]);
+    const totalReviews = await Review.countDocuments();
+    const avgRatingAgg = await Review.aggregate([{ $group: { _id: null, avg: { $avg: '$rating' } } }]);
+    const overallAvg = avgRatingAgg.length ? avgRatingAgg[0].avg : 0;
+    res.render('admin/reviews', {
+      title: 'Reviews',
+      reviews, courses, totalReviews, overallAvg,
+      query: req.query,
+      admin: req.admin, user: req.admin
+    });
+  } catch (err) {
+    res.render('error', { title: 'Error', message: err.message, user: req.admin });
+  }
+});
+
+router.delete('/reviews/:id', async (req, res) => {
+  try {
+    const review = await Review.findByIdAndDelete(req.params.id);
+    if (review) await recalcCourseRating(review.courseId);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

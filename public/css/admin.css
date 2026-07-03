@@ -62,6 +62,20 @@
 .btn-delete:hover { background: rgba(239,68,68,0.2); }
 .btn-blue { background: rgba(59,130,246,0.1); color: #60A5FA; }
 .btn-blue:hover { background: rgba(59,130,246,0.2); }
+.btn-red { background: rgba(239,68,68,0.1); color: #EF4444; }
+.btn-red:hover { background: rgba(239,68,68,0.2); }
+.filter-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.filter-bar select {
+  padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04); color: #F9FAFB; font-size: 14px; min-width: 160px;
+}
+.filter-bar select:focus { outline: none; border-color: #00D4FF; }
+.btn-clear { padding: 10px 16px; border-radius: 8px; color: #9CA3AF; text-decoration: none; font-size: 13px; font-weight: 600; border: 1px solid rgba(255,255,255,0.08); }
+.btn-clear:hover { color: #F9FAFB; border-color: rgba(255,255,255,0.2); }
+.badge-green { background: rgba(16,185,129,0.1); color: #10B981; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+.badge-blue { background: rgba(59,130,246,0.1); color: #60A5FA; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-yellow { background: rgba(245,158,11,0.1); color: #F59E0B; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-red { background: rgba(239,68,68,0.1); color: #EF4444; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 .admin-form { display: flex; flex-direction: column; gap: 18px; max-width: 700px; }
 .form-actions { display: flex; gap: 12px; padding-top: 8px; }
 .categories-admin-list { display: flex; flex-direction: column; gap: 10px; }

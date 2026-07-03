@@ -1,0 +1,63 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'reviews' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-star"></i> Reviews</h1>
+      <span class="badge-green"><%= overallAvg.toFixed(1) %> ★ avg across <%= totalReviews %> review<%= totalReviews !== 1 ? 's' : '' %></span>
+    </div>
+
+    <div class="admin-section">
+      <form method="GET" action="/admin/reviews" class="filter-bar" style="margin-bottom:0">
+        <select name="course" onchange="this.form.submit()">
+          <option value="">All Courses</option>
+          <% courses.forEach(c => { %>
+            <option value="<%= c._id %>" <%= query.course === c._id.toString() ? 'selected' : '' %>><%= c.title %></option>
+          <% }) %>
+        </select>
+        <select name="rating" onchange="this.form.submit()">
+          <option value="">All Ratings</option>
+          <% [5,4,3,2,1].forEach(r => { %>
+            <option value="<%= r %>" <%= query.rating == r ? 'selected' : '' %>><%= r %> Star<%= r !== 1 ? 's' : '' %></option>
+          <% }) %>
+        </select>
+        <a href="/admin/reviews" class="btn-clear">Clear</a>
+      </form>
+    </div>
+
+    <div class="admin-section">
+      <table class="data-table">
+        <thead><tr><th>Student</th><th>Course</th><th>Rating</th><th>Comment</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody>
+          <% if (reviews.length === 0) { %>
+          <tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:24px">No reviews found.</td></tr>
+          <% } %>
+          <% reviews.forEach(r => { %>
+          <tr>
+            <td><%= r.userId ? r.userId.firstName + ' ' + (r.userId.lastName||'') : 'Deleted User' %><br><span class="text-muted text-sm"><%= r.userId ? r.userId.email : '' %></span></td>
+            <td><%= r.courseId ? r.courseId.title : 'Deleted Course' %></td>
+            <td>
+              <span style="color:#F59E0B;white-space:nowrap">
+                <% for (let s = 1; s <= 5; s++) { %><i class="fas fa-star" style="<%= s > r.rating ? 'opacity:0.2' : '' %>"></i><% } %>
+              </span>
+            </td>
+            <td style="max-width:320px"><%= r.comment || '—' %></td>
+            <td><%= new Date(r.createdAt).toLocaleDateString() %></td>
+            <td>
+              <button onclick="deleteReview('<%= r._id %>')" class="btn-icon btn-red" title="Delete Review"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer', { extraJs: `<script>
+async function deleteReview(id) {
+  if (!confirm('Delete this review? This cannot be undone.')) return;
+  const res = await fetch('/admin/reviews/' + id, { method: 'DELETE' });
+  if ((await res.json()).success) location.reload();
+  else alert('Could not delete review.');
+}
+</script>` }) %>
