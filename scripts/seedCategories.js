@@ -12,8 +12,8 @@ const categories = [
     slug: 'cee-medical',
     icon: 'fas fa-stethoscope',
     color: '#00D4FF',
-    description: 'MBBS, BDS, BSc Nursing, B.Pharmacy & Paramedic entrance exam preparation',
-    subjects: ['MBBS / BDS', 'BSc Nursing', 'B.Pharmacy', 'Paramedic', 'Biology', 'Chemistry', 'Physics', 'English', 'MAT'],
+    description: 'One CEE entrance for MBBS, BDS, BSc Nursing & B.Pharmacy — choose your target program inside the course',
+    subjects: ['MBBS', 'BDS', 'BSc Nursing', 'B.Pharmacy', 'Biology', 'Chemistry', 'Physics', 'English'],
     isVisible: true,
     order: 1
   },
@@ -22,7 +22,7 @@ const categories = [
     slug: 'cee-bns',
     icon: 'fas fa-heart-pulse',
     color: '#EC4899',
-    description: 'Bachelor of Nursing Science (BNS) entrance exam under CEE',
+    description: 'Bachelor of Nursing Science (BNS) — a separate CEE entrance exam, distinct from Medical & Paramedical',
     subjects: ['Biology', 'Chemistry', 'Physics', 'English'],
     isVisible: true,
     order: 2
@@ -43,7 +43,7 @@ const categories = [
     icon: 'fas fa-landmark',
     color: '#F59E0B',
     description: 'Nepal Public Service Commission exams — all levels and services',
-    subjects: ['GK / सामान्य ज्ञान', 'Current Affairs', 'IQ / Reasoning', 'Nepal Constitution', 'Local Government'],
+    subjects: ['GK / सामान्य ज्ञान', 'Current Affairs', 'IQ / Reasoning', 'Nepal Constitution', 'Local Government', 'Subject Fundamentals'],
     isVisible: true,
     order: 4
   },
@@ -52,18 +52,18 @@ const categories = [
     slug: 'license',
     icon: 'fas fa-id-card',
     color: '#10B981',
-    description: 'Professional license exams for healthcare and technical fields',
-    subjects: ['Nursing License (NMCL)', 'CMLT License', 'Pharmacy License', 'NHPC HA License'],
+    description: 'Professional registration/license exams for healthcare fields',
+    subjects: ['Nursing License (NLEN)', 'CMLT License (NHPC)', 'Pharmacy License (NPC)', 'HA License (NHPC)'],
     isVisible: true,
     order: 5
   },
   {
-    name: 'SEE & NEB',
+    name: 'SEE, Grade 11 & 12',
     slug: 'see-neb',
     icon: 'fas fa-school',
     color: '#F97316',
-    description: 'Secondary Education Examination and National Examinations Board preparation',
-    subjects: ['SEE — Grade 10', 'NEB — Grade 11', 'NEB — Grade 12'],
+    description: 'SEE (Grade 10), Grade 11 & Grade 12 preparation — Science & Management streams',
+    subjects: ['SEE — Grade 10', 'Grade 11', 'Grade 12', 'Science Stream', 'Management Stream'],
     isVisible: true,
     order: 6
   }

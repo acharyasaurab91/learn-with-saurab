@@ -127,10 +127,14 @@ router.get('/courses/new', async (req, res) => {
 
 router.post('/courses', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'demoVideo', maxCount: 1 }]), async (req, res) => {
   try {
-    const { title, description, price, category, subject, examType, demoVideoUrl, demoVideoType, demoTitle, isFeatured, isPublished } = req.body;
+    const { title, description, price, category, subject, examType, demoVideoUrl, demoVideoType, demoTitle, isFeatured, isPublished, stream } = req.body;
+    let targetPrograms = req.body.targetPrograms;
+    if (targetPrograms && !Array.isArray(targetPrograms)) targetPrograms = [targetPrograms];
     const course = new Course({
       title, description, price: parseFloat(price) || 0,
       category, subject, examType,
+      targetPrograms: targetPrograms || [],
+      stream: stream || '',
       demoVideoUrl, demoVideoType: demoVideoType || 'youtube', demoTitle,
       isFeatured: isFeatured === 'on',
       isPublished: isPublished === 'on'
@@ -162,10 +166,14 @@ router.get('/courses/:id/edit', async (req, res) => {
 
 router.post('/courses/:id', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'demoVideo', maxCount: 1 }]), async (req, res) => {
   try {
-    const { title, description, price, category, subject, examType, demoVideoUrl, demoVideoType, demoTitle, isFeatured, isPublished } = req.body;
+    const { title, description, price, category, subject, examType, demoVideoUrl, demoVideoType, demoTitle, isFeatured, isPublished, stream } = req.body;
+    let targetPrograms = req.body.targetPrograms;
+    if (targetPrograms && !Array.isArray(targetPrograms)) targetPrograms = [targetPrograms];
     const update = {
       title, description, price: parseFloat(price) || 0,
       category, subject, examType,
+      targetPrograms: targetPrograms || [],
+      stream: stream || '',
       demoTitle, demoVideoType: demoVideoType || 'youtube',
       isFeatured: isFeatured === 'on', isPublished: isPublished === 'on'
     };

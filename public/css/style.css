@@ -1058,4 +1058,20 @@ section { padding: 100px 0; }
   .footer-social a { width: 36px; height: 36px; font-size: 15px; }
   /* Prevent overflow on all text */
   h1, h2, h3, h4, p { overflow-wrap: break-word; word-break: break-word; }
+  .course-badge { font-size: 10px; padding: 3px 8px; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .course-title, .card-title { overflow-wrap: break-word; word-break: break-word; white-space: normal; }
+  .filter-bar select, .filter-bar input { min-width: 0; flex: 1 1 140px; font-size: 13px; }
+  .btn-filter, .btn-clear { flex: 0 0 auto; }
+  .course-meta { flex-wrap: wrap; row-gap: 6px; }
+  .course-meta span { white-space: normal; overflow-wrap: break-word; }
+  .hero-badge span { white-space: normal; }
+  .nav-logo span, .footer-logo span { white-space: normal; }
+  .price-amount { word-break: break-word; }
 }
+@media (max-width: 380px) {
+  .hero-badge { padding: 8px 12px; font-size: 11px; }
+  .btn-hero-primary, .btn-hero-outline { font-size: 14px; padding: 12px 20px; white-space: normal; }
+  .about-exam-card strong { font-size: 13px; }
+}
+* { box-sizing: border-box; }
+html, body { overflow-x: hidden; max-width: 100vw; }

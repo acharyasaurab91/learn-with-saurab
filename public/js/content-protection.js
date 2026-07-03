@@ -131,7 +131,40 @@
   // CSS-based selection disable on paid content pages
   if (isPaidPlayer) {
     const style = document.createElement('style');
-    style.textContent = 'video.paid-video { -webkit-user-select: none; user-select: none; pointer-events: auto; } .paid-video-wrap { position: relative; } .paid-video-wrap::after { content: ""; position: absolute; inset: 0; pointer-events: none; }';
+    style.textContent = `
+      body.paid-content-page { -webkit-user-select: none; -moz-user-select: none; user-select: none; -webkit-touch-callout: none; }
+      body.paid-content-page video.paid-video { -webkit-user-select: none; user-select: none; pointer-events: auto; -webkit-touch-callout: none; }
+      body.paid-content-page input, body.paid-content-page textarea { -webkit-user-select: text; user-select: text; }
+      .paid-video-wrap { position: relative; }
+      .paid-video-wrap::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+      @media print { body.paid-content-page * { display: none !important; } }
+    `;
     document.head.appendChild(style);
+
+    // Block long-press context menu / save-image on touch devices
+    document.querySelectorAll('video.paid-video, .watermark-overlay').forEach(el => {
+      el.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+      let pressTimer;
+      el.addEventListener('touchstart', () => { pressTimer = setTimeout(() => showProtectOverlay(), 600); });
+      el.addEventListener('touchend', () => clearTimeout(pressTimer));
+      el.addEventListener('touchmove', () => clearTimeout(pressTimer));
+    });
+
+    // Keep watermark timestamp fresh so captured frames are traceable to time+user
+    const wmTimeEl = document.getElementById('watermarkText');
+    if (wmTimeEl && !wmTimeEl.dataset.base) {
+      wmTimeEl.dataset.base = wmTimeEl.textContent;
+      setInterval(() => {
+        const now = new Date();
+        wmTimeEl.textContent = wmTimeEl.dataset.base + ' · ' + now.toLocaleString();
+      }, 1000);
+    }
+
+    // Block clipboard copy of watermark/video area
+    document.addEventListener('copy', e => {
+      if (document.activeElement && document.activeElement.closest && document.activeElement.closest('.video-container')) {
+        e.preventDefault();
+      }
+    });
   }
 })();

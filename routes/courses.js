@@ -6,10 +6,10 @@ const { requireLogin } = require('../middleware/auth');
 
 router.get('/', async (req, res) => {
   try {
-    const { category, search, level } = req.query;
+    const { category, search, examType } = req.query;
     const filter = { isPublished: true };
     if (category) filter.category = category;
-    if (level) filter.level = level;
+    if (examType) filter.examType = examType;
     if (search) filter.$or = [
       { title: new RegExp(search, 'i') },
       { description: new RegExp(search, 'i') }

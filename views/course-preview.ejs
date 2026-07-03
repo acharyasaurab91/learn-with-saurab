@@ -14,7 +14,7 @@
           <h1><%= course.title %></h1>
           <p class="course-hero-desc"><%= course.description %></p>
           <div class="course-hero-meta">
-            <span><i class="fas fa-layer-group"></i> <%= course.level %></span>
+            <span><i class="fas fa-layer-group"></i> <%= course.examType %></span>
             <span><i class="fas fa-tag"></i> <%= course.category %></span>
             <% if (course.subject) { %><span><i class="fas fa-book"></i> <%= course.subject %></span><% } %>
             <span><i class="fas fa-users"></i> <%= course.enrolledCount || 0 %> students</span>

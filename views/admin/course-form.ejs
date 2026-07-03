@@ -48,17 +48,38 @@
           </div>
           <div class="form-group">
             <label>Exam Type</label>
-            <select name="examType">
-              <option value="CEE - Medical & Paramedical" <%= course && course.examType === 'CEE - Medical & Paramedical' ? 'selected' : '' %>>CEE — Medical & Paramedical (MBBS, BDS, BSc Nursing, B.Pharmacy, Paramedic)</option>
+            <select name="examType" id="examTypeSelect" onchange="toggleConditionalFields(this.value)">
+              <option value="CEE - Medical & Paramedical" <%= course && course.examType === 'CEE - Medical & Paramedical' ? 'selected' : '' %>>CEE — Medical & Paramedical (MBBS, BDS, BSc Nursing, B.Pharmacy)</option>
               <option value="CEE - BNS (B.N.Sc.)" <%= course && course.examType === 'CEE - BNS (B.N.Sc.)' ? 'selected' : '' %>>CEE — BNS (Bachelor of Nursing Science)</option>
               <option value="IOE - Engineering" <%= course && course.examType === 'IOE - Engineering' ? 'selected' : '' %>>IOE — Engineering (BE, B.Arch, BEI)</option>
               <option value="Loksewa / लोकसेवा" <%= course && course.examType === 'Loksewa / लोकसेवा' ? 'selected' : '' %>>Loksewa / लोकसेवा (PSC)</option>
-              <option value="License Exam" <%= course && course.examType === 'License Exam' ? 'selected' : '' %>>License Exam</option>
+              <option value="Nursing License (NLEN)" <%= course && course.examType === 'Nursing License (NLEN)' ? 'selected' : '' %>>Nursing License (NLEN)</option>
+              <option value="CMLT License" <%= course && course.examType === 'CMLT License' ? 'selected' : '' %>>CMLT License (NHPC)</option>
+              <option value="Pharmacy License" <%= course && course.examType === 'Pharmacy License' ? 'selected' : '' %>>Pharmacy License (NPC)</option>
+              <option value="HA License" <%= course && course.examType === 'HA License' ? 'selected' : '' %>>HA License (NHPC)</option>
               <option value="SEE (Grade 10)" <%= course && course.examType === 'SEE (Grade 10)' ? 'selected' : '' %>>SEE — Grade 10</option>
-              <option value="NEB - Grade 11" <%= course && course.examType === 'NEB - Grade 11' ? 'selected' : '' %>>NEB — Grade 11</option>
-              <option value="NEB - Grade 12" <%= course && course.examType === 'NEB - Grade 12' ? 'selected' : '' %>>NEB — Grade 12</option>
+              <option value="Grade 11" <%= course && course.examType === 'Grade 11' ? 'selected' : '' %>>Grade 11</option>
+              <option value="Grade 12" <%= course && course.examType === 'Grade 12' ? 'selected' : '' %>>Grade 12</option>
             </select>
           </div>
+        </div>
+
+        <div class="form-group" id="targetProgramsGroup" style="display:<%= (!course || course.examType === 'CEE - Medical & Paramedical') ? 'block' : 'none' %>">
+          <label>Target Program(s) <span style="font-weight:400;color:#9CA3AF;font-size:12px">— shown only for CEE Medical & Paramedical</span></label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px">
+            <% ['MBBS','BDS','BSc Nursing','B.Pharmacy'].forEach(p => { %>
+              <label class="checkbox-label"><input type="checkbox" name="targetPrograms" value="<%= p %>" <%= course && course.targetPrograms && course.targetPrograms.includes(p) ? 'checked' : '' %>> <%= p %></label>
+            <% }) %>
+          </div>
+        </div>
+
+        <div class="form-group" id="streamGroup" style="display:<%= (course && (course.examType === 'Grade 11' || course.examType === 'Grade 12')) ? 'block' : 'none' %>">
+          <label>Stream <span style="font-weight:400;color:#9CA3AF;font-size:12px">— shown only for Grade 11 / Grade 12</span></label>
+          <select name="stream">
+            <option value="">Not set yet</option>
+            <option value="Science" <%= course && course.stream === 'Science' ? 'selected' : '' %>>Science</option>
+            <option value="Management" <%= course && course.stream === 'Management' ? 'selected' : '' %>>Management</option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -132,5 +153,9 @@
 function toggleDemoType(val) {
   document.getElementById('demoYoutube').style.display = val === 'youtube' ? 'block' : 'none';
   document.getElementById('demoLocal').style.display = val === 'local' ? 'block' : 'none';
+}
+function toggleConditionalFields(val) {
+  document.getElementById('targetProgramsGroup').style.display = val === 'CEE - Medical & Paramedical' ? 'block' : 'none';
+  document.getElementById('streamGroup').style.display = (val === 'Grade 11' || val === 'Grade 12') ? 'block' : 'none';
 }
 </script>` }) %>

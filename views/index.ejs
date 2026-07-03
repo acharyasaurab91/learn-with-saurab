@@ -92,12 +92,12 @@
         <% }) %>
       <% } else { %>
         <% [
-          { name: 'CEE — Medical & Paramedical', icon: 'fas fa-stethoscope', color: '#00D4FF', desc: 'MBBS, BDS, BSc Nursing, B.Pharmacy & Paramedic entrance exam', subjects: ['MBBS / BDS', 'BSc Nursing', 'B.Pharmacy', 'Paramedic', 'Biology', 'Chemistry', 'Physics'], slug: 'cee-medical' },
+          { name: 'CEE — Medical & Paramedical', icon: 'fas fa-stethoscope', color: '#00D4FF', desc: 'MBBS, BDS, BSc Nursing & B.Pharmacy — choose your program inside the course', subjects: ['MBBS', 'BDS', 'BSc Nursing', 'B.Pharmacy', 'Biology', 'Chemistry', 'Physics'], slug: 'cee-medical' },
           { name: 'CEE — BNS (B.N.Sc.)', icon: 'fas fa-heart-pulse', color: '#EC4899', desc: 'Bachelor of Nursing Science entrance — separate CEE track', subjects: ['Biology', 'Chemistry', 'Physics', 'English'], slug: 'cee-bns' },
           { name: 'IOE — Engineering', icon: 'fas fa-microchip', color: '#7C3AED', desc: 'Institute of Engineering entrance — BE, B.Arch, BEI programs', subjects: ['Mathematics', 'Physics', 'Chemistry', 'English'], slug: 'ioe-engineering' },
           { name: 'Loksewa / लोकसेवा', icon: 'fas fa-landmark', color: '#F59E0B', desc: 'Nepal Public Service Commission — all levels', subjects: ['GK / सामान्य ज्ञान', 'Current Affairs', 'IQ / Reasoning', 'Constitution'], slug: 'loksewa' },
-          { name: 'License Exams', icon: 'fas fa-id-card', color: '#10B981', desc: 'Professional license exams for healthcare fields', subjects: ['Nursing License (NMCL)', 'CMLT License', 'Pharmacy License', 'NHPC HA License'], slug: 'license' },
-          { name: 'SEE & NEB', icon: 'fas fa-school', color: '#F97316', desc: 'Secondary Education & National Examinations Board prep', subjects: ['SEE — Grade 10', 'NEB — Grade 11', 'NEB — Grade 12'], slug: 'see-neb' }
+          { name: 'License Exams', icon: 'fas fa-id-card', color: '#10B981', desc: 'Professional license exams for healthcare fields', subjects: ['Nursing License (NLEN)', 'CMLT License', 'Pharmacy License', 'HA License'], slug: 'license' },
+          { name: 'SEE, Grade 11 & 12', icon: 'fas fa-school', color: '#F97316', desc: 'SEE, Grade 11 & Grade 12 — Science & Management streams', subjects: ['SEE — Grade 10', 'Grade 11', 'Grade 12'], slug: 'see-neb' }
         ].forEach((cat, i) => { %>
         <div class="category-card" data-tilt data-delay="<%= i * 0.1 %>" style="--card-color: <%= cat.color %>">
           <div class="card-glow"></div>
@@ -175,7 +175,7 @@
           <h3 class="course-title"><%= course.title %></h3>
           <p class="course-desc"><%= course.description.substring(0, 100) %>...</p>
           <div class="course-meta">
-            <span><i class="fas fa-layer-group"></i> <%= course.level %></span>
+            <% if (course.examType) { %><span><i class="fas fa-layer-group"></i> <%= course.examType %></span><% } %>
             <span><i class="fas fa-users"></i> <%= course.enrolledCount || 0 %> enrolled</span>
           </div>
           <div class="course-footer">
@@ -215,7 +215,7 @@
       <% [
         { name: 'Aarav Sharma', exam: 'CEE 2080 – MBBS', text: 'Learn With Saurab\'s Weakness Analyzer literally identified my Chemistry weak spots. Cleared CEE with 89%!', score: '89%', avatar: 'A' },
         { name: 'Priya Karki', exam: 'Loksewa – Section Officer', text: 'The IQ/Reasoning video lessons and mock tests were exactly like the real exam. Highly recommend!', score: 'Passed', avatar: 'P' },
-        { name: 'Bikash Thapa', exam: 'NMCL License 2080', text: 'Video protection means I know I\'m watching premium content. The explanations are unmatched in Nepal.', score: '92%', avatar: 'B' }
+        { name: 'Bikash Thapa', exam: 'Nursing License (NLEN) 2080', text: 'Video protection means I know I\'m watching premium content. The explanations are unmatched in Nepal.', score: '92%', avatar: 'B' }
       ].forEach((t, i) => { %>
       <div class="testimonial-card" data-gsap="fade-up" data-delay="<%= i * 0.15 %>">
         <div class="testimonial-quote"><i class="fas fa-quote-left"></i></div>

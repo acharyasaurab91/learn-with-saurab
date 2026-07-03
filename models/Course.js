@@ -15,13 +15,23 @@ const courseSchema = new mongoose.Schema({
       'CEE - BNS (B.N.Sc.)',
       'IOE - Engineering',
       'Loksewa / लोकसेवा',
-      'License Exam',
+      'Nursing License (NLEN)',
+      'CMLT License',
+      'Pharmacy License',
+      'HA License',
       'SEE (Grade 10)',
-      'NEB - Grade 11',
-      'NEB - Grade 12'
+      'Grade 11',
+      'Grade 12'
     ],
     default: 'CEE - Medical & Paramedical'
   },
+  // For CEE - Medical & Paramedical: which target program(s) this course covers
+  targetPrograms: [{
+    type: String,
+    enum: ['MBBS', 'BDS', 'BSc Nursing', 'B.Pharmacy']
+  }],
+  // For Grade 11 / Grade 12 courses: which stream this course belongs to
+  stream: { type: String, enum: ['Science', 'Management', ''], default: '' },
   duration:    { type: Number, default: 0 },
   isFeatured:  { type: Boolean, default: false },
   isPublished: { type: Boolean, default: true },

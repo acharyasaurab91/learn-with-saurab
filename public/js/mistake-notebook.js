@@ -1,5 +1,5 @@
 /* ============================================
-   LEARN WITH SAURAB - Weakness Analyzer Pro
+   LEARN WITH SAURAB - Galti Copy (Mistake Notebook)
    ============================================ */
 
 function openManualModal() {
