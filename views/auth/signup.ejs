@@ -15,15 +15,15 @@
       <% if (error) { %>
         <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
       <% } %>
-      <form action="/signup" method="POST" class="auth-form" id="signupForm">
+      <form action="/signup" method="POST" class="auth-form" id="signupForm" novalidate>
         <div class="form-row-2">
           <div class="form-group">
             <label><i class="fas fa-user"></i> First Name</label>
-            <input type="text" name="firstName" placeholder="Aarav" required>
+            <input type="text" name="firstName" placeholder="Aarav" required minlength="2">
           </div>
           <div class="form-group">
             <label><i class="fas fa-user"></i> Last Name</label>
-            <input type="text" name="lastName" placeholder="Sharma" required>
+            <input type="text" name="lastName" placeholder="Sharma" required minlength="2">
           </div>
         </div>
         <div class="form-row-2">
@@ -37,12 +37,16 @@
           </div>
           <div class="form-group">
             <label><i class="fas fa-phone"></i> Mobile</label>
-            <input type="tel" name="mobile" placeholder="98XXXXXXXX" required>
+            <input type="tel" name="mobile" placeholder="98XXXXXXXX" required pattern="[0-9]{10}">
           </div>
         </div>
         <div class="form-group">
-          <label><i class="fas fa-envelope"></i> Email</label>
-          <input type="email" name="email" placeholder="your@email.com" required>
+          <label><i class="fas fa-envelope"></i> Email Address</label>
+          <div style="position:relative">
+            <input type="email" name="email" id="emailInput" placeholder="yourname@gmail.com" required autocomplete="email" style="padding-right:40px">
+            <span id="emailStatus" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:15px"></span>
+          </div>
+          <small id="emailHint" style="font-size:12px;margin-top:4px;display:none"></small>
         </div>
         <div class="form-row-2">
           <div class="form-group">
@@ -60,9 +64,10 @@
             </div>
           </div>
         </div>
-        <div class="password-strength" id="pwdStrength"></div>
+        <div id="pwdStrength"></div>
+        <div id="pwdMatch" style="font-size:12px;display:none"></div>
         <label class="checkbox-label terms-label">
-          <input type="checkbox" required> I agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>
+          <input type="checkbox" id="termsCheck" required> I agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>
         </label>
         <button type="submit" class="btn-auth" id="submitBtn">
           <span>Create Account</span>
@@ -75,71 +80,167 @@
 </div>
 
 <%- include('../partials/footer', { extraJs: `<script>
+/* ── Toggle password visibility ── */
 function togglePwd(id, iconId) {
   const inp = document.getElementById(id);
   const icon = document.getElementById(iconId);
-  if (inp.type === 'password') { inp.type = 'text'; icon.className = 'fas fa-eye-slash'; }
-  else { inp.type = 'password'; icon.className = 'fas fa-eye'; }
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  icon.className = inp.type === 'text' ? 'fas fa-eye-slash' : 'fas fa-eye';
 }
-const pwd = document.getElementById('pwd1');
-const strength = document.getElementById('pwdStrength');
-pwd.addEventListener('input', () => {
-  const v = pwd.value;
+
+/* ── Password strength meter ── */
+const pwd1 = document.getElementById('pwd1');
+const pwdStrength = document.getElementById('pwdStrength');
+pwd1.addEventListener('input', function() {
+  const v = this.value;
+  if (!v) { pwdStrength.innerHTML = ''; return; }
   let s = 0;
   if (v.length >= 8) s++;
+  if (v.length >= 12) s++;
   if (/[A-Z]/.test(v)) s++;
   if (/[0-9]/.test(v)) s++;
   if (/[^A-Za-z0-9]/.test(v)) s++;
-  const levels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-  const colors = ['', '#EF4444', '#F59E0B', '#10B981', '#00D4FF'];
-  strength.innerHTML = v.length ? '<div style="height:4px;border-radius:2px;background:' + colors[s] + ';width:' + (s * 25) + '%;transition:all .3s"></div><span style="font-size:12px;color:' + colors[s] + '">' + levels[s] + '</span>' : '';
+  const levels = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
+  const colors = ['', '#EF4444', '#F97316', '#F59E0B', '#10B981', '#00D4FF'];
+  const pct = Math.min((s / 5) * 100, 100);
+  pwdStrength.innerHTML = '<div style="margin-top:6px"><div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.08);overflow:hidden"><div style="height:100%;border-radius:2px;background:' + colors[s] + ';width:' + pct + '%;transition:all .3s"></div></div><span style="font-size:12px;color:' + colors[s] + '">' + (levels[s] || '') + '</span></div>';
 });
-// Username availability check
+
+/* ── Password match check ── */
+const pwd2 = document.getElementById('pwd2');
+const pwdMatch = document.getElementById('pwdMatch');
+pwd2.addEventListener('input', function() {
+  if (!this.value) { pwdMatch.style.display = 'none'; return; }
+  const match = this.value === pwd1.value;
+  pwdMatch.style.display = 'block';
+  pwdMatch.innerHTML = '<i class="fas fa-' + (match ? 'check' : 'times') + '"></i> ' + (match ? 'Passwords match' : 'Passwords do not match');
+  pwdMatch.style.color = match ? '#10B981' : '#EF4444';
+});
+
+/* ── Email validation ── */
+const emailInput = document.getElementById('emailInput');
+const emailStatus = document.getElementById('emailStatus');
+const emailHint = document.getElementById('emailHint');
+let emailValid = false;
+
+function validateEmail(email) {
+  // Strict RFC-compliant email regex
+  const re = /^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$/;
+  if (!re.test(email)) return { ok: false, msg: 'Invalid email — use format: name@gmail.com' };
+  const parts = email.split('@');
+  const domain = parts[1].toLowerCase();
+  // Block obviously fake TLDs
+  if (!domain.includes('.')) return { ok: false, msg: 'Invalid email domain' };
+  const tld = domain.split('.').pop();
+  if (tld.length < 2) return { ok: false, msg: 'Invalid email — check the domain extension' };
+  return { ok: true, msg: '✓ Valid email' };
+}
+
+emailInput.addEventListener('input', function() {
+  const val = this.value.trim();
+  if (!val) {
+    emailStatus.textContent = '';
+    emailHint.style.display = 'none';
+    emailValid = false;
+    return;
+  }
+  const result = validateEmail(val);
+  emailValid = result.ok;
+  emailStatus.textContent = result.ok ? '✅' : '❌';
+  emailHint.textContent = result.msg;
+  emailHint.style.display = 'block';
+  emailHint.style.color = result.ok ? '#10B981' : '#EF4444';
+  emailInput.style.borderColor = result.ok ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)';
+});
+
+emailInput.addEventListener('blur', function() {
+  if (this.value && !emailValid) {
+    emailHint.textContent = '❌ Please enter a valid email (e.g. yourname@gmail.com)';
+    emailHint.style.display = 'block';
+    emailHint.style.color = '#EF4444';
+  }
+});
+
+/* ── Username availability check ── */
 let usernameTimeout;
 const usernameInput = document.getElementById('usernameInput');
 const usernameStatus = document.getElementById('usernameStatus');
 const usernameHint = document.getElementById('usernameHint');
 let usernameAvailable = false;
-if (usernameInput) {
-  usernameInput.addEventListener('input', function() {
-    clearTimeout(usernameTimeout);
-    const val = this.value.trim();
-    if (!val || val.length < 3) {
-      usernameStatus.textContent = '';
-      usernameHint.style.display = 'none';
-      usernameAvailable = false;
-      return;
-    }
-    usernameStatus.textContent = '⏳';
-    usernameTimeout = setTimeout(async () => {
-      try {
-        const res = await fetch('/check-username?username=' + encodeURIComponent(val));
-        const data = await res.json();
-        usernameAvailable = data.available;
-        usernameStatus.textContent = data.available ? '✅' : '❌';
-        usernameHint.textContent = data.message;
-        usernameHint.style.display = 'block';
-        usernameHint.style.color = data.available ? '#10B981' : '#EF4444';
-      } catch(e) { usernameStatus.textContent = ''; }
-    }, 500);
-  });
-}
-document.getElementById('signupForm').addEventListener('submit', function(e) {
-  if (document.getElementById('pwd1').value !== document.getElementById('pwd2').value) {
-    e.preventDefault();
-    alert('Passwords do not match!');
+usernameInput.addEventListener('input', function() {
+  clearTimeout(usernameTimeout);
+  const val = this.value.trim();
+  if (!val || val.length < 3) {
+    usernameStatus.textContent = '';
+    usernameHint.style.display = 'none';
+    usernameAvailable = false;
     return;
   }
-  if (usernameInput && usernameInput.value && !usernameAvailable) {
+  if (!/^[a-zA-Z0-9_]+$/.test(val)) {
+    usernameStatus.textContent = '❌';
+    usernameHint.textContent = 'Only letters, numbers, underscores allowed';
+    usernameHint.style.display = 'block';
+    usernameHint.style.color = '#EF4444';
+    usernameAvailable = false;
+    return;
+  }
+  usernameStatus.textContent = '⏳';
+  usernameTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch('/check-username?username=' + encodeURIComponent(val));
+      const data = await res.json();
+      usernameAvailable = data.available;
+      usernameStatus.textContent = data.available ? '✅' : '❌';
+      usernameHint.textContent = data.message;
+      usernameHint.style.display = 'block';
+      usernameHint.style.color = data.available ? '#10B981' : '#EF4444';
+    } catch(e) { usernameStatus.textContent = ''; }
+  }, 600);
+});
+
+/* ── Form submission ── */
+document.getElementById('signupForm').addEventListener('submit', function(e) {
+  const email = emailInput.value.trim();
+  const emailCheck = validateEmail(email);
+  if (!emailCheck.ok) {
+    e.preventDefault();
+    emailHint.textContent = emailCheck.msg;
+    emailHint.style.display = 'block';
+    emailHint.style.color = '#EF4444';
+    emailInput.focus();
+    emailInput.style.borderColor = 'rgba(239,68,68,0.6)';
+    return;
+  }
+  if (pwd1.value !== pwd2.value) {
+    e.preventDefault();
+    pwdMatch.innerHTML = '<i class="fas fa-times"></i> Passwords do not match';
+    pwdMatch.style.color = '#EF4444';
+    pwdMatch.style.display = 'block';
+    pwd2.focus();
+    return;
+  }
+  if (pwd1.value.length < 8) {
+    e.preventDefault();
+    alert('Password must be at least 8 characters.');
+    pwd1.focus();
+    return;
+  }
+  if (!document.getElementById('termsCheck').checked) {
+    e.preventDefault();
+    alert('Please agree to the Terms of Service and Privacy Policy.');
+    return;
+  }
+  if (usernameInput.value.trim() && !usernameAvailable) {
     const hint = usernameHint.textContent;
     if (hint && hint !== 'Available!') {
       e.preventDefault();
       alert('Please choose a valid, available username.');
+      usernameInput.focus();
       return;
     }
   }
   const btn = document.getElementById('submitBtn');
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
   btn.disabled = true;
 });
 </script>` }) %>

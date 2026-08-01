@@ -1,88 +1,227 @@
 <%- include('partials/header') %>
+
 <div class="page-hero page-hero-sm">
   <div class="container">
     <h1>About <span class="gradient-text">Learn With Saurab</span></h1>
     <p>Nepal's most advanced exam preparation platform — by Saurab Sir</p>
   </div>
 </div>
-<div class="container about-page">
-  <div class="about-grid">
+
+<div class="container about-page" style="padding:60px 24px">
+  <div class="about-grid" style="display:grid;grid-template-columns:1fr 360px;gap:48px;align-items:start">
+
     <div class="about-text">
       <h2>Our <span class="gradient-text">Mission</span></h2>
-      <p>Learn With Saurab was founded with one mission: make high-quality exam preparation accessible to every student across Nepal — regardless of location or financial situation.</p>
-      <p>We specialize in Nepal's most competitive exams with expert guidance, smart technology, and proven learning methodologies.</p>
+      <p style="color:var(--text-muted);line-height:1.8;margin-bottom:12px">Learn With Saurab was founded with one mission: make high-quality exam preparation accessible to every student across Nepal — regardless of location or financial situation.</p>
+      <p style="color:var(--text-muted);line-height:1.8;margin-bottom:32px">We specialize in Nepal's most competitive exams with expert guidance, smart technology, and proven learning methodologies.</p>
 
-      <h2 style="margin-top:32px">Exam <span class="gradient-text">Categories</span></h2>
-      <div class="about-exams-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0 28px">
-        <div class="about-exam-card" style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:12px;padding:16px">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <i class="fas fa-stethoscope" style="color:#00D4FF;font-size:20px"></i>
-            <strong style="font-size:15px">CEE — Medical & Paramedical</strong>
+      <h2 style="margin-bottom:20px">Exam <span class="gradient-text">Categories</span></h2>
+
+      <!-- CEE Section -->
+      <div style="margin-bottom:24px">
+        <div style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.2);border-radius:16px;padding:20px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <i class="fas fa-hospital" style="color:#00D4FF;font-size:20px"></i>
+            <strong style="font-size:17px;color:var(--text-primary)">CEE — Common Entrance Examination</strong>
           </div>
-          <p style="font-size:13px;color:#9CA3AF;margin:0">One CEE entrance exam for <strong style="color:#e5e7eb">MBBS, BDS, BSc Nursing & B.Pharmacy</strong> — pick your target program right inside the course. Subjects: Biology, Chemistry, Physics, English</p>
-        </div>
-        <div class="about-exam-card" style="background:rgba(236,72,153,0.05);border:1px solid rgba(236,72,153,0.15);border-radius:12px;padding:16px">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <i class="fas fa-heart-pulse" style="color:#EC4899;font-size:20px"></i>
-            <strong style="font-size:15px">CEE — BNS (B.N.Sc.)</strong>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+            CEE is the entrance exam for healthcare education in Nepal. It has <strong style="color:var(--text-primary)">two separate tracks</strong>:
+          </p>
+
+          <!-- CEE Medical & Paramedical -->
+          <div style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:12px;padding:16px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <i class="fas fa-stethoscope" style="color:#00D4FF;font-size:16px"></i>
+              <strong style="font-size:14px;color:var(--text-primary)">CEE — Medical & Paramedical</strong>
+              <span style="background:rgba(0,212,255,0.15);color:#00D4FF;padding:2px 10px;border-radius:50px;font-size:11px;font-weight:700">Track 1</span>
+            </div>
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Choose your target program when enrolling. One CEE exam — four career paths:</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <% [
+                { label: 'MBBS', icon: 'fa-user-md', desc: 'Bachelor of Medicine & Surgery' },
+                { label: 'BDS', icon: 'fa-tooth', desc: 'Bachelor of Dental Surgery' },
+                { label: 'BSc Nursing', icon: 'fa-heart', desc: 'Bachelor of Science in Nursing' },
+                { label: 'B.Pharmacy', icon: 'fa-pills', desc: 'Bachelor of Pharmacy' },
+                { label: 'Paramedic / BSc MLT', icon: 'fa-flask', desc: 'Medical Lab & Paramedical' }
+              ].forEach(p => { %>
+              <div style="background:rgba(0,0,0,0.2);border:1px solid rgba(0,212,255,0.1);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px">
+                <i class="fas <%= p.icon %>" style="color:#00D4FF;font-size:14px;width:16px"></i>
+                <div>
+                  <strong style="font-size:13px;display:block"><%= p.label %></strong>
+                  <span style="font-size:11px;color:var(--text-muted)"><%= p.desc %></span>
+                </div>
+              </div>
+              <% }) %>
+            </div>
+            <div style="margin-top:12px;font-size:12px;color:var(--text-muted)">
+              <i class="fas fa-book" style="color:#00D4FF"></i>
+              <strong style="color:var(--text-secondary)"> Subjects:</strong> Biology · Chemistry · Physics · English
+            </div>
           </div>
-          <p style="font-size:13px;color:#9CA3AF;margin:0">Bachelor of Nursing Science — a <strong style="color:#e5e7eb">separate</strong> CEE entrance exam, distinct from Medical & Paramedical. Subjects: Biology, Chemistry, Physics, English</p>
-        </div>
-        <div class="about-exam-card" style="background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.15);border-radius:12px;padding:16px">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <i class="fas fa-microchip" style="color:#7C3AED;font-size:20px"></i>
-            <strong style="font-size:15px">IOE — Engineering</strong>
+
+          <!-- CEE BNS -->
+          <div style="background:rgba(236,72,153,0.05);border:1px solid rgba(236,72,153,0.2);border-radius:12px;padding:16px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <i class="fas fa-heart-pulse" style="color:#EC4899;font-size:16px"></i>
+              <strong style="font-size:14px;color:var(--text-primary)">CEE — BNS (B.N.Sc.)</strong>
+              <span style="background:rgba(236,72,153,0.15);color:#EC4899;padding:2px 10px;border-radius:50px;font-size:11px;font-weight:700">Track 2 — Separate</span>
+            </div>
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px">
+              <strong style="color:var(--text-primary)">Bachelor of Nursing Science (BNS)</strong> is a <strong style="color:#EC4899">separate CEE entrance exam</strong>, distinct from Medical & Paramedical. Conducted by TU (Tribhuvan University).
+            </p>
+            <div style="font-size:12px;color:var(--text-muted)">
+              <i class="fas fa-book" style="color:#EC4899"></i>
+              <strong style="color:var(--text-secondary)"> Subjects:</strong> Biology · Chemistry · Physics
+            </div>
           </div>
-          <p style="font-size:13px;color:#9CA3AF;margin:0">Institute of Engineering entrance — BE, B.Arch, BEI. Subjects: Mathematics, Physics, Chemistry, English</p>
-        </div>
-        <div class="about-exam-card" style="background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.15);border-radius:12px;padding:16px">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <i class="fas fa-landmark" style="color:#F59E0B;font-size:20px"></i>
-            <strong style="font-size:15px">Loksewa / लोकसेवा</strong>
-          </div>
-          <p style="font-size:13px;color:#9CA3AF;margin:0">Nepal Public Service Commission — all levels. GK, Current Affairs, IQ/Reasoning, Constitution & Laws</p>
-        </div>
-        <div class="about-exam-card" style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.15);border-radius:12px;padding:16px">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <i class="fas fa-id-card" style="color:#10B981;font-size:20px"></i>
-            <strong style="font-size:15px">License Exams</strong>
-          </div>
-          <p style="font-size:13px;color:#9CA3AF;margin:0">Nursing License (NLEN), CMLT License (NHPC), Pharmacy License (NPC), HA License (NHPC)</p>
-        </div>
-        <div class="about-exam-card" style="background:rgba(249,115,22,0.05);border:1px solid rgba(249,115,22,0.15);border-radius:12px;padding:16px">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <i class="fas fa-school" style="color:#F97316;font-size:20px"></i>
-            <strong style="font-size:15px">SEE, Grade 11 & 12</strong>
-          </div>
-          <p style="font-size:13px;color:#9CA3AF;margin:0">SEE (Grade 10), Grade 11, Grade 12 — Science & Management streams addable per course from the admin panel</p>
         </div>
       </div>
 
-      <h2>What Makes Us <span class="gradient-text">Different</span></h2>
-      <div class="about-features">
-        <div class="about-feature"><i class="fas fa-bolt text-yellow"></i><div><h4>⚡ Weakness Analyzer Pro</h4><p>Automatically tracks your mistakes from practice tests and model exams. Get a personalized quiz on your weak points.</p></div></div>
-        <div class="about-feature"><i class="fas fa-shield-halved text-teal"></i><div><h4>Video Protection</h4><p>Dynamic watermarking with your email + phone on every paid video — forensic tracking prevents leaks.</p></div></div>
-        <div class="about-feature"><i class="fas fa-play-circle text-purple"></i><div><h4>Demo Lectures</h4><p>Watch free demo lessons before enrolling — every course has at least one demo video available publicly.</p></div></div>
-        <div class="about-feature"><i class="fas fa-chart-line text-green"></i><div><h4>Progress Analytics</h4><p>Detailed insights into your learning journey, test scores, and exam readiness score.</p></div></div>
+      <!-- IOE Section -->
+      <div style="background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.2);border-radius:16px;padding:20px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <i class="fas fa-microchip" style="color:#7C3AED;font-size:20px"></i>
+          <strong style="font-size:17px;color:var(--text-primary)">IOE — Institute of Engineering</strong>
+        </div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Entrance exam for engineering programs under Tribhuvan University IOE — for BE, B.Arch, BEI programs.</p>
+        <div style="font-size:12px;color:var(--text-muted)">
+          <i class="fas fa-book" style="color:#7C3AED"></i>
+          <strong style="color:var(--text-secondary)"> Subjects:</strong> Mathematics · Physics · Chemistry · English
+        </div>
+      </div>
+
+      <!-- Loksewa -->
+      <div style="background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2);border-radius:16px;padding:20px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <i class="fas fa-landmark" style="color:#F59E0B;font-size:20px"></i>
+          <strong style="font-size:17px;color:var(--text-primary)">Loksewa / लोकसेवा (PSC)</strong>
+        </div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Nepal Public Service Commission exams — all levels, all services.</p>
+        <div style="font-size:12px;color:var(--text-muted)">
+          <i class="fas fa-book" style="color:#F59E0B"></i>
+          <strong style="color:var(--text-secondary)"> Subjects:</strong> GK / सामान्य ज्ञान · Current Affairs · IQ / बौद्धिक क्षमता · Nepal Constitution · Administration
+        </div>
+      </div>
+
+      <!-- License -->
+      <div style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.2);border-radius:16px;padding:20px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <i class="fas fa-id-card" style="color:#10B981;font-size:20px"></i>
+          <strong style="font-size:17px;color:var(--text-primary)">License Exams</strong>
+        </div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Professional registration license exams for healthcare workers in Nepal, conducted by official councils:</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <% [
+            { label: 'Nursing License Exam (NNC)', body: 'Nepal Nursing Council', color: '#10B981' },
+            { label: 'CMLT License Exam (NHPC)', body: 'Nepal Health Professional Council', color: '#10B981' },
+            { label: 'Pharmacy License Exam (NPC)', body: 'Nepal Pharmacy Council', color: '#10B981' },
+            { label: 'HA License Exam (NHPC)', body: 'Nepal Health Professional Council', color: '#10B981' }
+          ].forEach(l => { %>
+          <div style="background:rgba(0,0,0,0.2);border:1px solid rgba(16,185,129,0.15);border-radius:8px;padding:10px 12px">
+            <strong style="font-size:12px;display:block;color:var(--text-primary)"><%= l.label %></strong>
+            <span style="font-size:11px;color:var(--text-muted)"><%= l.body %></span>
+          </div>
+          <% }) %>
+        </div>
+      </div>
+
+      <!-- SEE / NEB -->
+      <div style="background:rgba(249,115,22,0.05);border:1px solid rgba(249,115,22,0.2);border-radius:16px;padding:20px;margin-bottom:32px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <i class="fas fa-school" style="color:#F97316;font-size:20px"></i>
+          <strong style="font-size:17px;color:var(--text-primary)">SEE, Grade 11 & Grade 12</strong>
+        </div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px">Secondary Education Examination (Grade 10), and NEB Grade 11 & Grade 12 preparation.</p>
+        <div style="font-size:12px;color:var(--text-muted)">
+          <i class="fas fa-layer-group" style="color:#F97316"></i>
+          <strong style="color:var(--text-secondary)"> Streams available:</strong> Science · Management (admin can add specific stream courses)
+        </div>
+      </div>
+
+      <h2 style="margin-bottom:20px">What Makes Us <span class="gradient-text">Different</span></h2>
+      <div class="about-features" style="display:flex;flex-direction:column;gap:16px">
+        <% [
+          { icon: 'fas fa-bolt', color: '#F59E0B', title: '⚡ Galti Copy — Weakness Analyzer Pro', desc: 'Automatically tracks mistakes from practice tests and model exams. Get a personalized quiz on your weak points. Students can also manually add their own mistakes.' },
+          { icon: 'fas fa-shield-halved', color: '#00D4FF', title: 'Video Protection', desc: 'Dynamic watermarking with your email + phone on every paid video — forensic tracking prevents leaks. No screenshots, no screen recording.' },
+          { icon: 'fas fa-play-circle', color: '#7C3AED', title: 'Demo Lectures', desc: 'Watch free demo lessons before enrolling — every course has at least one demo video available publicly without login.' },
+          { icon: 'fas fa-chart-line', color: '#10B981', title: 'Progress Analytics', desc: 'Detailed insights into your learning journey, test scores, and exam readiness score.' }
+        ].forEach(f => { %>
+        <div class="about-feature" style="display:flex;gap:16px;align-items:flex-start;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px">
+          <div style="width:44px;height:44px;border-radius:12px;background:<%= f.color %>15;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="<%= f.icon %>" style="color:<%= f.color %>;font-size:18px"></i>
+          </div>
+          <div>
+            <h4 style="font-size:15px;font-weight:700;margin-bottom:6px"><%= f.title %></h4>
+            <p style="font-size:13px;color:var(--text-muted);line-height:1.6"><%= f.desc %></p>
+          </div>
+        </div>
+        <% }) %>
       </div>
     </div>
+
+    <!-- Sidebar -->
     <div>
-      <div class="about-stats-panel">
-        <div class="about-stat"><div class="astat-num">10,000+</div><div class="astat-label">Students Enrolled</div></div>
-        <div class="about-stat"><div class="astat-num">95%</div><div class="astat-label">Pass Rate</div></div>
-        <div class="about-stat"><div class="astat-num">500+</div><div class="astat-label">Video Lessons</div></div>
-        <div class="about-stat"><div class="astat-num">6</div><div class="astat-label">Exam Categories</div></div>
-      </div>
-      <div style="margin-top:24px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;text-align:center">
-        <i class="fas fa-graduation-cap" style="font-size:48px;color:#00D4FF;margin-bottom:16px;display:block"></i>
-        <h3 style="font-family:Montserrat,sans-serif;font-weight:800;margin-bottom:8px">Saurab Sir</h3>
-        <p style="color:#9CA3AF;font-size:14px;margin-bottom:16px">Expert Educator & Founder</p>
-        <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">
-          <a href="https://youtube.com/@learnwithsaurabsir" target="_blank" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#EF4444;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px"><i class="fab fa-youtube"></i> YouTube</a>
-          <a href="https://www.facebook.com/share/1B9GkvjhNV/" target="_blank" style="background:rgba(24,119,242,0.15);border:1px solid rgba(24,119,242,0.3);color:#60A5FA;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px"><i class="fab fa-facebook-f"></i> Facebook</a>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:28px;margin-bottom:24px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:0">
+          <% [
+            { num: '10,000+', label: 'Students' },
+            { num: '95%', label: 'Pass Rate' },
+            { num: '500+', label: 'Video Lessons' },
+            { num: '6', label: 'Exam Categories' }
+          ].forEach(s => { %>
+          <div style="text-align:center;padding:16px 8px;background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.1);border-radius:12px">
+            <div style="font-family:Montserrat,sans-serif;font-size:24px;font-weight:900;background:linear-gradient(135deg,#00D4FF,#7C3AED);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text"><%= s.num %></div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px"><%= s.label %></div>
+          </div>
+          <% }) %>
         </div>
+      </div>
+
+      <!-- Instructor Card -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:28px;text-align:center;margin-bottom:24px">
+        <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#00D4FF,#7C3AED);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+          <i class="fas fa-graduation-cap" style="font-size:32px;color:#fff"></i>
+        </div>
+        <h3 style="font-family:Montserrat,sans-serif;font-weight:800;margin-bottom:4px;font-size:20px">Saurab Sir</h3>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:20px">Expert Educator & Founder</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <a href="https://youtube.com/@learnwithsaurabsir?si=TThoHekkNLAHlL1B" target="_blank" rel="noopener"
+             style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#EF4444;padding:10px 16px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:center">
+            <i class="fab fa-youtube"></i> YouTube Channel
+          </a>
+          <a href="https://www.facebook.com/share/1B9GkvjhNV/" target="_blank" rel="noopener"
+             style="background:rgba(24,119,242,0.12);border:1px solid rgba(24,119,242,0.3);color:#60A5FA;padding:10px 16px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:center">
+            <i class="fab fa-facebook-f"></i> Facebook Page
+          </a>
+          <a href="https://www.instagram.com/learnwithsaurab?igsh=MTB3cWR4cGZzNm05ag==" target="_blank" rel="noopener"
+             style="background:rgba(225,48,108,0.12);border:1px solid rgba(225,48,108,0.3);color:#E1306C;padding:10px 16px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:center">
+            <i class="fab fa-instagram"></i> Instagram
+          </a>
+          <a href="https://www.tiktok.com/@learnwithsaurab" target="_blank" rel="noopener"
+             style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-secondary);padding:10px 16px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:center">
+            <i class="fab fa-tiktok"></i> TikTok
+          </a>
+          <a href="mailto:contactsaurabsir@gmail.com"
+             style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#10B981;padding:10px 16px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:center">
+            <i class="fas fa-envelope"></i> contactsaurabsir@gmail.com
+          </a>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div style="background:linear-gradient(135deg,rgba(0,212,255,0.1),rgba(124,58,237,0.1));border:1px solid rgba(0,212,255,0.2);border-radius:20px;padding:28px;text-align:center">
+        <i class="fas fa-rocket" style="font-size:36px;color:#00D4FF;margin-bottom:12px;display:block"></i>
+        <h3 style="font-size:18px;font-weight:800;margin-bottom:8px">Start Preparing Today</h3>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">Create a free account and access practice tests, demo lectures, and more</p>
+        <a href="/signup" style="display:block;padding:14px;background:linear-gradient(135deg,#00D4FF,#7C3AED);color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">
+          <i class="fas fa-user-plus"></i> Create Free Account
+        </a>
+        <a href="/browse-courses" style="display:block;padding:12px;margin-top:8px;border:1px solid rgba(255,255,255,0.1);color:var(--text-secondary);border-radius:10px;text-decoration:none;font-weight:600;font-size:13px">
+          Browse Courses
+        </a>
       </div>
     </div>
   </div>
 </div>
+
 <%- include('partials/footer') %>

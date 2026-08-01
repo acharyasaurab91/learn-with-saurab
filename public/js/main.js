@@ -54,12 +54,14 @@ function initGSAP() {
   const heroStats = document.querySelector('.hero-stats');
 
   if (heroBadge || heroLines.length) {
-    const tl = gsap.timeline({ delay: 0.3 });
-    if (heroBadge) tl.to(heroBadge, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' });
-    if (heroLines.length) tl.to(heroLines, { opacity: 1, y: 0, duration: 0.7, stagger: 0.15, ease: 'power3.out' }, '-=0.4');
-    if (heroDesc) tl.to(heroDesc, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.3');
-    if (heroCta) tl.to(heroCta, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.3');
-    if (heroStats) tl.to(heroStats, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.2');
+    // Slide-up only — content stays visible without JS, GSAP adds the motion
+    const from = { y: 24 };
+    const tl = gsap.timeline({ delay: 0 });
+    if (heroBadge) tl.fromTo(heroBadge, from, { y: 0, duration: 0.55, ease: 'power3.out' });
+    if (heroLines.length) tl.fromTo(heroLines, from, { y: 0, duration: 0.55, stagger: 0.1, ease: 'power3.out' }, '-=0.3');
+    if (heroDesc) tl.fromTo(heroDesc, from, { y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.25');
+    if (heroCta) tl.fromTo(heroCta, from, { y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.25');
+    if (heroStats) tl.fromTo(heroStats, from, { y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.2');
   }
 
   // Skip hero-section elements (handled by the timeline above)

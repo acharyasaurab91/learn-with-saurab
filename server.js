@@ -102,14 +102,18 @@ app.get('/', async (req, res) => {
   try {
     const Course = require('./models/Course');
     const Category = require('./models/Category');
-    const [categories, featuredCourses] = await Promise.all([
+    const [categories, featuredCourses, demoCourses] = await Promise.all([
       Category.find({ isVisible: true }).sort({ order: 1 }),
-      Course.find({ isPublished: true, isFeatured: true }).sort({ createdAt: -1 }).limit(6)
+      Course.find({ isPublished: true, isFeatured: true }).sort({ createdAt: -1 }).limit(6),
+      Course.find({ isPublished: true, demoVideoUrl: { $exists: true, $ne: '' } })
+            .sort({ createdAt: -1 }).limit(3)
+            .select('title description category examType imageUrl demoVideoUrl demoVideoType demoTitle')
     ]);
     res.render('index', {
       title: "Nepal's #1 Exam Prep Platform | Learn With Saurab",
       categories,
       featuredCourses,
+      demoCourses,
       user: req.user || null
     });
   } catch (err) {
@@ -118,6 +122,7 @@ app.get('/', async (req, res) => {
       title: 'Learn With Saurab',
       categories: [],
       featuredCourses: [],
+      demoCourses: [],
       user: req.user || null
     });
   }

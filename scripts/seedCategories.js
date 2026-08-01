@@ -12,8 +12,8 @@ const categories = [
     slug: 'cee-medical',
     icon: 'fas fa-stethoscope',
     color: '#00D4FF',
-    description: 'One CEE entrance for MBBS, BDS, BSc Nursing & B.Pharmacy — choose your target program inside the course',
-    subjects: ['MBBS', 'BDS', 'BSc Nursing', 'B.Pharmacy', 'Biology', 'Chemistry', 'Physics', 'English'],
+    description: 'One CEE entrance for MBBS, BDS, BSc Nursing, B.Pharmacy & Paramedic — choose your target program inside the course. No Math.',
+    subjects: ['MBBS', 'BDS', 'BSc Nursing', 'B.Pharmacy', 'Paramedic/BSc MLT', 'Biology', 'Chemistry', 'Physics', 'English'],
     isVisible: true,
     order: 1
   },
@@ -22,8 +22,8 @@ const categories = [
     slug: 'cee-bns',
     icon: 'fas fa-heart-pulse',
     color: '#EC4899',
-    description: 'Bachelor of Nursing Science (BNS) — a separate CEE entrance exam, distinct from Medical & Paramedical',
-    subjects: ['Biology', 'Chemistry', 'Physics', 'English'],
+    description: 'Bachelor of Nursing Science (BNS) — a separate CEE entrance exam under TU, distinct from Medical & Paramedical. Subjects: Biology, Chemistry, Physics.',
+    subjects: ['Biology', 'Chemistry', 'Physics'],
     isVisible: true,
     order: 2
   },
@@ -32,7 +32,7 @@ const categories = [
     slug: 'ioe-engineering',
     icon: 'fas fa-microchip',
     color: '#7C3AED',
-    description: 'Institute of Engineering entrance exam — BE, B.Arch, BEI programs',
+    description: 'Institute of Engineering entrance exam — BE, B.Arch, BEI programs under TU.',
     subjects: ['Mathematics', 'Physics', 'Chemistry', 'English'],
     isVisible: true,
     order: 3
@@ -42,8 +42,8 @@ const categories = [
     slug: 'loksewa',
     icon: 'fas fa-landmark',
     color: '#F59E0B',
-    description: 'Nepal Public Service Commission exams — all levels and services',
-    subjects: ['GK / सामान्य ज्ञान', 'Current Affairs', 'IQ / Reasoning', 'Nepal Constitution', 'Local Government', 'Subject Fundamentals'],
+    description: 'Nepal Public Service Commission (PSC) exams — all levels and services. GK, Current Affairs, IQ, Constitution.',
+    subjects: ['GK / सामान्य ज्ञान', 'Current Affairs', 'IQ / बौद्धिक क्षमता', 'Nepal Constitution', 'Administration'],
     isVisible: true,
     order: 4
   },
@@ -52,8 +52,8 @@ const categories = [
     slug: 'license',
     icon: 'fas fa-id-card',
     color: '#10B981',
-    description: 'Professional registration/license exams for healthcare fields',
-    subjects: ['Nursing License (NLEN)', 'CMLT License (NHPC)', 'Pharmacy License (NPC)', 'HA License (NHPC)'],
+    description: 'Professional registration license exams for healthcare workers — NNC, NHPC, NPC official license exams.',
+    subjects: ['Nursing License Exam (NNC)', 'CMLT License Exam (NHPC)', 'Pharmacy License Exam (NPC)', 'HA License Exam (NHPC)'],
     isVisible: true,
     order: 5
   },
@@ -62,8 +62,8 @@ const categories = [
     slug: 'see-neb',
     icon: 'fas fa-school',
     color: '#F97316',
-    description: 'SEE (Grade 10), Grade 11 & Grade 12 preparation — Science & Management streams',
-    subjects: ['SEE — Grade 10', 'Grade 11', 'Grade 12', 'Science Stream', 'Management Stream'],
+    description: 'SEE (Grade 10), Grade 11 & Grade 12 preparation — Science & Management streams can be added per course.',
+    subjects: ['SEE — Grade 10', 'Grade 11', 'Grade 12'],
     isVisible: true,
     order: 6
   }

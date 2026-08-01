@@ -9,13 +9,13 @@
       <span>Nepal's #1 Exam Preparation Platform</span>
     </div>
     <h1 class="hero-title" data-gsap="fade-up" data-delay="0.1">
-      <span class="hero-line">Crack Your</span>
-      <span class="hero-line gradient-text">Dream Exam</span>
+      <span class="hero-line">Crack CEE, IOE &</span>
+      <span class="hero-line gradient-text">Medical License</span>
       <span class="hero-line">With Confidence</span>
     </h1>
     <p class="hero-desc" data-gsap="fade-up" data-delay="0.3">
-      Expert-crafted courses for CEE, Loksewa, License, SEE & NEB. 
-      Video lessons · Practice tests · Live doubt sessions · Weakness analysis.
+      Expert-crafted courses for <strong>CEE Medical &amp; BNS · IOE Engineering · Loksewa · License · SEE &amp; NEB</strong> —
+      Video lessons · Practice tests · Smart Weakness Analyzer.
     </p>
     <div class="hero-cta" data-gsap="fade-up" data-delay="0.5">
       <a href="/browse-courses" class="btn-magnetic btn-hero-primary">
@@ -44,8 +44,8 @@
       </div>
       <div class="hero-stat-divider"></div>
       <div class="hero-stat">
-        <span class="stat-num" data-target="50">0</span><span>+</span>
-        <span class="stat-label">Expert Teachers</span>
+        <span class="stat-num" data-target="6">0</span><span>+</span>
+        <span class="stat-label">Exam Categories</span>
       </div>
     </div>
   </div>
@@ -55,16 +55,17 @@
   </div>
 </section>
 
+<!-- ── EXAM CATEGORY CARDS ── -->
 <section class="categories-section" id="categories">
   <div class="container">
     <div class="section-header" data-gsap="fade-up">
       <span class="section-tag">What We Offer</span>
       <h2 class="section-title">Choose Your <span class="gradient-text">Exam Category</span></h2>
-      <p class="section-desc">Specialized preparation programs designed by top educators for Nepal's most competitive exams</p>
+      <p class="section-desc">Specialized preparation programs designed by expert educators for Nepal's most competitive exams</p>
     </div>
     <div class="categories-grid" id="categoriesGrid">
       <% if (categories && categories.length > 0) { %>
-        <% categories.forEach((cat, i) => { %>
+        <% categories.filter(c => c.isVisible !== false).forEach((cat, i) => { %>
         <div class="category-card" data-tilt data-delay="<%= i * 0.1 %>" style="--card-color: <%= cat.color %>">
           <div class="card-glow"></div>
           <div class="card-inner">
@@ -78,10 +79,10 @@
             <p class="card-desc"><%= cat.description || '' %></p>
             <% if (cat.subjects && cat.subjects.length > 0) { %>
             <div class="subject-chips">
-              <% cat.subjects.slice(0, 4).forEach(s => { %>
+              <% cat.subjects.slice(0, 5).forEach(s => { %>
                 <span class="chip" style="border-color: <%= cat.color %>40; color: <%= cat.color %>"><%= s %></span>
               <% }) %>
-              <% if (cat.subjects.length > 4) { %><span class="chip chip-more">+<%= cat.subjects.length - 4 %> more</span><% } %>
+              <% if (cat.subjects.length > 5) { %><span class="chip chip-more">+<%= cat.subjects.length - 5 %> more</span><% } %>
             </div>
             <% } %>
             <a href="/browse-courses?category=<%= cat.slug %>" class="card-cta" style="color: <%= cat.color %>">
@@ -91,14 +92,17 @@
         </div>
         <% }) %>
       <% } else { %>
-        <% [
-          { name: 'CEE — Medical & Paramedical', icon: 'fas fa-stethoscope', color: '#00D4FF', desc: 'MBBS, BDS, BSc Nursing & B.Pharmacy — choose your program inside the course', subjects: ['MBBS', 'BDS', 'BSc Nursing', 'B.Pharmacy', 'Biology', 'Chemistry', 'Physics'], slug: 'cee-medical' },
-          { name: 'CEE — BNS (B.N.Sc.)', icon: 'fas fa-heart-pulse', color: '#EC4899', desc: 'Bachelor of Nursing Science entrance — separate CEE track', subjects: ['Biology', 'Chemistry', 'Physics', 'English'], slug: 'cee-bns' },
-          { name: 'IOE — Engineering', icon: 'fas fa-microchip', color: '#7C3AED', desc: 'Institute of Engineering entrance — BE, B.Arch, BEI programs', subjects: ['Mathematics', 'Physics', 'Chemistry', 'English'], slug: 'ioe-engineering' },
-          { name: 'Loksewa / लोकसेवा', icon: 'fas fa-landmark', color: '#F59E0B', desc: 'Nepal Public Service Commission — all levels', subjects: ['GK / सामान्य ज्ञान', 'Current Affairs', 'IQ / Reasoning', 'Constitution'], slug: 'loksewa' },
-          { name: 'License Exams', icon: 'fas fa-id-card', color: '#10B981', desc: 'Professional license exams for healthcare fields', subjects: ['Nursing License (NLEN)', 'CMLT License', 'Pharmacy License', 'HA License'], slug: 'license' },
-          { name: 'SEE, Grade 11 & 12', icon: 'fas fa-school', color: '#F97316', desc: 'SEE, Grade 11 & Grade 12 — Science & Management streams', subjects: ['SEE — Grade 10', 'Grade 11', 'Grade 12'], slug: 'see-neb' }
-        ].forEach((cat, i) => { %>
+        <%
+          const defaultCats = [
+            { name: 'CEE — Medical & Paramedical', icon: 'fas fa-stethoscope', color: '#00D4FF', desc: 'MBBS · BDS · BSc Nursing · B.Pharmacy · Paramedic — pick your target program inside the course', subjects: ['Biology', 'Chemistry', 'Physics', 'English'], slug: 'cee-medical' },
+            { name: 'CEE — BNS (B.N.Sc.)', icon: 'fas fa-heart-pulse', color: '#EC4899', desc: 'Bachelor of Nursing Science — a separate CEE entrance exam (Biology, Chemistry, Physics)', subjects: ['Biology', 'Chemistry', 'Physics'], slug: 'cee-bns' },
+            { name: 'IOE — Engineering', icon: 'fas fa-microchip', color: '#7C3AED', desc: 'Institute of Engineering entrance — BE, B.Arch, BEI programs', subjects: ['Mathematics', 'Physics', 'Chemistry', 'English'], slug: 'ioe-engineering' },
+            { name: 'Loksewa / लोकसेवा', icon: 'fas fa-landmark', color: '#F59E0B', desc: 'Nepal Public Service Commission — all levels and services', subjects: ['GK / सामान्य ज्ञान', 'Current Affairs', 'IQ / Reasoning', 'Nepal Constitution'], slug: 'loksewa' },
+            { name: 'License Exams', icon: 'fas fa-id-card', color: '#10B981', desc: 'Professional license exams: Nursing (NNC), CMLT, Pharmacy (NPC), HA (NHPC)', subjects: ['Nursing License (NNC)', 'CMLT License (NHPC)', 'Pharmacy License (NPC)', 'HA License (NHPC)'], slug: 'license' },
+            { name: 'SEE, Grade 11 & 12', icon: 'fas fa-school', color: '#F97316', desc: 'SEE (Grade 10), Grade 11 & Grade 12 — Science & Management streams', subjects: ['SEE — Grade 10', 'Grade 11', 'Grade 12'], slug: 'see-neb' }
+          ];
+        %>
+        <% defaultCats.forEach((cat, i) => { %>
         <div class="category-card" data-tilt data-delay="<%= i * 0.1 %>" style="--card-color: <%= cat.color %>">
           <div class="card-glow"></div>
           <div class="card-inner">
@@ -126,6 +130,42 @@
   </div>
 </section>
 
+<!-- ── DEMO LECTURES ── -->
+<% if (typeof demoCourses !== 'undefined' && demoCourses && demoCourses.length > 0) { %>
+<section class="demo-section" style="background:var(--bg-primary)">
+  <div class="container">
+    <div class="section-header" data-gsap="fade-up">
+      <span class="section-tag">Free Preview</span>
+      <h2 class="section-title">Watch <span class="gradient-text">Demo Lectures</span></h2>
+      <p class="section-desc">Watch free sample lessons before enrolling — no login required</p>
+    </div>
+    <div class="courses-grid courses-grid-wide">
+      <% demoCourses.forEach((course, i) => { %>
+      <div class="demo-lecture-card" data-gsap="fade-up" data-delay="<%= (i % 3) * 0.1 %>">
+        <div class="demo-thumb-wrap">
+          <% if (course.imageUrl) { %>
+            <img src="<%= course.imageUrl %>" alt="<%= course.title %>" loading="lazy">
+          <% } else { %>
+            <div class="course-img-placeholder"><i class="fas fa-play-circle"></i></div>
+          <% } %>
+          <div class="demo-play-btn"><i class="fas fa-play"></i></div>
+          <div class="course-badge"><%= course.category || 'Demo' %></div>
+        </div>
+        <div class="course-body">
+          <h3 class="course-title"><%= course.demoTitle || course.title %></h3>
+          <p class="course-desc" style="font-size:13px;color:var(--text-muted)"><%= (course.description || '').substring(0, 80) %>...</p>
+          <a href="/courses/<%= course._id %>#demo" class="btn-enroll" style="background:linear-gradient(135deg,#10B981,#059669);width:100%;justify-content:center;margin-top:8px">
+            <span>Watch Free Demo</span><i class="fas fa-play"></i>
+          </a>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<!-- ── WHY CHOOSE US ── -->
 <section class="features-section">
   <div class="container">
     <div class="section-header" data-gsap="fade-up">
@@ -134,12 +174,12 @@
     </div>
     <div class="features-grid">
       <% [
-        { icon: 'fas fa-video', color: '#00D4FF', title: 'HD Video Lessons', desc: 'Crystal-clear videos with speed control, notes, and full protection' },
-        { icon: 'fas fa-flask', color: '#7C3AED', title: 'Smart Practice Tests', desc: 'Timed tests with negative marking, question navigator, and detailed explanations' },
-        { icon: 'fas fa-bolt', color: '#F59E0B', title: '⚡ Weakness Analyzer Pro', desc: 'Auto-tracks wrong answers. Critical weakness detection. Custom quiz generation.' },
-        { icon: 'fas fa-shield-halved', color: '#10B981', title: 'Video Protection', desc: 'Dynamic watermarking, forensic tracking, signed URLs – your content is safe' },
-        { icon: 'fas fa-chart-line', color: '#EC4899', title: 'Progress Tracking', desc: 'Real-time progress dashboard with charts, streaks, and milestone badges' },
-        { icon: 'fas fa-mobile-screen', color: '#8B5CF6', title: 'Mobile Optimized', desc: 'Learn on any device with GPU-accelerated animations and offline support' }
+        { icon: 'fas fa-video', color: '#00D4FF', title: 'HD Video Lessons', desc: 'Crystal-clear videos with speed control, notes, and full DRM protection — watch on any device' },
+        { icon: 'fas fa-flask', color: '#7C3AED', title: 'Smart Practice Tests', desc: 'Timed tests with negative marking, question navigator, instant solutions, and topic analysis' },
+        { icon: 'fas fa-bolt', color: '#F59E0B', title: '⚡ Galti Copy — Weakness Tracker', desc: 'Auto-tracks every wrong answer from practice & model exams. Smart quiz on your weak spots.' },
+        { icon: 'fas fa-shield-halved', color: '#10B981', title: 'Video Content Protection', desc: 'Dynamic watermarking with your name + email on every paid video — forensic anti-leak tracking' },
+        { icon: 'fas fa-chart-line', color: '#EC4899', title: 'Progress Analytics', desc: 'Real-time progress dashboard with charts, streaks, exam readiness score, and milestone badges' },
+        { icon: 'fas fa-mobile-screen', color: '#8B5CF6', title: 'Mobile Optimized', desc: 'Learn on any phone or tablet — fully responsive, fast-loading, works on 2G/3G connections' }
       ].forEach((f, i) => { %>
       <div class="feature-card" data-gsap="fade-up" data-delay="<%= i * 0.1 %>">
         <div class="feature-icon" style="background: <%= f.color %>15; color: <%= f.color %>">
@@ -153,6 +193,7 @@
   </div>
 </section>
 
+<!-- ── FEATURED COURSES ── -->
 <% if (featuredCourses && featuredCourses.length > 0) { %>
 <section class="courses-section">
   <div class="container">
@@ -170,14 +211,20 @@
             <div class="course-img-placeholder"><i class="fas fa-book-open"></i></div>
           <% } %>
           <div class="course-badge"><%= course.category %></div>
+          <div class="course-featured-badge"><i class="fas fa-star"></i> Featured</div>
         </div>
         <div class="course-body">
           <h3 class="course-title"><%= course.title %></h3>
-          <p class="course-desc"><%= course.description.substring(0, 100) %>...</p>
+          <p class="course-desc"><%= course.description.substring(0, 90) %>...</p>
           <div class="course-meta">
             <% if (course.examType) { %><span><i class="fas fa-layer-group"></i> <%= course.examType %></span><% } %>
             <span><i class="fas fa-users"></i> <%= course.enrolledCount || 0 %> enrolled</span>
           </div>
+          <% if (course.targetPrograms && course.targetPrograms.length > 0) { %>
+          <div class="course-meta" style="margin-top:-8px">
+            <span style="color:#00D4FF;font-size:11px"><i class="fas fa-tags"></i> <%= course.targetPrograms.join(' · ') %></span>
+          </div>
+          <% } %>
           <div class="course-footer">
             <div class="course-price">
               <% if (course.price === 0) { %>
@@ -205,6 +252,7 @@
 </section>
 <% } %>
 
+<!-- ── TESTIMONIALS ── -->
 <section class="testimonials-section">
   <div class="container">
     <div class="section-header" data-gsap="fade-up">
@@ -213,11 +261,14 @@
     </div>
     <div class="testimonials-grid">
       <% [
-        { name: 'Aarav Sharma', exam: 'CEE 2080 – MBBS', text: 'Learn With Saurab\'s Weakness Analyzer literally identified my Chemistry weak spots. Cleared CEE with 89%!', score: '89%', avatar: 'A' },
-        { name: 'Priya Karki', exam: 'Loksewa – Section Officer', text: 'The IQ/Reasoning video lessons and mock tests were exactly like the real exam. Highly recommend!', score: 'Passed', avatar: 'P' },
-        { name: 'Bikash Thapa', exam: 'Nursing License (NLEN) 2080', text: 'Video protection means I know I\'m watching premium content. The explanations are unmatched in Nepal.', score: '92%', avatar: 'B' }
+        { name: 'Aarav Sharma', exam: 'CEE 2081 – MBBS', text: 'The Weakness Analyzer literally found my Chemistry blind spots. Cleared CEE with 89%! Saurab Sir\'s explanations are unmatched.', score: '89%', avatar: 'A' },
+        { name: 'Priya Karki', exam: 'Loksewa — Section Officer', text: 'The IQ/Reasoning video lessons and mock tests were exactly like the real PSC exam. Passed on my first attempt!', score: 'Passed', avatar: 'P' },
+        { name: 'Bikash Thapa', exam: 'Nursing License (NNC) 2081', text: 'Best platform in Nepal for license prep. Video watermarking, clear explanations, practice tests — everything is perfect.', score: '92%', avatar: 'B' },
+        { name: 'Sita Adhikari', exam: 'IOE – BE Computer', text: 'IOE Math and Physics videos were crystal clear. Saurab Sir makes complex topics so easy. Cleared IOE with good rank!', score: 'Cleared', avatar: 'S' },
+        { name: 'Ram Thapa', exam: 'CEE BNS 2081', text: 'BNS preparation was so focused. Biology, Chemistry, Physics — all covered in detail. Got through on first attempt!', score: 'Passed', avatar: 'R' },
+        { name: 'Anita Gurung', exam: 'CMLT License (NHPC)', text: 'The CMLT license course covered every topic from the official NHPC syllabus. Highly recommended!', score: '88%', avatar: 'A' }
       ].forEach((t, i) => { %>
-      <div class="testimonial-card" data-gsap="fade-up" data-delay="<%= i * 0.15 %>">
+      <div class="testimonial-card" data-gsap="fade-up" data-delay="<%= i * 0.1 %>">
         <div class="testimonial-quote"><i class="fas fa-quote-left"></i></div>
         <p class="testimonial-text"><%= t.text %></p>
         <div class="testimonial-author">
@@ -234,6 +285,7 @@
   </div>
 </section>
 
+<!-- ── FINAL CTA ── -->
 <section class="cta-section">
   <div class="cta-bg-animation"></div>
   <div class="container">
