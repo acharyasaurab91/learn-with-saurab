@@ -1,170 +1,186 @@
 /* ============================================
-   LEARN WITH SAURAB - Content Protection v2
-   Paid video anti-screenshot / anti-screenrecord
+   LEARN WITH SAURAB — Content Protection v3
+   Anti-screenshot / anti-screen-record layer
    ============================================ */
-
 (function () {
+  'use strict';
+
   const isPaidPlayer = document.body.classList.contains('paid-content-page');
 
-  // Disable right-click everywhere; block download on video
+  // ── Block right-click ──────────────────────────────────────────
   document.addEventListener('contextmenu', e => {
     if (e.target.tagName === 'VIDEO' || isPaidPlayer) e.preventDefault();
   });
 
-  // Block keyboard shortcuts
+  // ── Block dangerous keyboard shortcuts ────────────────────────
   document.addEventListener('keydown', e => {
-    const combo = e.ctrlKey || e.metaKey;
-    const blocked = ['s','u','i','j','c','a','p'].includes(e.key.toLowerCase());
-    const shiftBlocked = ['i','j','c','k'].includes(e.key.toLowerCase());
-    // Always block print & devtools
-    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && shiftBlocked) || (combo && blocked) ||
-        e.key === 'PrintScreen' || (e.key === 'p' && (e.ctrlKey || e.metaKey))) {
+    const ctrl  = e.ctrlKey || e.metaKey;
+    const shift = e.shiftKey;
+    // Print, DevTools, PrintScreen, Ctrl+S/U/P/A/C
+    if (
+      e.key === 'F12' ||
+      e.key === 'PrintScreen' ||
+      (ctrl && shift && ['i','j','c','k'].includes(e.key.toLowerCase())) ||
+      (ctrl && ['s','u','p','a'].includes(e.key.toLowerCase()))
+    ) {
       e.preventDefault();
-      if (isPaidPlayer) showProtectOverlay();
+      if (isPaidPlayer) showProtectBanner();
       return false;
     }
   });
 
-  // Block Print Screen key (Windows)
+  // ── Clear clipboard on PrintScreen keyup ──────────────────────
   document.addEventListener('keyup', e => {
     if (e.key === 'PrintScreen') {
-      navigator.clipboard && navigator.clipboard.writeText('');
-      if (isPaidPlayer) showProtectOverlay();
+      navigator.clipboard && navigator.clipboard.writeText('').catch(() => {});
+      if (isPaidPlayer) showProtectBanner();
     }
   });
 
-  // Show protection overlay for paid content
-  function showProtectOverlay() {
+  // ── Temporary protection banner ────────────────────────────────
+  function showProtectBanner() {
     if (document.getElementById('lws-protect-overlay')) return;
-    const overlay = document.createElement('div');
-    overlay.id = 'lws-protect-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(10,14,26,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:Inter,sans-serif;gap:16px';
-    overlay.innerHTML = '<div style="font-size:48px">🔒</div><div style="font-size:22px;font-weight:700;color:#00D4FF">Content Protected</div><p style="color:#9CA3AF;text-align:center;max-width:320px">Unauthorized recording or distribution of this content is strictly prohibited and legally traceable.</p><button onclick="document.getElementById(\'lws-protect-overlay\').remove()" style="margin-top:8px;padding:10px 24px;background:linear-gradient(135deg,#00D4FF,#7C3AED);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer;font-size:14px">Dismiss</button>';
-    document.body.appendChild(overlay);
-    setTimeout(() => { const el = document.getElementById('lws-protect-overlay'); if (el) el.remove(); }, 3000);
+    const d = document.createElement('div');
+    d.id = 'lws-protect-overlay';
+    d.style.cssText = [
+      'position:fixed;inset:0;z-index:999999',
+      'background:rgba(10,14,26,0.97)',
+      'display:flex;flex-direction:column;align-items:center;justify-content:center',
+      'color:#fff;font-family:Inter,sans-serif;gap:16px;padding:24px;text-align:center'
+    ].join(';');
+    d.innerHTML = `
+      <div style="font-size:52px">🔒</div>
+      <div style="font-size:22px;font-weight:800;color:#00D4FF">Content Protected</div>
+      <p style="color:#9CA3AF;max-width:340px;font-size:14px;line-height:1.6">
+        Unauthorized recording or distribution of this content is strictly prohibited
+        and legally traceable to your account.
+      </p>
+      <button onclick="document.getElementById('lws-protect-overlay').remove()"
+        style="padding:10px 28px;background:linear-gradient(135deg,#00D4FF,#7C3AED);
+               border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer;font-size:14px">
+        Dismiss
+      </button>`;
+    document.body.appendChild(d);
+    setTimeout(() => { const el = document.getElementById('lws-protect-overlay'); if (el) el.remove(); }, 4000);
   }
 
-  // Disable right-click & drag on video elements
+  // ── Video element hardening ────────────────────────────────────
   document.querySelectorAll('video').forEach(v => {
     v.addEventListener('contextmenu', e => e.preventDefault());
     v.setAttribute('controlsList', 'nodownload nofullscreen noremoteplayback');
-    v.setAttribute('disablePictureInPicture', 'true');
+    v.setAttribute('disablePictureInPicture', '');
     v.addEventListener('dragstart', e => e.preventDefault());
+    // Subtle CSS filter — defeats many naive capture tools
+    if (isPaidPlayer) v.style.filter = 'contrast(1.01) brightness(0.9999)';
   });
 
-  // Paid content — add CSS filter trick that breaks most screen recorders
+  // ── Paid content specific protections ─────────────────────────
   if (isPaidPlayer) {
-    const videos = document.querySelectorAll('video.paid-video');
-    videos.forEach(v => {
-      // Subtle filter that defeats naive screen capture (transparency trick)
-      v.style.filter = 'contrast(1.01)';
-    });
 
-    // Detect tab visibility change — pause video if user switches tabs (prevents easy screen recording)
+    // Pause on tab hide (prevents easy screen-recording via background tab)
     document.addEventListener('visibilitychange', () => {
-      document.querySelectorAll('video.paid-video').forEach(v => {
-        if (document.hidden) v.pause();
-      });
-    });
-
-    // Detect fullscreen API — block OS-level screen capture during fullscreen
-    document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement) {
+      if (document.hidden) {
         document.querySelectorAll('video.paid-video').forEach(v => v.pause());
       }
     });
-  }
 
-  // DevTools detection (hide paid content if devtools opens)
-  let devToolsOpen = false;
-  const detectDevTools = () => {
-    const threshold = 160;
-    if ((window.outerWidth - window.innerWidth) > threshold || (window.outerHeight - window.innerHeight) > threshold) {
-      if (!devToolsOpen && isPaidPlayer) {
-        devToolsOpen = true;
-        document.querySelectorAll('video.paid-video').forEach(v => { v.pause(); v.style.display = 'none'; });
-        showProtectOverlay();
+    // CSS: disable text selection and touch callout
+    const style = document.createElement('style');
+    style.textContent = `
+      body.paid-content-page {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
       }
-    } else {
-      if (devToolsOpen && isPaidPlayer) {
-        devToolsOpen = false;
-        document.querySelectorAll('video.paid-video').forEach(v => { v.style.display = 'block'; });
+      /* Re-enable for input / textarea */
+      body.paid-content-page input,
+      body.paid-content-page textarea {
+        -webkit-user-select: text !important;
+        user-select: text !important;
+      }
+      /* Block print */
+      @media print {
+        body.paid-content-page * { display: none !important; }
+        body.paid-content-page::after {
+          content: "🔒 Content Protected — Learn With Saurab";
+          display: block !important;
+          font-size: 28px;
+          text-align: center;
+          padding: 40px;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Block print / screenshot via Ctrl+P / browser print
+    window.addEventListener('beforeprint', () => {
+      const d = document.createElement('div');
+      d.id = 'print-block';
+      d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0A0E1A;display:flex;align-items:center;justify-content:center;color:#00D4FF;font-size:22px;font-family:Inter,sans-serif;font-weight:700;text-align:center;padding:24px';
+      d.innerHTML = '🔒 Content Protected — Learn With Saurab<br><span style="font-size:13px;color:#6B7280;margin-top:8px;display:block">Printing and screenshots are disabled for this content.</span>';
+      document.body.appendChild(d);
+    });
+    window.addEventListener('afterprint', () => {
+      const el = document.getElementById('print-block'); if (el) el.remove();
+    });
+
+    // Touch: block multi-touch and long-press context menu
+    document.querySelectorAll('video.paid-video, .watermark-overlay').forEach(el => {
+      el.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+      let pressTimer;
+      el.addEventListener('touchstart', () => { pressTimer = setTimeout(() => showProtectBanner(), 650); });
+      el.addEventListener('touchend',   () => clearTimeout(pressTimer));
+      el.addEventListener('touchmove',  () => clearTimeout(pressTimer));
+    });
+
+    // DevTools size heuristic — hide video if devtools opens
+    let devOpen = false;
+    setInterval(() => {
+      const open = (window.outerWidth  - window.innerWidth)  > 160 ||
+                   (window.outerHeight - window.innerHeight) > 160;
+      if (open && !devOpen) {
+        devOpen = true;
+        document.querySelectorAll('video.paid-video').forEach(v => { v.pause(); v.style.visibility = 'hidden'; });
+        showProtectBanner();
+      } else if (!open && devOpen) {
+        devOpen = false;
+        document.querySelectorAll('video.paid-video').forEach(v => { v.style.visibility = 'visible'; });
+      }
+    }, 2000);
+
+    // Watermark: keep timestamp live for frame traceability
+    const wmEl = document.getElementById('watermarkText');
+    if (wmEl) {
+      // Move around every 3.5 s (also driven by video-player.js timeupdate)
+      const POSITIONS = [
+        { top: '7%',  left: '4%'  }, { top: '30%', left: '55%' },
+        { top: '62%', left: '8%'  }, { top: '76%', left: '60%' },
+        { top: '45%', left: '28%' }, { top: '14%', left: '68%' },
+      ];
+      let pos = 0;
+      setInterval(() => {
+        pos = (pos + 1) % POSITIONS.length;
+        Object.assign(wmEl.style, POSITIONS[pos]);
+      }, 3500);
+
+      // Update user timestamp every second so captured frames are time-stamped
+      const brandEl = wmEl.querySelector('.wm-brand');
+      const userEl  = wmEl.querySelector('.wm-user');
+      if (userEl && COURSE_DATA) {
+        setInterval(() => {
+          const now = new Date();
+          const ts  = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          userEl.textContent = COURSE_DATA.userName + ' · ' + COURSE_DATA.userEmail + ' · ' + ts;
+        }, 1000);
       }
     }
-  };
-  setInterval(detectDevTools, 2000);
-
-  // Dynamic watermark — moves around every few seconds on paid player
-  const watermarkEl = document.getElementById('watermarkText');
-  if (watermarkEl) {
-    const positions = [
-      { top: '8%', left: '4%' }, { top: '30%', left: '55%' },
-      { top: '60%', left: '10%' }, { top: '75%', left: '65%' },
-      { top: '45%', left: '30%' }, { top: '15%', left: '70%' }
-    ];
-    let wmIdx = 0;
-    setInterval(() => {
-      wmIdx = (wmIdx + 1) % positions.length;
-      Object.assign(watermarkEl.style, positions[wmIdx]);
-    }, 3500);
   }
 
-  // Print / screenshot via Ctrl+P block
-  window.addEventListener('beforeprint', () => {
-    const overlay = document.createElement('div');
-    overlay.id = 'print-block';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0A0E1A;display:flex;align-items:center;justify-content:center;color:#00D4FF;font-size:24px;font-family:Inter,sans-serif;font-weight:700;text-align:center;padding:20px';
-    overlay.innerHTML = '🔒 Content Protected — Learn With Saurab<br><span style="font-size:14px;color:#6B7280;margin-top:8px;display:block">Printing is disabled for protected content</span>';
-    document.body.appendChild(overlay);
-  });
-  window.addEventListener('afterprint', () => {
-    const el = document.getElementById('print-block');
-    if (el) el.remove();
-  });
-
-  // Disable drag on images
+  // ── Disable image drag everywhere ─────────────────────────────
   document.querySelectorAll('img').forEach(img => {
     img.setAttribute('draggable', 'false');
     img.addEventListener('dragstart', e => e.preventDefault());
   });
 
-  // CSS-based selection disable on paid content pages
-  if (isPaidPlayer) {
-    const style = document.createElement('style');
-    style.textContent = `
-      body.paid-content-page { -webkit-user-select: none; -moz-user-select: none; user-select: none; -webkit-touch-callout: none; }
-      body.paid-content-page video.paid-video { -webkit-user-select: none; user-select: none; pointer-events: auto; -webkit-touch-callout: none; }
-      body.paid-content-page input, body.paid-content-page textarea { -webkit-user-select: text; user-select: text; }
-      .paid-video-wrap { position: relative; }
-      .paid-video-wrap::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
-      @media print { body.paid-content-page * { display: none !important; } }
-    `;
-    document.head.appendChild(style);
-
-    // Block long-press context menu / save-image on touch devices
-    document.querySelectorAll('video.paid-video, .watermark-overlay').forEach(el => {
-      el.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
-      let pressTimer;
-      el.addEventListener('touchstart', () => { pressTimer = setTimeout(() => showProtectOverlay(), 600); });
-      el.addEventListener('touchend', () => clearTimeout(pressTimer));
-      el.addEventListener('touchmove', () => clearTimeout(pressTimer));
-    });
-
-    // Keep watermark timestamp fresh so captured frames are traceable to time+user
-    const wmTimeEl = document.getElementById('watermarkText');
-    if (wmTimeEl && !wmTimeEl.dataset.base) {
-      wmTimeEl.dataset.base = wmTimeEl.textContent;
-      setInterval(() => {
-        const now = new Date();
-        wmTimeEl.textContent = wmTimeEl.dataset.base + ' · ' + now.toLocaleString();
-      }, 1000);
-    }
-
-    // Block clipboard copy of watermark/video area
-    document.addEventListener('copy', e => {
-      if (document.activeElement && document.activeElement.closest && document.activeElement.closest('.video-container')) {
-        e.preventDefault();
-      }
-    });
-  }
 })();

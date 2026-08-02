@@ -2,86 +2,126 @@
 <script>document.body.classList.add('paid-content-page');</script>
 
 <div class="learn-page" id="learnPage">
+  <!-- ── SIDEBAR ── -->
   <div class="learn-sidebar" id="learnSidebar">
     <div class="learn-sidebar-header">
-      <h3><%= course.title %></h3>
+      <div style="flex:1;min-width:0">
+        <p style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Course</p>
+        <h3 style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= course.title %></h3>
+      </div>
       <button onclick="toggleSidebar()" class="sidebar-close"><i class="fas fa-times"></i></button>
     </div>
+
+    <div style="padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.06)">
+      <div style="background:rgba(255,255,255,0.04);border-radius:8px;height:4px;overflow:hidden">
+        <div id="sidebarProgress" style="background:linear-gradient(90deg,#00D4FF,#7C3AED);height:100%;width:0%;transition:width 0.5s ease;border-radius:8px"></div>
+      </div>
+      <p id="sidebarProgressText" style="font-size:11px;color:#6B7280;margin-top:6px">0 / <%= lessons.length %> lessons</p>
+    </div>
+
     <div class="modules-list">
-      <% let vIdx = 0; course.modules && course.modules.forEach((mod, mi) => { %>
-      <div class="learn-module">
-        <div class="learn-module-title" onclick="toggleLModule('<%= mi %>')">
-          <i class="fas fa-chevron-right" id="lmod-<%= mi %>"></i>
-          <span>Module <%= mi + 1 %>: <%= mod.moduleTitle %></span>
+      <% lessons.forEach((lesson, i) => { %>
+      <div class="learn-video-item <%= i === activeIdx ? 'active' : '' %>"
+           id="lvi-<%= i %>"
+           onclick="loadLesson(<%= i %>)">
+        <div class="lvi-num"><%= i + 1 %></div>
+        <div class="lvi-body">
+          <span class="lvi-title"><%= lesson.title %></span>
+          <% if (lesson.duration) { %>
+          <span class="lvi-dur"><i class="fas fa-clock"></i> <%= Math.floor(lesson.duration/60) %>:<%= String(lesson.duration%60).padStart(2,'0') %></span>
+          <% } %>
         </div>
-        <div class="learn-module-videos" id="lmod-videos-<%= mi %>">
-          <% mod.videos && mod.videos.forEach((v, vi) => { const globalIdx = vIdx++; %>
-          <div class="learn-video-item <%= currentModule === mi && currentVideo === vi ? 'active' : '' %>"
-               onclick="loadVideo('<%= v.videoUrl || '' %>', '<%= v.videoPath || '' %>', '<%= v.videoTitle %>', <%= mi %>, <%= vi %>)"
-               id="lvi-<%= mi %>-<%= vi %>">
-            <i class="fas fa-<%= v.isFree || isEnrolled ? 'play-circle' : 'lock' %> <%= v.isFree || isEnrolled ? 'text-teal' : 'text-gray' %>"></i>
-            <span><%= v.videoTitle %></span>
-            <span class="video-duration"></span>
-          </div>
-          <% }) %>
-        </div>
+        <i class="lvi-status fas fa-<%= lesson.isFree || isEnrolled ? 'play-circle' : 'lock' %> <%= lesson.isFree || isEnrolled ? 'text-teal' : 'text-gray' %>"></i>
       </div>
       <% }) %>
+      <% if (lessons.length === 0) { %>
+      <div style="padding:32px 20px;text-align:center;color:#4B5563">
+        <i class="fas fa-video" style="font-size:32px;margin-bottom:12px;display:block"></i>
+        <p style="font-size:13px">No lessons published yet.</p>
+      </div>
+      <% } %>
     </div>
   </div>
 
+  <!-- ── MAIN ── -->
   <div class="learn-main">
     <div class="learn-topbar">
-      <button onclick="toggleSidebar()" class="btn-toggle-sidebar">
+      <button onclick="toggleSidebar()" class="btn-toggle-sidebar" title="Toggle sidebar">
         <i class="fas fa-bars"></i>
       </button>
-      <span id="currentVideoTitle">Select a lesson to begin</span>
+      <div style="flex:1;min-width:0">
+        <span id="currentVideoTitle" style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">Select a lesson to begin</span>
+      </div>
+      <a href="/courses/<%= course._id %>" style="font-size:12px;color:#6B7280;text-decoration:none;flex-shrink:0;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.08)" onmouseenter="this.style.color='#E5E7EB'" onmouseleave="this.style.color='#6B7280'">
+        <i class="fas fa-arrow-left"></i> Course
+      </a>
     </div>
 
+    <!-- VIDEO CONTAINER -->
     <div class="video-container" id="videoContainer">
       <div class="video-placeholder" id="videoPlaceholder">
-        <i class="fas fa-play-circle"></i>
-        <p>Select a lesson from the sidebar</p>
+        <i class="fas fa-play-circle" style="font-size:72px;color:#1F2937;display:block;margin-bottom:16px"></i>
+        <p style="font-size:16px;color:#374151">Select a lesson from the sidebar</p>
       </div>
-      <video id="mainVideo" class="main-video paid-video" style="display:none" controlsList="nodownload nofullscreen noremoteplayback" disablePictureInPicture oncontextmenu="return false" onselectstart="return false">
+
+      <video id="mainVideo"
+             class="main-video paid-video"
+             style="display:none"
+             controlsList="nodownload nofullscreen noremoteplayback"
+             disablePictureInPicture
+             oncontextmenu="return false"
+             onselectstart="return false"
+             playsinline>
         <source id="videoSource" src="" type="video/mp4">
       </video>
+
+      <!-- Watermark overlay — always visible over video -->
       <div class="watermark-overlay" id="watermarkOverlay">
-        <div class="watermark-text" id="watermarkText"><%= user.email %> · <%= user.mobile || '' %></div>
+        <div class="watermark-text" id="watermarkText">
+          <span class="wm-brand">Learn With Saurab</span>
+          <span class="wm-user"><%= user.firstName %> · <%= user.email %></span>
+        </div>
       </div>
+
+      <!-- Custom controls -->
       <div class="video-controls" id="videoControls" style="display:none">
         <div class="controls-row">
-          <button onclick="togglePlay()" id="playBtn"><i class="fas fa-play" id="playIcon"></i></button>
-          <div class="progress-wrap" id="videoProgress" onclick="seekVideo(event)">
+          <button onclick="togglePlay()" id="playBtn" title="Play/Pause"><i class="fas fa-play" id="playIcon"></i></button>
+          <div class="progress-wrap" id="videoProgress" onclick="seekVideo(event)" title="Seek">
             <div class="progress-played" id="videoPlayed"></div>
             <div class="progress-thumb" id="videoThumb"></div>
           </div>
-          <span id="timeDisplay">0:00 / 0:00</span>
-          <select id="speedSelect" onchange="setSpeed(this.value)">
-            <option value="0.5">0.5x</option>
-            <option value="0.75">0.75x</option>
-            <option value="1" selected>1x</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-            <option value="2">2x</option>
+          <span id="timeDisplay" style="font-size:12px;color:#9CA3AF;white-space:nowrap">0:00 / 0:00</span>
+          <select id="speedSelect" onchange="setSpeed(this.value)" title="Speed">
+            <option value="0.5">0.5×</option>
+            <option value="0.75">0.75×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
           </select>
-          <button onclick="toggleMute()" id="muteBtn"><i class="fas fa-volume-up"></i></button>
-          <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1" oninput="setVolume(this.value)">
+          <button onclick="toggleMute()" id="muteBtn" title="Mute"><i class="fas fa-volume-up"></i></button>
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1" oninput="setVolume(this.value)" title="Volume">
           <button onclick="toggleFullscreen()" id="fsBtn" title="Fullscreen"><i class="fas fa-expand"></i></button>
         </div>
       </div>
     </div>
 
+    <!-- TABS -->
     <div class="learn-tabs">
-      <button class="learn-tab active" onclick="switchTab('notes')">📝 Notes</button>
-      <button class="learn-tab" onclick="switchTab('resources')">📎 Resources</button>
+      <button class="learn-tab active" onclick="switchTab('notes',this)">📝 Notes</button>
+      <button class="learn-tab" onclick="switchTab('resources',this)">📎 Resources</button>
+      <button class="learn-tab" onclick="switchTab('about',this)">ℹ️ About</button>
     </div>
+
     <div class="learn-tab-content" id="tab-notes">
       <textarea id="notesArea" placeholder="Take notes while watching..."></textarea>
       <div class="notes-actions">
         <button onclick="saveNote()" class="btn-sm"><i class="fas fa-save"></i> Save Note</button>
+        <span id="noteSavedMsg" style="font-size:12px;color:#10B981;display:none"><i class="fas fa-check"></i> Saved</span>
       </div>
     </div>
+
     <div class="learn-tab-content" id="tab-resources" style="display:none">
       <% let hasResources = false; course.modules && course.modules.forEach(mod => { %>
         <% mod.resources && mod.resources.forEach(r => { hasResources = true; %>
@@ -96,7 +136,16 @@
           </div>
         <% }) %>
       <% }) %>
-      <% if (!hasResources) { %><p class="text-gray">No resources attached to this course.</p><% } %>
+      <% if (!hasResources) { %><p style="color:#4B5563;font-size:13px">No resources attached to this course yet.</p><% } %>
+    </div>
+
+    <div class="learn-tab-content" id="tab-about" style="display:none">
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:12px"><%= course.title %></h3>
+      <p style="color:#9CA3AF;font-size:14px;line-height:1.7"><%= course.description || 'No description available.' %></p>
+      <div style="margin-top:20px;display:flex;gap:20px;flex-wrap:wrap">
+        <span style="font-size:13px;color:#6B7280"><i class="fas fa-video" style="color:#00D4FF;margin-right:6px"></i><%= lessons.length %> lessons</span>
+        <span style="font-size:13px;color:#6B7280"><i class="fas fa-tag" style="color:#7C3AED;margin-right:6px"></i><%= course.examType || course.category || 'General' %></span>
+      </div>
     </div>
   </div>
 </div>
@@ -106,8 +155,11 @@
 const COURSE_DATA = {
   courseId: '<%= course._id %>',
   userEmail: '<%= user.email %>',
-  userPhone: '<%= user.mobile || "" %>'
+  userPhone: '<%= user.mobile || "" %>',
+  userName: '<%= user.firstName %> <%= user.lastName %>'
 };
+const LESSONS = <%- JSON.stringify(lessons) %>;
+let activeIdx = <%= activeIdx %>;
 </script>
 <script src="/js/video-player.js"></script>
 <script src="/js/content-protection.js"></script>

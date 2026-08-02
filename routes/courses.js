@@ -3,8 +3,9 @@ const router = express.Router();
 const Course = require('../models/Course');
 const Category = require('../models/Category');
 const Review = require('../models/Review');
+const Module = require('../models/Module');
 const mongoose = require('mongoose');
-const { requireLogin } = require('../middleware/auth');
+const { requireLogin, requireVerified } = require('../middleware/auth');
 const { sendEmail } = require('../utils/mailer');
 const { reviewNotificationEmailHtml } = require('../utils/reviewNotificationEmail');
 
@@ -120,7 +121,7 @@ router.delete('/:id/review', requireLogin, async (req, res) => {
   }
 });
 
-router.get('/:id/learn', requireLogin, async (req, res) => {
+router.get('/:id/learn', requireVerified, async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
     if (!course) return res.render('error', { title: 'Not Found', message: 'Course not found.', user: req.user });
@@ -128,12 +129,44 @@ router.get('/:id/learn', requireLogin, async (req, res) => {
     if (!isEnrolled && course.price > 0) {
       return res.redirect(`/courses/${course._id}?msg=Please+enroll+first`);
     }
-    const { v: videoIdx, m: moduleIdx } = req.query;
+    // Load standalone Module lessons (preferred) — fall back to embedded course.modules
+    const standaloneModules = await Module.find({ course: course._id }).sort({ order: 1 });
+    // Normalise into a flat lessons array regardless of source
+    let lessons = [];
+    if (standaloneModules.length > 0) {
+      lessons = standaloneModules.map(m => ({
+        _id:          m._id,
+        title:        m.title,
+        description:  m.description || '',
+        // Strip 'uploads/videos/' prefix — /stream/* handler prepends it itself
+        videoPath:    (m.videoPath || '').replace(/^uploads[/\\]videos[/\\]/, ''),
+        videoUrl:     '',
+        isFree:       m.isFreePreview,
+        duration:     m.duration   || 0,
+        order:        m.order
+      }));
+    } else if (course.modules && course.modules.length > 0) {
+      // Fall back to embedded modules → flatten all videos
+      course.modules.forEach((mod, mi) => {
+        (mod.videos || []).forEach((v, vi) => {
+          lessons.push({
+            _id:         `${mi}-${vi}`,
+            title:       v.videoTitle,
+            description: v.description || '',
+            videoPath:   v.videoPath   || '',
+            videoUrl:    v.videoUrl    || '',
+            isFree:      v.isFree,
+            duration:    v.duration   || 0,
+            order:       lessons.length + 1
+          });
+        });
+      });
+    }
+    const activeIdx = Math.max(0, parseInt(req.query.v) || 0);
     res.render('course-learn', {
       title: 'Learning: ' + course.title,
-      course, isEnrolled,
-      currentModule: parseInt(moduleIdx) || 0,
-      currentVideo: parseInt(videoIdx) || 0,
+      course, isEnrolled, lessons,
+      activeIdx,
       user: req.user
     });
   } catch (err) {

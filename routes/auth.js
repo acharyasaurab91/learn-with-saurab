@@ -78,24 +78,63 @@ router.post('/signup', authLimiter, async (req, res) => {
       mobile, password,
       emailVerifyToken: verifyToken,
       emailVerifyExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      isVerified: true
+      isVerified: false
     });
     await user.save();
-    const verifyUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/verify-email/${verifyToken}`;
-    await sendEmail(email, 'Verify your email – Learn With Saurab', `
-      <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0A0E1A;color:#fff;padding:40px;border-radius:12px;">
-        <h1 style="color:#00D4FF;">Welcome to Learn With Saurab! 🎓</h1>
-        <p>Hi ${firstName}, please verify your email:</p>
-        <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#00D4FF,#7C3AED);color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:20px 0;">Verify Email</a>
-        <p style="color:#9CA3AF;">Link expires in 24 hours.</p>
-      </div>
-    `);
+    const verifyUrl = `${process.env.BASE_URL || `${req.protocol}://${req.get('host')}`}/verify-email/${verifyToken}`;
+    try {
+      await sendEmail(email, 'Verify your email – Learn With Saurab', `
+        <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0A0E1A;color:#fff;padding:40px;border-radius:12px;border:1px solid rgba(0,212,255,0.2)">
+          <div style="text-align:center;margin-bottom:32px">
+            <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#00D4FF,#7C3AED);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px">🎓</div>
+            <h1 style="color:#00D4FF;font-size:24px;margin:0">Welcome to Learn With Saurab!</h1>
+          </div>
+          <p style="color:#E5E7EB">Hi <strong>${firstName}</strong>, you're almost ready. Please verify your email address to activate your account:</p>
+          <div style="text-align:center;margin:32px 0">
+            <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#00D4FF,#7C3AED);color:#fff;padding:16px 36px;border-radius:10px;text-decoration:none;font-weight:700;font-size:16px">✓ Verify My Email</a>
+          </div>
+          <p style="color:#9CA3AF;font-size:13px;text-align:center">Link expires in 24 hours. If you didn't create an account, ignore this email.</p>
+        </div>
+      `);
+    } catch (mailErr) {
+      console.error('Verification email failed:', mailErr.message);
+    }
     req.session.userId = user._id.toString();
     req.session.isAdmin = false;
-    res.redirect('/dashboard?welcome=1');
+    req.session.pendingVerifyEmail = email.toLowerCase().trim();
+    res.redirect('/verify-email-notice');
   } catch (err) {
     console.error(err);
     res.render('auth/signup', { title: 'Sign Up', error: 'Server error. Please try again.', user: null });
+  }
+});
+
+router.post('/resend-verification', async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    if (!userId) return res.redirect('/login');
+    const user = await User.findById(userId);
+    if (!user) return res.redirect('/login');
+    if (user.isVerified) return res.redirect('/dashboard');
+    const verifyToken = crypto.randomBytes(32).toString('hex');
+    user.emailVerifyToken = verifyToken;
+    user.emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await user.save();
+    const verifyUrl = `${process.env.BASE_URL || `${req.protocol}://${req.get('host')}`}/verify-email/${verifyToken}`;
+    await sendEmail(user.email, 'Verify your email – Learn With Saurab', `
+      <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0A0E1A;color:#fff;padding:40px;border-radius:12px;border:1px solid rgba(0,212,255,0.2)">
+        <h1 style="color:#00D4FF">Verify Your Email</h1>
+        <p style="color:#E5E7EB">Hi <strong>${user.firstName}</strong>, here is your new verification link:</p>
+        <div style="text-align:center;margin:32px 0">
+          <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#00D4FF,#7C3AED);color:#fff;padding:16px 36px;border-radius:10px;text-decoration:none;font-weight:700;font-size:16px">✓ Verify My Email</a>
+        </div>
+        <p style="color:#9CA3AF;font-size:13px;text-align:center">Link expires in 24 hours.</p>
+      </div>
+    `);
+    res.redirect('/verify-email-notice?resent=1');
+  } catch (err) {
+    console.error(err);
+    res.redirect('/verify-email-notice?error=1');
   }
 });
 

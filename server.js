@@ -151,6 +151,18 @@ app.use('/payment', require('./routes/payment'));
 // Admin panel
 app.use('/admin', require('./routes/admin'));
 
+// Email verification notice page
+app.get('/verify-email-notice', (req, res) => {
+  const verifyEmail = req.session.pendingVerifyEmail || (req.user ? req.user.email : '');
+  res.render('auth/verify-email-notice', {
+    title: 'Verify Your Email | Learn With Saurab',
+    user: req.user || null,
+    verifyEmail,
+    resent: req.query.resent === '1' ? true : undefined,
+    error: req.query.error === '1' ? true : undefined
+  });
+});
+
 // Static info pages
 app.get('/about', (req, res) => res.render('about', {
   title: 'About | Learn With Saurab',

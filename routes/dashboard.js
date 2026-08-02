@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { requireLogin } = require('../middleware/auth');
+const { requireLogin, requireVerified } = require('../middleware/auth');
 const Course = require('../models/Course');
 const TestAttempt = require('../models/TestAttempt');
 const MistakeEntry = require('../models/MistakeEntry');
 const User = require('../models/User');
 const VideoProgress = require('../models/VideoProgress');
 
-router.get('/', requireLogin, async (req, res) => {
+router.get('/', requireVerified, async (req, res) => {
   try {
     const [enrolledCourses, recentAttempts, topMistakes] = await Promise.all([
       Course.find({ _id: { $in: req.user.enrolledCourses } }),
@@ -44,7 +44,7 @@ router.get('/', requireLogin, async (req, res) => {
   }
 });
 
-router.get('/my-courses', requireLogin, async (req, res) => {
+router.get('/my-courses', requireVerified, async (req, res) => {
   try {
     const courses = await Course.find({ _id: { $in: req.user.enrolledCourses } });
 
@@ -100,11 +100,11 @@ router.get('/my-courses', requireLogin, async (req, res) => {
   }
 });
 
-router.get('/profile', requireLogin, async (req, res) => {
+router.get('/profile', requireVerified, async (req, res) => {
   res.render('profile', { title: 'My Profile', user: req.user, msg: req.query.msg || '', error: '' });
 });
 
-router.post('/profile', requireLogin, async (req, res) => {
+router.post('/profile', requireVerified, async (req, res) => {
   try {
     const { firstName, lastName, mobile } = req.body;
     await User.findByIdAndUpdate(req.user._id, { firstName, lastName, mobile });
@@ -148,7 +148,7 @@ router.post('/progress/video', requireLogin, async (req, res) => {
   }
 });
 
-router.get('/my-tests', requireLogin, async (req, res) => {
+router.get('/my-tests', requireVerified, async (req, res) => {
   try {
     const attempts = await TestAttempt.find({ userId: req.user._id })
       .sort({ createdAt: -1 }).populate('testId', 'title category');
