@@ -82,6 +82,7 @@ router.post('/signup', authLimiter, async (req, res) => {
     });
     await user.save();
     const verifyUrl = `${process.env.BASE_URL || `${req.protocol}://${req.get('host')}`}/verify-email/${verifyToken}`;
+    // TODO: move to views/ folder
     try {
       await sendEmail(email, 'Verify your email – Learn With Saurab', `
         <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0A0E1A;color:#fff;padding:40px;border-radius:12px;border:1px solid rgba(0,212,255,0.2)">
@@ -121,6 +122,7 @@ router.post('/resend-verification', async (req, res) => {
     user.emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await user.save();
     const verifyUrl = `${process.env.BASE_URL || `${req.protocol}://${req.get('host')}`}/verify-email/${verifyToken}`;
+    // TODO: move to views/ folder
     await sendEmail(user.email, 'Verify your email – Learn With Saurab', `
       <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0A0E1A;color:#fff;padding:40px;border-radius:12px;border:1px solid rgba(0,212,255,0.2)">
         <h1 style="color:#00D4FF">Verify Your Email</h1>
@@ -169,6 +171,7 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
       user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
       await user.save();
       const url = `${process.env.BASE_URL || 'http://localhost:5000'}/reset-password/${token}`;
+      // TODO: move to views/ folder
       await sendEmail(email, 'Reset Password – Learn With Saurab', `
         <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0A0E1A;color:#fff;padding:40px;border-radius:12px;">
           <h1 style="color:#00D4FF;">Reset Your Password</h1>

@@ -6,7 +6,7 @@
     <div class="admin-topbar">
       <div>
         <h1><i class="fas fa-th-large"></i> Admin Dashboard</h1>
-        <p style="color:#6B7280;font-size:13px;margin-top:2px">Welcome back, <%= admin.firstName %> — Manage Learn With Saurab</p>
+        <p style="color:#5F6C76;font-size:13px;margin-top:2px">Welcome back, <%= admin.firstName %> — Manage Learn With Saurab</p>
       </div>
       <div class="topbar-actions">
         <a href="/admin/courses/new" class="btn-admin-primary"><i class="fas fa-plus"></i> New Course</a>
@@ -51,29 +51,29 @@
     <div class="admin-grid-2">
       <div class="admin-section">
         <div class="admin-section-header">
-          <h2><i class="fas fa-chart-line" style="color:#00D4FF"></i> Student Signups (Last 30 Days)</h2>
+          <h2><i class="fas fa-chart-line" style="color:#0E7C72"></i> Student Signups (Last 30 Days)</h2>
         </div>
         <div class="chart-wrap"><canvas id="signupChart"></canvas></div>
       </div>
       <div class="admin-section">
         <div class="admin-section-header">
-          <h2><i class="fas fa-bolt" style="color:#F59E0B"></i> Quick Actions</h2>
+          <h2><i class="fas fa-bolt" style="color:#B9852D"></i> Quick Actions</h2>
         </div>
         <div class="quick-actions-grid">
           <a href="/admin/courses/new" class="qa-btn">
-            <i class="fas fa-plus-circle" style="color:#00D4FF"></i>
+            <i class="fas fa-plus-circle" style="color:#0E7C72"></i>
             <span>New Course</span>
           </a>
           <a href="/admin/tests" class="qa-btn">
-            <i class="fas fa-clipboard-list" style="color:#7C3AED"></i>
+            <i class="fas fa-clipboard-list" style="color:#3A6A8A"></i>
             <span>New Test</span>
           </a>
           <a href="/admin/categories" class="qa-btn">
-            <i class="fas fa-tags" style="color:#F59E0B"></i>
+            <i class="fas fa-tags" style="color:#B9852D"></i>
             <span>Categories</span>
           </a>
           <a href="/admin/users" class="qa-btn">
-            <i class="fas fa-users" style="color:#10B981"></i>
+            <i class="fas fa-users" style="color:#1F6A5C"></i>
             <span>Users</span>
           </a>
           <a href="/admin/transactions" class="qa-btn">
@@ -81,11 +81,11 @@
             <span>Payments</span>
           </a>
           <a href="/admin/demo-lectures" class="qa-btn">
-            <i class="fas fa-play-circle" style="color:#EF4444"></i>
+            <i class="fas fa-play-circle" style="color:#0E7C72"></i>
             <span>Demo Lectures</span>
           </a>
           <a href="/admin/reviews" class="qa-btn">
-            <i class="fas fa-star" style="color:#F59E0B"></i>
+            <i class="fas fa-star" style="color:#B9852D"></i>
             <span>Reviews</span>
           </a>
           <a href="/admin/analytics" class="qa-btn">
@@ -93,7 +93,7 @@
             <span>Analytics</span>
           </a>
           <a href="/free-tests" target="_blank" class="qa-btn">
-            <i class="fas fa-external-link-alt" style="color:#6B7280"></i>
+            <i class="fas fa-external-link-alt" style="color:#5F6C76"></i>
             <span>View Tests</span>
           </a>
         </div>
@@ -104,7 +104,7 @@
     <div class="admin-grid-2">
       <div class="admin-section">
         <div class="admin-section-header">
-          <h2><i class="fas fa-users" style="color:#00D4FF"></i> Recent Students</h2>
+          <h2><i class="fas fa-users" style="color:#0E7C72"></i> Recent Students</h2>
           <a href="/admin/users" class="btn-secondary" style="font-size:12px;padding:6px 12px">View All</a>
         </div>
         <div class="table-wrap">
@@ -115,14 +115,14 @@
               <tr>
                 <td>
                   <div style="display:flex;align-items:center;gap:10px">
-                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#00D4FF,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0">
+                    <div style="width:32px;height:32px;border-radius:50%;background:#0E7C72;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0">
                       <%= (u.firstName || 'U')[0].toUpperCase() %>
                     </div>
                     <strong><%= u.firstName %> <%= u.lastName %></strong>
                   </div>
                 </td>
-                <td style="color:#9CA3AF;font-size:13px"><%= u.email %></td>
-                <td style="color:#9CA3AF;font-size:12px"><%= new Date(u.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) %></td>
+                <td style="color:#5F6C76;font-size:13px"><%= u.email %></td>
+                <td style="color:#5F6C76;font-size:12px"><%= new Date(u.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) %></td>
               </tr>
               <% }) %>
               <% if (!recentUsers.length) { %>
@@ -134,7 +134,7 @@
       </div>
       <div class="admin-section">
         <div class="admin-section-header">
-          <h2><i class="fas fa-money-bill-wave" style="color:#10B981"></i> Recent Payments</h2>
+          <h2><i class="fas fa-money-bill-wave" style="color:#1F6A5C"></i> Recent Payments</h2>
           <a href="/admin/transactions" class="btn-secondary" style="font-size:12px;padding:6px 12px">View All</a>
         </div>
         <div class="table-wrap">
@@ -144,8 +144,8 @@
               <% recentTxns.forEach(t => { %>
               <tr>
                 <td style="font-size:13px"><%= t.userId ? t.userId.firstName : 'Unknown' %></td>
-                <td style="font-size:12px;color:#9CA3AF;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= t.courseId ? t.courseId.title : 'Unknown' %></td>
-                <td><strong style="color:#10B981">Rs. <%= t.amount ? t.amount.toLocaleString() : '0' %></strong></td>
+                <td style="font-size:12px;color:#5F6C76;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= t.courseId ? t.courseId.title : 'Unknown' %></td>
+                <td><strong style="color:#1F6A5C">Rs. <%= t.amount ? t.amount.toLocaleString() : '0' %></strong></td>
               </tr>
               <% }) %>
               <% if (!recentTxns.length) { %>
@@ -158,14 +158,14 @@
     </div>
 
     <!-- Platform Info Banner -->
-    <div style="background:linear-gradient(135deg,rgba(0,212,255,0.05),rgba(124,58,237,0.05));border:1px solid rgba(0,212,255,0.15);border-radius:16px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+    <div style="background:linear-gradient(135deg,rgba(14,124,114,0.05),rgba(58,106,138,0.05));border:1px solid rgba(14,124,114,0.15);border-radius:16px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
       <div style="display:flex;align-items:center;gap:16px">
-        <div style="width:44px;height:44px;border-radius:12px;background:rgba(0,212,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <i class="fas fa-graduation-cap" style="color:#00D4FF;font-size:20px"></i>
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(14,124,114,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="fas fa-graduation-cap" style="color:#0E7C72;font-size:20px"></i>
         </div>
         <div>
           <strong style="font-size:15px;display:block">Learn With Saurab — Nepal's #1 Exam Platform</strong>
-          <span style="font-size:12px;color:#6B7280">CEE Medical & BNS · IOE Engineering · Loksewa · License · SEE & NEB</span>
+          <span style="font-size:12px;color:#5F6C76">CEE Medical & BNS · IOE Engineering · Loksewa · License · SEE & NEB</span>
         </div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -180,7 +180,7 @@
 <%- include('../partials/footer', { extraJs: `
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const signupData = <%- signupData %>;
+const signupData = ${signupData};
 const labels = signupData.map(d => d._id);
 const counts = signupData.map(d => d.count);
 new Chart(document.getElementById('signupChart'), {
@@ -190,10 +190,10 @@ new Chart(document.getElementById('signupChart'), {
     datasets: [{
       label: 'New Students',
       data: counts.length ? counts : [0],
-      borderColor: '#00D4FF',
-      backgroundColor: 'rgba(0,212,255,0.08)',
+      borderColor: '#0E7C72',
+      backgroundColor: 'rgba(14,124,114,0.08)',
       tension: 0.4, fill: true,
-      pointBackgroundColor: '#00D4FF',
+      pointBackgroundColor: '#0E7C72',
       pointRadius: 4,
       pointHoverRadius: 6
     }]
@@ -204,16 +204,16 @@ new Chart(document.getElementById('signupChart'), {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#161D2E',
-        borderColor: 'rgba(0,212,255,0.3)',
+        backgroundColor: '#14212B',
+        borderColor: 'rgba(14,124,114,0.3)',
         borderWidth: 1,
         titleColor: '#F9FAFB',
         bodyColor: '#9CA3AF'
       }
     },
     scales: {
-      x: { ticks: { color: '#6B7280', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
-      y: { ticks: { color: '#6B7280', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true }
+      x: { ticks: { color: '#5F6C76', font: { size: 11 } }, grid: { color: 'rgba(20,33,43,0.06)' } },
+      y: { ticks: { color: '#5F6C76', font: { size: 11 } }, grid: { color: 'rgba(20,33,43,0.06)' }, beginAtZero: true }
     }
   }
 });

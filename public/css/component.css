@@ -1,6 +1,10 @@
 /* ============================================
    LEARN WITH SAURAB — components.css
    Reusable UI: cards, forms, tables, alerts
+
+   ⚠️ NOT LOADED BY ANY VIEW — components are styled by
+   public/css/style.css (linked in views/partials/header.ejs).
+   Retained for reference; design tokens live in style.css/main.css.
    ============================================ */
 
 /* ─── GLASSMORPHISM CARD ─── */

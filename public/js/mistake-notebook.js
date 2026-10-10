@@ -25,8 +25,8 @@ async function markMastered(id) {
         card.classList.add('mastered');
         card.style.opacity = '0.5';
         btn.innerHTML = '<i class="fas fa-check-circle"></i> Mastered!';
-        btn.style.background = 'rgba(16,185,129,0.2)';
-        btn.style.color = '#10B981';
+        btn.style.background = 'rgba(31,106,92,0.2)';
+        btn.style.color = '#1F6A5C';
         setTimeout(() => { card.style.display = 'none'; }, 2000);
       }
     }
@@ -99,11 +99,11 @@ function showQuizModal(quiz) {
             ${q.options.map((opt, i) => `<button class="option-btn" onclick="selectQuizOpt(this, ${i}, ${q._id ? "'" + q._id + "'" : 'null'})">
               <span class="option-letter-btn">${['A','B','C','D'][i]}</span>${opt.text}
             </button>`).join('')}
-          </div>` : `<p style="color:#6B7280">No options tracked for this entry.</p>`}
+          </div>` : `<p style="color:#5F6C76">No options tracked for this entry.</p>`}
           <div id="quizFeedback" style="display:none"></div>
         </div>
         <div class="modal-actions">
-          <span style="color:#6B7280;font-size:14px">Score: <strong>${score}/${currentQ}</strong></span>
+          <span style="color:#5F6C76;font-size:14px">Score: <strong>${score}/${currentQ}</strong></span>
           ${currentQ > 0 ? '' : ''}
           <button class="btn-secondary" onclick="${currentQ < quiz.length - 1 ? 'nextQuizQ()' : 'finishQuiz(' + score + ',' + quiz.length + ')'}">
             ${currentQ < quiz.length - 1 ? 'Skip →' : 'Finish'}
@@ -119,17 +119,17 @@ function showQuizModal(quiz) {
     if (idx === correctIdx) {
       score++;
       btn.classList.add('selected');
-      btn.style.borderColor = '#10B981';
-      btn.style.color = '#10B981';
-      btn.style.background = 'rgba(16,185,129,0.1)';
+      btn.style.borderColor = '#1F6A5C';
+      btn.style.color = '#1F6A5C';
+      btn.style.background = 'rgba(31,106,92,0.1)';
       document.getElementById('quizFeedback').innerHTML = '<div class="alert alert-success" style="display:flex;margin-top:12px"><i class="fas fa-check-circle"></i> Correct!</div>';
     } else {
-      btn.style.borderColor = '#EF4444';
-      btn.style.color = '#EF4444';
-      btn.style.background = 'rgba(239,68,68,0.08)';
+      btn.style.borderColor = '#B42318';
+      btn.style.color = '#B42318';
+      btn.style.background = 'rgba(180,35,24,0.08)';
       if (correctIdx >= 0) {
-        document.querySelectorAll('.quiz-options .option-btn')[correctIdx].style.borderColor = '#10B981';
-        document.querySelectorAll('.quiz-options .option-btn')[correctIdx].style.background = 'rgba(16,185,129,0.1)';
+        document.querySelectorAll('.quiz-options .option-btn')[correctIdx].style.borderColor = '#1F6A5C';
+        document.querySelectorAll('.quiz-options .option-btn')[correctIdx].style.background = 'rgba(31,106,92,0.1)';
       }
       document.getElementById('quizFeedback').innerHTML = '<div class="alert alert-error" style="display:flex;margin-top:12px"><i class="fas fa-times-circle"></i> Wrong! Review this topic again.</div>';
     }
@@ -146,10 +146,10 @@ function showQuizModal(quiz) {
     overlay.querySelector('.modal-body').innerHTML = `
       <div style="text-align:center;padding:24px">
         <div style="font-size:64px;margin-bottom:16px">${pct >= 70 ? '🎉' : '📚'}</div>
-        <h2 style="font-family:Montserrat,sans-serif;font-size:28px;margin-bottom:8px">${sc}/${total} Correct</h2>
-        <p style="color:#6B7280">${pct}% — ${pct >= 80 ? 'Excellent! You\'re mastering your weaknesses!' : pct >= 60 ? 'Good progress! Keep reviewing.' : 'Keep practicing. You\'ve got this!'}</p>
-        <div style="width:100%;height:8px;background:rgba(255,255,255,0.08);border-radius:4px;margin:20px 0;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#00D4FF,#7C3AED);border-radius:4px;transition:width 1s ease"></div>
+        <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;margin-bottom:8px">${sc}/${total} Correct</h2>
+        <p style="color:#5F6C76">${pct}% — ${pct >= 80 ? 'Excellent! You\'re mastering your weaknesses!' : pct >= 60 ? 'Good progress! Keep reviewing.' : 'Keep practicing. You\'ve got this!'}</p>
+        <div style="width:100%;height:8px;background:#E2E8E4;border-radius:4px;margin:20px 0;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:#0E7C72;border-radius:4px;transition:width 1s ease"></div>
         </div>
       </div>`;
     overlay.querySelector('.modal-actions').innerHTML = `

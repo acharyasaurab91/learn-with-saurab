@@ -1,6 +1,10 @@
 /* ============================================
    LEARN WITH SAURAB — auth.css
    Login, Signup, Forgot/Reset Password pages
+
+   ⚠️ NOT LOADED BY ANY VIEW — auth pages are styled by
+   public/css/style.css (linked in views/partials/header.ejs).
+   Retained for reference; design tokens live in style.css/main.css.
    ============================================ */
 
 .auth-body {
@@ -46,7 +50,7 @@
 }
 
 .auth-logo {
-  font-family: 'Montserrat', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 900;
   font-size: 1.3rem;
   background: linear-gradient(135deg, var(--primary-bright), var(--gold));

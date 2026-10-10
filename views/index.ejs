@@ -1,16 +1,14 @@
 <%- include('partials/header') %>
 
 <section class="hero" id="hero">
-  <canvas id="hero-canvas"></canvas>
-  <div class="hero-particles" id="particles"></div>
   <div class="hero-content">
     <div class="hero-badge" data-gsap="fade-up" data-delay="0">
       <span class="badge-dot"></span>
       <span>Nepal's #1 Exam Preparation Platform</span>
     </div>
     <h1 class="hero-title" data-gsap="fade-up" data-delay="0.1">
-      <span class="hero-line">Crack CEE, IOE &</span>
-      <span class="hero-line gradient-text">Medical License</span>
+      <span class="hero-line">Crack CEE, IOE &amp;</span>
+      <span class="hero-line">Medical License</span>
       <span class="hero-line">With Confidence</span>
     </h1>
     <p class="hero-desc" data-gsap="fade-up" data-delay="0.3">
@@ -18,40 +16,36 @@
       Video lessons · Practice tests · Smart Weakness Analyzer.
     </p>
     <div class="hero-cta" data-gsap="fade-up" data-delay="0.5">
-      <a href="/browse-courses" class="btn-magnetic btn-hero-primary">
+      <a href="/browse-courses" class="btn-hero-primary">
         <span>Explore Courses</span>
         <i class="fas fa-arrow-right"></i>
       </a>
-      <a href="/free-tests" class="btn-magnetic btn-hero-outline">
+      <a href="/free-tests" class="btn-hero-outline">
         <span>Try Free Tests</span>
         <i class="fas fa-flask"></i>
       </a>
     </div>
     <div class="hero-stats" data-gsap="fade-up" data-delay="0.7">
       <div class="hero-stat">
-        <span class="stat-num" data-target="10000">0</span><span>+</span>
+        <span class="stat-num" data-target="10000">10,000</span><span>+</span>
         <span class="stat-label">Students</span>
       </div>
       <div class="hero-stat-divider"></div>
       <div class="hero-stat">
-        <span class="stat-num" data-target="500">0</span><span>+</span>
+        <span class="stat-num" data-target="500">500</span><span>+</span>
         <span class="stat-label">Video Lessons</span>
       </div>
       <div class="hero-stat-divider"></div>
       <div class="hero-stat">
-        <span class="stat-num" data-target="95">0</span><span>%</span>
+        <span class="stat-num" data-target="95">95</span><span>%</span>
         <span class="stat-label">Pass Rate</span>
       </div>
       <div class="hero-stat-divider"></div>
       <div class="hero-stat">
-        <span class="stat-num" data-target="6">0</span><span>+</span>
+        <span class="stat-num" data-target="6">6</span><span>+</span>
         <span class="stat-label">Exam Categories</span>
       </div>
     </div>
-  </div>
-  <div class="hero-scroll-indicator">
-    <div class="scroll-line"></div>
-    <span>Scroll to explore</span>
   </div>
 </section>
 
@@ -66,26 +60,24 @@
     <div class="categories-grid" id="categoriesGrid">
       <% if (categories && categories.length > 0) { %>
         <% categories.filter(c => c.isVisible !== false).forEach((cat, i) => { %>
-        <div class="category-card" data-tilt data-delay="<%= i * 0.1 %>" style="--card-color: <%= cat.color %>">
-          <div class="card-glow"></div>
+        <div class="category-card" data-delay="<%= i * 0.1 %>" style="--card-color: <%= cat.color %>">
           <div class="card-inner">
             <div class="card-icon-wrap">
-              <div class="card-icon-bg" style="background: <%= cat.color %>20">
-                <i class="<%= cat.icon %>" style="color: <%= cat.color %>"></i>
+              <div class="card-icon-bg" style="background: <%= cat.color %>1F; color: <%= cat.color %>">
+                <i class="<%= cat.icon %>"></i>
               </div>
-              <div class="icon-pulse" style="background: <%= cat.color %>"></div>
             </div>
             <h3 class="card-title"><%= cat.name %></h3>
             <p class="card-desc"><%= cat.description || '' %></p>
             <% if (cat.subjects && cat.subjects.length > 0) { %>
             <div class="subject-chips">
               <% cat.subjects.slice(0, 5).forEach(s => { %>
-                <span class="chip" style="border-color: <%= cat.color %>40; color: <%= cat.color %>"><%= s %></span>
+                <span class="chip" style="border-color: <%= cat.color %>33"><%= s %></span>
               <% }) %>
               <% if (cat.subjects.length > 5) { %><span class="chip chip-more">+<%= cat.subjects.length - 5 %> more</span><% } %>
             </div>
             <% } %>
-            <a href="/browse-courses?category=<%= cat.slug %>" class="card-cta" style="color: <%= cat.color %>">
+            <a href="/browse-courses?category=<%= cat.slug %>" class="card-cta">
               View Courses <i class="fas fa-chevron-right"></i>
             </a>
           </div>
@@ -94,32 +86,30 @@
       <% } else { %>
         <%
           const defaultCats = [
-            { name: 'CEE — Medical & Paramedical', icon: 'fas fa-stethoscope', color: '#00D4FF', desc: 'MBBS · BDS · BSc Nursing · B.Pharmacy · Paramedic — pick your target program inside the course', subjects: ['Biology', 'Chemistry', 'Physics', 'English'], slug: 'cee-medical' },
-            { name: 'CEE — BNS (B.N.Sc.)', icon: 'fas fa-heart-pulse', color: '#EC4899', desc: 'Bachelor of Nursing Science — a separate CEE entrance exam (Biology, Chemistry, Physics)', subjects: ['Biology', 'Chemistry', 'Physics'], slug: 'cee-bns' },
-            { name: 'IOE — Engineering', icon: 'fas fa-microchip', color: '#7C3AED', desc: 'Institute of Engineering entrance — BE, B.Arch, BEI programs', subjects: ['Mathematics', 'Physics', 'Chemistry', 'English'], slug: 'ioe-engineering' },
-            { name: 'Loksewa / लोकसेवा', icon: 'fas fa-landmark', color: '#F59E0B', desc: 'Nepal Public Service Commission — all levels and services', subjects: ['GK / सामान्य ज्ञान', 'Current Affairs', 'IQ / Reasoning', 'Nepal Constitution'], slug: 'loksewa' },
-            { name: 'License Exams', icon: 'fas fa-id-card', color: '#10B981', desc: 'Professional license exams: Nursing (NNC), CMLT, Pharmacy (NPC), HA (NHPC)', subjects: ['Nursing License (NNC)', 'CMLT License (NHPC)', 'Pharmacy License (NPC)', 'HA License (NHPC)'], slug: 'license' },
-            { name: 'SEE, Grade 11 & 12', icon: 'fas fa-school', color: '#F97316', desc: 'SEE (Grade 10), Grade 11 & Grade 12 — Science & Management streams', subjects: ['SEE — Grade 10', 'Grade 11', 'Grade 12'], slug: 'see-neb' }
+            { name: 'CEE — Medical & Paramedical', icon: 'fas fa-stethoscope', color: '#0E7C72', desc: 'MBBS · BDS · BSc Nursing · B.Pharmacy · Paramedic — pick your target program inside the course', subjects: ['Biology', 'Chemistry', 'Physics', 'English'], slug: 'cee-medical' },
+            { name: 'CEE — BNS (B.N.Sc.)', icon: 'fas fa-heart-pulse', color: '#2F7D6C', desc: 'Bachelor of Nursing Science — a separate CEE entrance exam (Biology, Chemistry, Physics)', subjects: ['Biology', 'Chemistry', 'Physics'], slug: 'cee-bns' },
+            { name: 'IOE — Engineering', icon: 'fas fa-microchip', color: '#3A6A8A', desc: 'Institute of Engineering entrance — BE, B.Arch, BEI programs', subjects: ['Mathematics', 'Physics', 'Chemistry', 'English'], slug: 'ioe-engineering' },
+            { name: 'Loksewa / लोकसेवा', icon: 'fas fa-landmark', color: '#B9852D', desc: 'Nepal Public Service Commission — all levels and services', subjects: ['GK / सामान्य ज्ञान', 'Current Affairs', 'IQ / Reasoning', 'Nepal Constitution'], slug: 'loksewa' },
+            { name: 'License Exams', icon: 'fas fa-id-card', color: '#A14A4A', desc: 'Professional license exams: Nursing (NNC), CMLT, Pharmacy (NPC), HA (NHPC)', subjects: ['Nursing License (NNC)', 'CMLT License (NHPC)', 'Pharmacy License (NPC)', 'HA License (NHPC)'], slug: 'license' },
+            { name: 'SEE, Grade 11 & 12', icon: 'fas fa-school', color: '#4A6B5A', desc: 'SEE (Grade 10), Grade 11 & Grade 12 — Science & Management streams', subjects: ['SEE — Grade 10', 'Grade 11', 'Grade 12'], slug: 'see-neb' }
           ];
         %>
         <% defaultCats.forEach((cat, i) => { %>
-        <div class="category-card" data-tilt data-delay="<%= i * 0.1 %>" style="--card-color: <%= cat.color %>">
-          <div class="card-glow"></div>
+        <div class="category-card" data-delay="<%= i * 0.1 %>" style="--card-color: <%= cat.color %>">
           <div class="card-inner">
             <div class="card-icon-wrap">
-              <div class="card-icon-bg" style="background: <%= cat.color %>20">
-                <i class="<%= cat.icon %>" style="color: <%= cat.color %>"></i>
+              <div class="card-icon-bg" style="background: <%= cat.color %>1F; color: <%= cat.color %>">
+                <i class="<%= cat.icon %>"></i>
               </div>
-              <div class="icon-pulse" style="background: <%= cat.color %>"></div>
             </div>
             <h3 class="card-title"><%= cat.name %></h3>
             <p class="card-desc"><%= cat.desc %></p>
             <div class="subject-chips">
               <% cat.subjects.forEach(s => { %>
-                <span class="chip" style="border-color: <%= cat.color %>40; color: <%= cat.color %>"><%= s %></span>
+                <span class="chip" style="border-color: <%= cat.color %>33"><%= s %></span>
               <% }) %>
             </div>
-            <a href="/browse-courses?category=<%= cat.slug %>" class="card-cta" style="color: <%= cat.color %>">
+            <a href="/browse-courses?category=<%= cat.slug %>" class="card-cta">
               View Courses <i class="fas fa-chevron-right"></i>
             </a>
           </div>
@@ -132,7 +122,7 @@
 
 <!-- ── DEMO LECTURES ── -->
 <% if (typeof demoCourses !== 'undefined' && demoCourses && demoCourses.length > 0) { %>
-<section class="demo-section" style="background:var(--bg-primary)">
+<section class="demo-section">
   <div class="container">
     <div class="section-header" data-gsap="fade-up">
       <span class="section-tag">Free Preview</span>
@@ -154,7 +144,7 @@
         <div class="course-body">
           <h3 class="course-title"><%= course.demoTitle || course.title %></h3>
           <p class="course-desc" style="font-size:13px;color:var(--text-muted)"><%= (course.description || '').substring(0, 80) %>...</p>
-          <a href="/courses/<%= course._id %>#demo" class="btn-enroll" style="background:linear-gradient(135deg,#10B981,#059669);width:100%;justify-content:center;margin-top:8px">
+          <a href="/courses/<%= course._id %>#demo" class="btn-enroll" style="width:100%;justify-content:center;margin-top:8px">
             <span>Watch Free Demo</span><i class="fas fa-play"></i>
           </a>
         </div>
@@ -174,12 +164,12 @@
     </div>
     <div class="features-grid">
       <% [
-        { icon: 'fas fa-video', color: '#00D4FF', title: 'HD Video Lessons', desc: 'Crystal-clear videos with speed control, notes, and full DRM protection — watch on any device' },
-        { icon: 'fas fa-flask', color: '#7C3AED', title: 'Smart Practice Tests', desc: 'Timed tests with negative marking, question navigator, instant solutions, and topic analysis' },
-        { icon: 'fas fa-bolt', color: '#F59E0B', title: '⚡ Galti Copy — Weakness Tracker', desc: 'Auto-tracks every wrong answer from practice & model exams. Smart quiz on your weak spots.' },
-        { icon: 'fas fa-shield-halved', color: '#10B981', title: 'Video Content Protection', desc: 'Dynamic watermarking with your name + email on every paid video — forensic anti-leak tracking' },
-        { icon: 'fas fa-chart-line', color: '#EC4899', title: 'Progress Analytics', desc: 'Real-time progress dashboard with charts, streaks, exam readiness score, and milestone badges' },
-        { icon: 'fas fa-mobile-screen', color: '#8B5CF6', title: 'Mobile Optimized', desc: 'Learn on any phone or tablet — fully responsive, fast-loading, works on 2G/3G connections' }
+        { icon: 'fas fa-video', color: '#0E7C72', title: 'HD Video Lessons', desc: 'Crystal-clear videos with speed control, notes, and full DRM protection — watch on any device' },
+        { icon: 'fas fa-flask', color: '#3A6A8A', title: 'Smart Practice Tests', desc: 'Timed tests with negative marking, question navigator, instant solutions, and topic analysis' },
+        { icon: 'fas fa-bolt', color: '#B9852D', title: '⚡ Galti Copy — Weakness Tracker', desc: 'Auto-tracks every wrong answer from practice & model exams. Smart quiz on your weak spots.' },
+        { icon: 'fas fa-shield-halved', color: '#2F7D6C', title: 'Video Content Protection', desc: 'Dynamic watermarking with your name + email on every paid video — forensic anti-leak tracking' },
+        { icon: 'fas fa-chart-line', color: '#3A6A8A', title: 'Progress Analytics', desc: 'Real-time progress dashboard with charts, streaks, exam readiness score, and milestone badges' },
+        { icon: 'fas fa-mobile-screen', color: '#0E7C72', title: 'Mobile Optimized', desc: 'Learn on any phone or tablet — fully responsive, fast-loading, works on 2G/3G connections' }
       ].forEach((f, i) => { %>
       <div class="feature-card" data-gsap="fade-up" data-delay="<%= i * 0.1 %>">
         <div class="feature-icon" style="background: <%= f.color %>15; color: <%= f.color %>">
@@ -222,7 +212,7 @@
           </div>
           <% if (course.targetPrograms && course.targetPrograms.length > 0) { %>
           <div class="course-meta" style="margin-top:-8px">
-            <span style="color:#00D4FF;font-size:11px"><i class="fas fa-tags"></i> <%= course.targetPrograms.join(' · ') %></span>
+            <span style="color:var(--brand);font-size:11px"><i class="fas fa-tags"></i> <%= course.targetPrograms.join(' · ') %></span>
           </div>
           <% } %>
           <div class="course-footer">
@@ -243,7 +233,7 @@
       <% }) %>
     </div>
     <div class="section-cta" data-gsap="fade-up">
-      <a href="/browse-courses" class="btn-magnetic btn-hero-primary">
+      <a href="/browse-courses" class="btn-hero-primary">
         <span>View All Courses</span>
         <i class="fas fa-th-large"></i>
       </a>
@@ -287,17 +277,16 @@
 
 <!-- ── FINAL CTA ── -->
 <section class="cta-section">
-  <div class="cta-bg-animation"></div>
   <div class="container">
     <div class="cta-content" data-gsap="fade-up">
       <h2>Ready to Start Your <span class="gradient-text">Success Journey?</span></h2>
       <p>Join 10,000+ students already preparing with Nepal's most advanced exam platform</p>
       <div class="cta-buttons">
-        <a href="/signup" class="btn-magnetic btn-hero-primary">
+        <a href="/signup" class="btn-hero-primary">
           <span>Create Free Account</span>
           <i class="fas fa-user-plus"></i>
         </a>
-        <a href="/browse-courses" class="btn-magnetic btn-hero-outline">
+        <a href="/browse-courses" class="btn-hero-outline">
           <span>Browse Courses</span>
           <i class="fas fa-search"></i>
         </a>
@@ -307,7 +296,5 @@
 </section>
 
 <%- include('partials/footer', { extraJs: `
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="/js/three-init.js"></script>
 <script src="/js/content-protection.js"></script>
 ` }) %>

@@ -1,6 +1,11 @@
 /* ============================================
    LEARN WITH SAURAB — responsive.css
    Mobile breakpoints: 1024, 768, 480px
+
+   ⚠️ NOT LOADED BY ANY VIEW — responsive rules live in
+   public/css/style.css. Retained for reference; the dark
+   values here have been retuned to the light palette so
+   this file can be wired in later without clashing.
    ============================================ */
 
 /* ─── TABLET (≤ 1024px) ─── */
@@ -16,14 +21,14 @@
     flex-direction: column;
     position: fixed;
     top: 70px; left: 0; right: 0;
-    background: rgba(10,14,26,0.98);
+    background: rgba(255,255,255,0.97);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     padding: 16px;
     gap: 4px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid #E2E8E4;
     z-index: 999;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    box-shadow: 0 16px 40px rgba(20,33,43,0.12);
     max-height: calc(100vh - 70px);
     overflow-y: auto;
   }
@@ -92,7 +97,7 @@
     width: 100%;
   }
   .hero-stat-divider { display: none; }
-  .hero-stat { text-align: center; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 12px 8px; }
+  .hero-stat { text-align: left; background: transparent; border: none; border-radius: 12px; padding: 12px 8px; }
   .stat-num { font-size: 24px; }
 
   /* Sections */

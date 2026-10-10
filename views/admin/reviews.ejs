@@ -30,14 +30,14 @@
         <thead><tr><th>Student</th><th>Course</th><th>Rating</th><th>Comment</th><th>Date</th><th>Actions</th></tr></thead>
         <tbody>
           <% if (reviews.length === 0) { %>
-          <tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:24px">No reviews found.</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:#5F6C76;padding:24px">No reviews found.</td></tr>
           <% } %>
           <% reviews.forEach(r => { %>
           <tr>
             <td><%= r.userId ? r.userId.firstName + ' ' + (r.userId.lastName||'') : 'Deleted User' %><br><span class="text-muted text-sm"><%= r.userId ? r.userId.email : '' %></span></td>
             <td><%= r.courseId ? r.courseId.title : 'Deleted Course' %></td>
             <td>
-              <span style="color:#F59E0B;white-space:nowrap">
+              <span style="color:#B9852D;white-space:nowrap">
                 <% for (let s = 1; s <= 5; s++) { %><i class="fas fa-star" style="<%= s > r.rating ? 'opacity:0.2' : '' %>"></i><% } %>
               </span>
             </td>

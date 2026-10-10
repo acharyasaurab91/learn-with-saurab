@@ -34,24 +34,24 @@
 <%- include('../partials/footer', { extraJs: `
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const signupData = <%- signupData %>;
-const revenueData = <%- revenueData %>;
+const signupData = ${signupData};
+const revenueData = ${revenueData};
 const chartDefaults = {
   responsive: true,
-  plugins: { legend: { labels: { color: '#E5E7EB' } } },
+  plugins: { legend: { labels: { color: '#14212B' } } },
   scales: {
-    x: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' } },
-    y: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' }, beginAtZero: true }
+    x: { ticks: { color: '#5F6C76' }, grid: { color: '#E2E8E4' } },
+    y: { ticks: { color: '#5F6C76' }, grid: { color: '#E2E8E4' }, beginAtZero: true }
   }
 };
 new Chart(document.getElementById('signupChart'), {
   type: 'bar',
-  data: { labels: signupData.map(d=>d._id), datasets: [{ label: 'Signups', data: signupData.map(d=>d.count), backgroundColor: 'rgba(0,212,255,0.6)', borderColor: '#00D4FF', borderWidth: 1 }] },
+  data: { labels: signupData.map(d=>d._id), datasets: [{ label: 'Signups', data: signupData.map(d=>d.count), backgroundColor: 'rgba(14,124,114,0.6)', borderColor: '#0E7C72', borderWidth: 1 }] },
   options: chartDefaults
 });
 new Chart(document.getElementById('revenueChart'), {
   type: 'line',
-  data: { labels: revenueData.map(d=>d._id), datasets: [{ label: 'Revenue (Rs.)', data: revenueData.map(d=>d.total), borderColor: '#FFD700', backgroundColor: 'rgba(255,215,0,0.1)', tension: 0.4, fill: true }] },
+  data: { labels: revenueData.map(d=>d._id), datasets: [{ label: 'Revenue (Rs.)', data: revenueData.map(d=>d.total), borderColor: '#B9852D', backgroundColor: 'rgba(185,133,45,0.12)', tension: 0.4, fill: true }] },
   options: chartDefaults
 });
 </script>

@@ -1,54 +1,54 @@
 <%- include('../partials/header') %>
 
-<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 30% 20%, rgba(0,212,255,0.06) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(124,58,237,0.06) 0%, transparent 60%)">
-  <div style="max-width:480px;width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(0,212,255,0.15);border-radius:20px;padding:48px 40px;text-align:center;backdrop-filter:blur(20px)">
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 30% 20%, rgba(14,124,114,0.06) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(58,106,138,0.06) 0%, transparent 60%)">
+  <div style="max-width:480px;width:100%;background:#FFFFFF;border:1px solid rgba(14,124,114,0.15);border-radius:20px;padding:48px 40px;text-align:center;backdrop-filter:blur(20px)">
 
     <!-- Icon -->
-    <div style="width:80px;height:80px;border-radius:20px;background:linear-gradient(135deg,rgba(0,212,255,0.15),rgba(124,58,237,0.15));border:1px solid rgba(0,212,255,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 28px;font-size:36px">
+    <div style="width:80px;height:80px;border-radius:20px;background:rgba(14,124,114,0.12);border:1px solid rgba(14,124,114,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 28px;font-size:36px">
       📧
     </div>
 
-    <h1 style="font-family:'Montserrat',sans-serif;font-size:26px;font-weight:900;margin-bottom:12px">Check Your Inbox</h1>
-    <p style="color:#9CA3AF;font-size:15px;line-height:1.6;margin-bottom:8px">
+    <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:900;margin-bottom:12px">Check Your Inbox</h1>
+    <p style="color:#5F6C76;font-size:15px;line-height:1.6;margin-bottom:8px">
       We sent a verification link to
     </p>
-    <p style="color:#00D4FF;font-weight:700;font-size:15px;margin-bottom:24px;word-break:break-all">
+    <p style="color:#0E7C72;font-weight:700;font-size:15px;margin-bottom:24px;word-break:break-all">
       <%= typeof verifyEmail !== 'undefined' && verifyEmail ? verifyEmail : 'your email address' %>
     </p>
-    <p style="color:#6B7280;font-size:13px;line-height:1.6;margin-bottom:32px">
-      Click the link in the email to activate your account. The link expires in <strong style="color:#E5E7EB">24 hours</strong>.
+    <p style="color:#5F6C76;font-size:13px;line-height:1.6;margin-bottom:32px">
+      Click the link in the email to activate your account. The link expires in <strong style="color:#14212B">24 hours</strong>.
     </p>
 
     <% if (typeof resent !== 'undefined' && resent) { %>
-    <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;color:#10B981;font-size:13px;font-weight:600;text-align:left">
+    <div style="background:rgba(31,106,92,0.1);border:1px solid rgba(31,106,92,0.25);border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;color:#1F6A5C;font-size:13px;font-weight:600;text-align:left">
       <i class="fas fa-check-circle"></i> Verification email resent successfully!
     </div>
     <% } %>
     <% if (typeof error !== 'undefined' && error) { %>
-    <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;color:#EF4444;font-size:13px;font-weight:600;text-align:left">
+    <div style="background:rgba(180,35,24,0.1);border:1px solid rgba(180,35,24,0.25);border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;color:#B42318;font-size:13px;font-weight:600;text-align:left">
       <i class="fas fa-exclamation-circle"></i> Failed to send email. Please try again.
     </div>
     <% } %>
 
     <!-- Resend -->
     <form action="/resend-verification" method="POST" style="margin-bottom:16px">
-      <button type="submit" style="width:100%;padding:14px;background:linear-gradient(135deg,#00D4FF,#7C3AED);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Inter',sans-serif;transition:opacity 0.2s" onmouseenter="this.style.opacity='0.9'" onmouseleave="this.style.opacity='1'">
+      <button type="submit" style="width:100%;padding:14px;background:#0E7C72;border:none;border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Inter',sans-serif;transition:opacity 0.2s" onmouseenter="this.style.opacity='0.9'" onmouseleave="this.style.opacity='1'">
         <i class="fas fa-redo" style="margin-right:8px"></i>Resend Verification Email
       </button>
     </form>
 
     <div style="display:flex;gap:12px">
-      <a href="/login" style="flex:1;padding:11px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#9CA3AF;text-decoration:none;font-size:13px;font-weight:600;transition:all 0.2s" onmouseenter="this.style.color='#E5E7EB'" onmouseleave="this.style.color='#9CA3AF'">
+      <a href="/login" style="flex:1;padding:11px;background:#FFFFFF;border:1px solid #E2E8E4;border-radius:10px;color:#5F6C76;text-decoration:none;font-size:13px;font-weight:600;transition:all 0.2s" onmouseenter="this.style.color='#14212B'" onmouseleave="this.style.color='#5F6C76'">
         <i class="fas fa-sign-in-alt" style="margin-right:6px"></i>Login
       </a>
-      <a href="/" style="flex:1;padding:11px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#9CA3AF;text-decoration:none;font-size:13px;font-weight:600;transition:all 0.2s" onmouseenter="this.style.color='#E5E7EB'" onmouseleave="this.style.color='#9CA3AF'">
+      <a href="/" style="flex:1;padding:11px;background:#FFFFFF;border:1px solid #E2E8E4;border-radius:10px;color:#5F6C76;text-decoration:none;font-size:13px;font-weight:600;transition:all 0.2s" onmouseenter="this.style.color='#14212B'" onmouseleave="this.style.color='#5F6C76'">
         <i class="fas fa-home" style="margin-right:6px"></i>Home
       </a>
     </div>
 
     <p style="color:#4B5563;font-size:12px;margin-top:28px">
       Didn't receive it? Check spam/junk folder.<br>
-      Need help? <a href="/contact" style="color:#00D4FF;text-decoration:none">Contact support</a>
+      Need help? <a href="/contact" style="color:#0E7C72;text-decoration:none">Contact support</a>
     </p>
   </div>
 </div>

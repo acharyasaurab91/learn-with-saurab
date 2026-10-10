@@ -81,14 +81,14 @@ async function addQuestion(e) {
   formData.append('tags', document.getElementById('qTags').value);
   const img = document.getElementById('qImage').files[0];
   if (img) formData.append('questionImage', img);
-  const res = await fetch('/admin/tests/<%= test._id %>/questions', { method: 'POST', body: formData });
+  const res = await fetch('/admin/tests/${test._id}/questions', { method: 'POST', body: formData });
   const data = await res.json();
   if (data.success) { location.reload(); }
   else { alert('Error: ' + data.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Add Question'; }
 }
 async function deleteQuestion(qId) {
   if (!confirm('Delete this question?')) return;
-  const res = await fetch('/admin/tests/<%= test._id %>/questions/' + qId, { method: 'DELETE' });
+  const res = await fetch('/admin/tests/${test._id}/questions/' + qId, { method: 'DELETE' });
   if ((await res.json()).success) location.reload();
 }
 </script>` }) %>

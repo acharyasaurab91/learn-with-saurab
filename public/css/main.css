@@ -1,64 +1,92 @@
 /* ============================================
    LEARN WITH SAURAB — main.css
-   Premium dark academic design
-   Background: #0B1120 deep navy
+
+   ⚠️ DOCUMENTATION ONLY — THIS FILE IS NOT LOADED BY ANY VIEW.
+   The live stylesheet is public/css/style.css (linked in
+   views/partials/header.ejs). The :root block below is an exact
+   mirror of the design tokens in style.css, kept here as the
+   single reference copy of the palette.
    ============================================ */
 
 /* ── GOOGLE FONTS IMPORT ── */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap');
 
-/* ── CSS VARIABLES ── */
+/* ── CSS VARIABLES (mirror of style.css) ── */
 :root {
-  /* Brand Colors */
-  --primary:        #0D7377;
-  --primary-dark:   #0A5C60;
-  --primary-light:  #14A89D;
-  --primary-glow:   rgba(13, 115, 119, 0.3);
+  /* ── Backgrounds ── */
+  --bg-base: #F6F7F4;
+  --bg-elevated: #EEF2EF;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #FAFCFA;
+  --bg-dark: #14212B;
 
-  /* Accents */
-  --gold:           #F5C518;
-  --gold-dark:      #D4A017;
-  --red:            #E63946;
-  --red-dark:       #C1121F;
-  --purple:         #6366F1;
+  /* ── Text ── */
+  --text-primary: #14212B;
+  --text-secondary: #53616D;
+  /* directive value #74818A darkened to #5F6C76 so 12–14px muted text clears AA on #F6F7F4 */
+  --text-muted: #5F6C76;
 
-  /* Backgrounds */
-  --bg-dark:        #0B1120;
-  --bg-card:        #111827;
-  --bg-surface:     #1F2937;
-  --bg-hover:       #243044;
-  --bg-elevated:    #162032;
+  /* ── Brand & accents ── */
+  --brand: #0E7C72;
+  --brand-hover: #09665E;
+  --brand-subtle: #E6F2EF;
+  --brand-on-dark: #63CFC3;
+  --accent-gold: #B9852D;
+  --gold-deep: #7A5618;
+  --danger: #B42318;
 
-  /* Text */
-  --text-primary:   #F9FAFB;
-  --text-secondary: #9CA3AF;
-  --text-muted:     #6B7280;
+  /* ── Borders ── */
+  --border-subtle: #E2E8E4;
+  --border-strong: #CDD7D1;
 
-  /* Borders */
-  --border:         rgba(255, 255, 255, 0.08);
-  --border-hover:   rgba(255, 255, 255, 0.15);
-  --border-primary: rgba(13, 115, 119, 0.4);
+  /* ── Radius ── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
 
-  /* States */
-  --success:        #10B981;
-  --warning:        #F59E0B;
-  --error:          #EF4444;
-  --info:           #3B82F6;
+  /* ── Elevation ── */
+  --shadow-sm: 0 2px 8px rgba(20, 33, 43, 0.05);
+  --shadow-md: 0 8px 24px rgba(20, 33, 43, 0.08);
 
-  /* Shape */
+  /* ── Motion ── */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --transition: all 0.2s var(--ease);
+}
+
+/* ── LEGACY ALIASES (main.css's own rules still use these names) ── */
+:root {
+  --primary:        #0E7C72;
+  --primary-dark:   #09665E;
+  --primary-light:  #63CFC3;
+  --primary-glow:   rgba(14, 124, 114, 0.3);
+  --gold:           #B9852D;
+  --gold-dark:      #7A5618;
+  --red:            #B42318;
+  --red-dark:       #8F1C13;
+  --purple:         #3A6A8A;
+  --bg-card:        #FFFFFF;
+  --bg-surface:     #EEF2EF;
+  --bg-hover:       #F6F7F4;
+  --text-primary:   #14212B;
+  --text-secondary: #53616D;
+  --text-muted:     #5F6C76;
+  --border:         #E2E8E4;
+  --border-hover:   #CDD7D1;
+  --border-primary: rgba(14, 124, 114, 0.4);
+  --success:        #1F6A5C;
+  --warning:        #B9852D;
+  --error:          #B42318;
+  --info:           #3A6A8A;
   --radius-sm:      8px;
   --radius:         12px;
-  --radius-lg:      20px;
-  --radius-xl:      28px;
-
-  /* Shadows */
-  --shadow:         0 10px 40px rgba(0, 0, 0, 0.4);
-  --shadow-teal:    0 8px 32px rgba(13, 115, 119, 0.25);
-  --shadow-card:    0 4px 24px rgba(0, 0, 0, 0.3);
-
-  /* Transitions */
-  --transition:     all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-fast:all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --radius-lg:      16px;
+  --radius-xl:      24px;
+  --shadow:         0 8px 24px rgba(20, 33, 43, 0.08);
+  --shadow-teal:    0 8px 24px rgba(14, 124, 114, 0.18);
+  --shadow-card:    0 2px 8px rgba(20, 33, 43, 0.05);
+  --transition:     all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --transition-fast:all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* ── RESET & BASE ── */

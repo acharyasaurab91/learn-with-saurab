@@ -6,31 +6,31 @@
   <div class="dashboard-main">
     <div class="dashboard-header" style="margin-bottom:8px">
       <h1>📓 <span class="gradient-text">Galti Copy</span></h1>
-      <p style="color:#9CA3AF">Your personal mistake notebook — auto-filled from every test & PYQ you get wrong, plus your own notes</p>
+      <p style="color:#5F6C76">Your personal mistake notebook — auto-filled from every test & PYQ you get wrong, plus your own notes</p>
     </div>
 
     <!-- Stats -->
     <div class="weakness-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px">
-      <div class="wstat-card" style="background:#161D2E;border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px">
-        <div style="width:44px;height:44px;background:rgba(239,68,68,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#EF4444;flex-shrink:0"><i class="fas fa-times-circle"></i></div>
-        <div><div style="font-size:26px;font-weight:800;font-family:Montserrat,sans-serif"><%= mistakes.length %></div><div style="font-size:12px;color:#9CA3AF">Weak Points</div></div>
+      <div class="wstat-card" style="background:#FFFFFF;border:1px solid rgba(180,35,24,0.2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px">
+        <div style="width:44px;height:44px;background:rgba(180,35,24,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#B42318;flex-shrink:0"><i class="fas fa-times-circle"></i></div>
+        <div><div style="font-size:26px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif"><%= mistakes.length %></div><div style="font-size:12px;color:#5F6C76">Weak Points</div></div>
       </div>
-      <div class="wstat-card" style="background:#161D2E;border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px">
-        <div style="width:44px;height:44px;background:rgba(245,158,11,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#F59E0B;flex-shrink:0"><i class="fas fa-exclamation-triangle"></i></div>
-        <div><div style="font-size:26px;font-weight:800;font-family:Montserrat,sans-serif"><%= mistakes.filter(m => m.timesMistaken >= 3).length %></div><div style="font-size:12px;color:#9CA3AF">Critical (3×+)</div></div>
+      <div class="wstat-card" style="background:#FFFFFF;border:1px solid rgba(185,133,45,0.2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px">
+        <div style="width:44px;height:44px;background:rgba(185,133,45,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#B9852D;flex-shrink:0"><i class="fas fa-exclamation-triangle"></i></div>
+        <div><div style="font-size:26px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif"><%= mistakes.filter(m => m.timesMistaken >= 3).length %></div><div style="font-size:12px;color:#5F6C76">Critical (3×+)</div></div>
       </div>
-      <div class="wstat-card" style="background:#161D2E;border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px">
-        <div style="width:44px;height:44px;background:rgba(16,185,129,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#10B981;flex-shrink:0"><i class="fas fa-check-circle"></i></div>
-        <div><div style="font-size:26px;font-weight:800;font-family:Montserrat,sans-serif"><%= mistakes.filter(m => m.mastered).length %></div><div style="font-size:12px;color:#9CA3AF">Mastered</div></div>
+      <div class="wstat-card" style="background:#FFFFFF;border:1px solid rgba(31,106,92,0.2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px">
+        <div style="width:44px;height:44px;background:rgba(31,106,92,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#1F6A5C;flex-shrink:0"><i class="fas fa-check-circle"></i></div>
+        <div><div style="font-size:26px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif"><%= mistakes.filter(m => m.mastered).length %></div><div style="font-size:12px;color:#5F6C76">Mastered</div></div>
       </div>
-      <div class="wstat-card" style="background:#161D2E;border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px">
-        <div style="width:44px;height:44px;background:rgba(124,58,237,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#7C3AED;flex-shrink:0"><i class="fas fa-pen-to-square"></i></div>
-        <div><div style="font-size:26px;font-weight:800;font-family:Montserrat,sans-serif"><%= notes.length %></div><div style="font-size:12px;color:#9CA3AF">My Notes</div></div>
+      <div class="wstat-card" style="background:#FFFFFF;border:1px solid rgba(58,106,138,0.2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px">
+        <div style="width:44px;height:44px;background:rgba(58,106,138,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#3A6A8A;flex-shrink:0"><i class="fas fa-pen-to-square"></i></div>
+        <div><div style="font-size:26px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif"><%= notes.length %></div><div style="font-size:12px;color:#5F6C76">My Notes</div></div>
       </div>
     </div>
 
     <!-- Tabs -->
-    <div style="display:flex;gap:0;margin-bottom:24px;background:#111827;border-radius:10px;padding:4px">
+    <div style="display:flex;gap:0;margin-bottom:24px;background:#14212B;border-radius:10px;padding:4px">
       <button class="wk-tab active" id="tab-btn-mistakes" onclick="switchTab('mistakes')"><i class="fas fa-exclamation-circle"></i> Auto-Tracked Mistakes</button>
       <button class="wk-tab" id="tab-btn-notes" onclick="switchTab('notes')"><i class="fas fa-pen-to-square"></i> My Notes</button>
       <button class="wk-tab" id="tab-btn-add" onclick="switchTab('add')"><i class="fas fa-plus-circle"></i> Add Note</button>
@@ -39,26 +39,26 @@
     <!-- TAB: Auto-tracked -->
     <div id="panel-mistakes">
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
-        <select id="filterTopic" onchange="filterMistakes()" style="background:#161D2E;border:1px solid var(--border);color:#E5E7EB;padding:8px 14px;border-radius:8px;font-size:13px">
+        <select id="filterTopic" onchange="filterMistakes()" style="background:#FFFFFF;border:1px solid var(--border);color:#14212B;padding:8px 14px;border-radius:8px;font-size:13px">
           <option value="">All Topics</option>
           <% const topics = [...new Set(mistakes.map(m => m.topic).filter(Boolean))]; %>
           <% topics.forEach(t => { %><option value="<%= t %>"><%= t %></option><% }) %>
         </select>
-        <select id="filterDiff" onchange="filterMistakes()" style="background:#161D2E;border:1px solid var(--border);color:#E5E7EB;padding:8px 14px;border-radius:8px;font-size:13px">
+        <select id="filterDiff" onchange="filterMistakes()" style="background:#FFFFFF;border:1px solid var(--border);color:#14212B;padding:8px 14px;border-radius:8px;font-size:13px">
           <option value="">All Difficulties</option>
           <option value="Easy">Easy</option><option value="Medium">Medium</option><option value="Hard">Hard</option>
         </select>
-        <label style="display:flex;align-items:center;gap:6px;color:#9CA3AF;font-size:13px;cursor:pointer">
+        <label style="display:flex;align-items:center;gap:6px;color:#5F6C76;font-size:13px;cursor:pointer">
           <input type="checkbox" id="filterCritical" onchange="filterMistakes()"> 🔴 Critical only
         </label>
-        <label style="display:flex;align-items:center;gap:6px;color:#9CA3AF;font-size:13px;cursor:pointer">
+        <label style="display:flex;align-items:center;gap:6px;color:#5F6C76;font-size:13px;cursor:pointer">
           <input type="checkbox" id="filterUnmastered" onchange="filterMistakes()" checked> Hide mastered
         </label>
       </div>
 
       <% if (mistakes.length === 0) { %>
         <div class="empty-state">
-          <i class="fas fa-trophy" style="font-size:48px;color:#FFD700;display:block;margin-bottom:16px"></i>
+          <i class="fas fa-trophy" style="font-size:48px;color:#B9852D;display:block;margin-bottom:16px"></i>
           <h3>No weak areas yet!</h3>
           <p>Take practice tests and your mistakes will automatically appear here.</p>
           <a href="/free-tests" class="btn-enroll-big" style="display:inline-block;margin-top:16px">Try a Free Test</a>
@@ -72,39 +72,39 @@
             <div class="mistake-card-header">
               <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
                 <% if (m.topic) { %><span class="badge-topic"><%= m.topic %></span><% } %>
-                <span style="font-size:11px;padding:2px 8px;border-radius:12px;background:<%= m.difficulty==='Hard' ? 'rgba(239,68,68,0.15)' : m.difficulty==='Easy' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)' %>;color:<%= m.difficulty==='Hard' ? '#EF4444' : m.difficulty==='Easy' ? '#10B981' : '#F59E0B' %>"><%= m.difficulty %></span>
-                <span style="font-size:11px;padding:2px 8px;border-radius:12px;background:<%= m.timesMistaken >= 3 ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.15)' %>;color:<%= m.timesMistaken >= 3 ? '#EF4444' : '#9CA3AF' %>">
+                <span style="font-size:11px;padding:2px 8px;border-radius:12px;background:<%= m.difficulty==='Hard' ? 'rgba(180,35,24,0.15)' : m.difficulty==='Easy' ? 'rgba(31,106,92,0.15)' : 'rgba(185,133,45,0.15)' %>;color:<%= m.difficulty==='Hard' ? '#B42318' : m.difficulty==='Easy' ? '#1F6A5C' : '#B9852D' %>"><%= m.difficulty %></span>
+                <span style="font-size:11px;padding:2px 8px;border-radius:12px;background:<%= m.timesMistaken >= 3 ? 'rgba(180,35,24,0.15)' : 'rgba(107,114,128,0.15)' %>;color:<%= m.timesMistaken >= 3 ? '#B42318' : '#5F6C76' %>">
                   <%= m.timesMistaken %>× wrong<% if (m.timesMistaken >= 3) { %> 🔴 Critical<% } %>
                 </span>
-                <% if (m.mastered) { %><span style="font-size:11px;padding:2px 8px;border-radius:12px;background:rgba(16,185,129,0.15);color:#10B981">✓ Mastered</span><% } %>
+                <% if (m.mastered) { %><span style="font-size:11px;padding:2px 8px;border-radius:12px;background:rgba(31,106,92,0.15);color:#1F6A5C">✓ Mastered</span><% } %>
               </div>
               <div style="display:flex;gap:6px">
                 <% if (!m.mastered) { %>
                 <button onclick="markMastered('<%= m._id %>')" class="btn-xs" title="Mark as mastered"><i class="fas fa-check"></i></button>
                 <% } %>
-                <button onclick="deleteMistake('<%= m._id %>')" class="btn-xs" style="background:rgba(239,68,68,0.1);color:#EF4444;border:1px solid rgba(239,68,68,0.2)" title="Delete"><i class="fas fa-trash"></i></button>
+                <button onclick="deleteMistake('<%= m._id %>')" class="btn-xs" style="background:rgba(180,35,24,0.1);color:#B42318;border:1px solid rgba(180,35,24,0.2)" title="Delete"><i class="fas fa-trash"></i></button>
               </div>
             </div>
             <p style="font-size:14px;line-height:1.6;margin:10px 0"><%= m.questionText %></p>
             <% if (m.options && m.options.length > 0) { %>
             <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
               <% m.options.forEach((opt, oi) => { %>
-              <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:13px;background:<%= oi===m.correctAnswer ? 'rgba(16,185,129,0.1)' : oi===m.studentAnswer && oi!==m.correctAnswer ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.03)' %>;border:1px solid <%= oi===m.correctAnswer ? 'rgba(16,185,129,0.3)' : oi===m.studentAnswer && oi!==m.correctAnswer ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.06)' %>">
-                <span style="font-weight:700;color:<%= oi===m.correctAnswer ? '#10B981' : oi===m.studentAnswer && oi!==m.correctAnswer ? '#EF4444' : '#6B7280' %>"><%= String.fromCharCode(65+oi) %>.</span>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:13px;background:<%= oi===m.correctAnswer ? 'rgba(31,106,92,0.1)' : oi===m.studentAnswer && oi!==m.correctAnswer ? 'rgba(180,35,24,0.1)' : 'rgba(20,33,43,0.03)' %>;border:1px solid <%= oi===m.correctAnswer ? 'rgba(31,106,92,0.3)' : oi===m.studentAnswer && oi!==m.correctAnswer ? 'rgba(180,35,24,0.3)' : 'rgba(20,33,43,0.08)' %>">
+                <span style="font-weight:700;color:<%= oi===m.correctAnswer ? '#1F6A5C' : oi===m.studentAnswer && oi!==m.correctAnswer ? '#B42318' : '#5F6C76' %>"><%= String.fromCharCode(65+oi) %>.</span>
                 <span style="flex:1"><%= opt.text %></span>
-                <% if (oi===m.correctAnswer) { %><i class="fas fa-check" style="color:#10B981"></i><% } else if (oi===m.studentAnswer && oi!==m.correctAnswer) { %><i class="fas fa-times" style="color:#EF4444"></i><% } %>
+                <% if (oi===m.correctAnswer) { %><i class="fas fa-check" style="color:#1F6A5C"></i><% } else if (oi===m.studentAnswer && oi!==m.correctAnswer) { %><i class="fas fa-times" style="color:#B42318"></i><% } %>
               </div>
               <% }) %>
             </div>
             <% } %>
             <% if (m.explanation) { %>
-            <div style="background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:10px">
-              <i class="fas fa-lightbulb" style="color:#FFD700"></i> <strong>Explanation:</strong> <%= m.explanation %>
+            <div style="background:rgba(14,124,114,0.05);border:1px solid rgba(14,124,114,0.18);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:10px">
+              <i class="fas fa-lightbulb" style="color:#0E7C72"></i> <strong>Explanation:</strong> <%= m.explanation %>
             </div>
             <% } %>
             <div style="display:flex;gap:8px;align-items:center">
               <input type="text" id="note-<%= m._id %>" value="<%= m.studentNotes || '' %>" placeholder="Add your personal note on this question..."
-                style="flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:#E5E7EB;padding:8px 12px;border-radius:8px;font-size:12px">
+                style="flex:1;background:#FFFFFF;border:1px solid var(--border);color:#14212B;padding:8px 12px;border-radius:8px;font-size:12px">
               <button onclick="saveMistakeNote('<%= m._id %>')" class="btn-xs"><i class="fas fa-save"></i> Save</button>
             </div>
           </div>
@@ -117,7 +117,7 @@
     <div id="panel-notes" style="display:none">
       <% if (notes.length === 0) { %>
         <div class="empty-state">
-          <i class="fas fa-pen-to-square" style="font-size:48px;color:#7C3AED;display:block;margin-bottom:16px"></i>
+          <i class="fas fa-pen-to-square" style="font-size:48px;color:#3A6A8A;display:block;margin-bottom:16px"></i>
           <h3>No notes yet</h3>
           <p>Add your own notes for concepts you find difficult.</p>
           <button onclick="switchTab('add')" class="btn-enroll-big" style="margin-top:16px;border:none;cursor:pointer;font-family:Inter,sans-serif">Add First Note</button>
@@ -125,21 +125,21 @@
       <% } else { %>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
           <% notes.forEach(note => { %>
-          <div style="background:#161D2E;border:1px solid <%= note.isStarred ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.08)' %>;border-radius:12px;padding:16px">
+          <div style="background:#FFFFFF;border:1px solid <%= note.isStarred ? 'rgba(185,133,45,0.3)' : '#E2E8E4' %>;border-radius:12px;padding:16px">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px">
               <h4 style="font-size:15px"><%= note.isStarred ? '⭐ ' : '' %><%= note.title %></h4>
               <div style="display:flex;gap:6px;flex-shrink:0">
-                <button onclick="toggleStar('<%= note._id %>')" style="background:none;border:none;cursor:pointer;color:<%= note.isStarred ? '#FFD700' : '#6B7280' %>;font-size:16px" title="Star"><i class="fas fa-star"></i></button>
-                <button onclick="deleteNote('<%= note._id %>')" style="background:none;border:none;cursor:pointer;color:#EF4444;font-size:14px" title="Delete"><i class="fas fa-trash"></i></button>
+                <button onclick="toggleStar('<%= note._id %>')" style="background:none;border:none;cursor:pointer;color:<%= note.isStarred ? '#B9852D' : '#5F6C76' %>;font-size:16px" title="Star"><i class="fas fa-star"></i></button>
+                <button onclick="deleteNote('<%= note._id %>')" style="background:none;border:none;cursor:pointer;color:#B42318;font-size:14px" title="Delete"><i class="fas fa-trash"></i></button>
               </div>
             </div>
-            <p style="font-size:13px;color:#9CA3AF;line-height:1.6;margin-bottom:10px"><%= note.content %></p>
+            <p style="font-size:13px;color:#5F6C76;line-height:1.6;margin-bottom:10px"><%= note.content %></p>
             <% if (note.tags && note.tags.length > 0) { %>
               <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-                <% note.tags.forEach(t => { %><span style="font-size:11px;background:rgba(0,212,255,0.1);color:#00D4FF;padding:2px 8px;border-radius:12px"><%= t %></span><% }) %>
+                <% note.tags.forEach(t => { %><span style="font-size:11px;background:rgba(14,124,114,0.1);color:#0E7C72;padding:2px 8px;border-radius:12px"><%= t %></span><% }) %>
               </div>
             <% } %>
-            <div style="font-size:11px;color:#6B7280"><i class="fas fa-clock"></i> <%= new Date(note.createdAt).toLocaleDateString() %></div>
+            <div style="font-size:11px;color:#5F6C76"><i class="fas fa-clock"></i> <%= new Date(note.createdAt).toLocaleDateString() %></div>
           </div>
           <% }) %>
         </div>
@@ -149,13 +149,13 @@
     <!-- TAB: Add Note -->
     <div id="panel-add" style="display:none">
       <div class="admin-section" style="max-width:640px">
-        <h3 style="margin-bottom:20px"><i class="fas fa-plus-circle" style="color:#00D4FF"></i> Add Study Note</h3>
+        <h3 style="margin-bottom:20px"><i class="fas fa-plus-circle" style="color:#0E7C72"></i> Add Study Note</h3>
         <form id="addNoteForm" onsubmit="submitNote(event)" class="admin-form">
           <div class="form-group"><label>Title *</label><input type="text" id="noteTitle" required placeholder="e.g. How muscles contract in CEE Biology"></div>
           <div class="form-group"><label>Content *</label><textarea id="noteContent" rows="6" required placeholder="Write the concept, formula, trick, or explanation you want to remember..."></textarea></div>
           <div class="form-row-2">
             <div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="noteTags" placeholder="e.g. Biology, CEE, Important"></div>
-            <div class="form-group" style="padding-top:28px"><label class="checkbox-label"><input type="checkbox" id="noteStarred"> <i class="fas fa-star" style="color:#FFD700"></i> Star this note</label></div>
+            <div class="form-group" style="padding-top:28px"><label class="checkbox-label"><input type="checkbox" id="noteStarred"> <i class="fas fa-star" style="color:#B9852D"></i> Star this note</label></div>
           </div>
           <div id="noteMsg" style="display:none" class="alert alert-success"><i class="fas fa-check-circle"></i> Note saved!</div>
           <button type="submit" class="btn-admin-primary"><i class="fas fa-save"></i> Save Note</button>

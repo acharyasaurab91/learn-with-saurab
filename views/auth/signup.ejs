@@ -33,7 +33,7 @@
               <input type="text" name="username" id="usernameInput" placeholder="aarav_sharma" required autocomplete="off" style="padding-right:36px">
               <span id="usernameStatus" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px"></span>
             </div>
-            <small id="usernameHint" style="font-size:12px;color:#6B7280;margin-top:4px;display:none"></small>
+            <small id="usernameHint" style="font-size:12px;color:#5F6C76;margin-top:4px;display:none"></small>
           </div>
           <div class="form-group">
             <label><i class="fas fa-phone"></i> Mobile</label>
@@ -101,9 +101,9 @@ pwd1.addEventListener('input', function() {
   if (/[0-9]/.test(v)) s++;
   if (/[^A-Za-z0-9]/.test(v)) s++;
   const levels = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
-  const colors = ['', '#EF4444', '#F97316', '#F59E0B', '#10B981', '#00D4FF'];
+  const colors = ['', '#B42318', '#C2410C', '#5F6C76', '#1F6A5C', '#0E7C72'];
   const pct = Math.min((s / 5) * 100, 100);
-  pwdStrength.innerHTML = '<div style="margin-top:6px"><div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.08);overflow:hidden"><div style="height:100%;border-radius:2px;background:' + colors[s] + ';width:' + pct + '%;transition:all .3s"></div></div><span style="font-size:12px;color:' + colors[s] + '">' + (levels[s] || '') + '</span></div>';
+  pwdStrength.innerHTML = '<div style="margin-top:6px"><div style="height:4px;border-radius:2px;background:#E2E8E4;overflow:hidden"><div style="height:100%;border-radius:2px;background:' + colors[s] + ';width:' + pct + '%;transition:all .3s"></div></div><span style="font-size:12px;color:' + colors[s] + '">' + (levels[s] || '') + '</span></div>';
 });
 
 /* ── Password match check ── */
@@ -114,7 +114,7 @@ pwd2.addEventListener('input', function() {
   const match = this.value === pwd1.value;
   pwdMatch.style.display = 'block';
   pwdMatch.innerHTML = '<i class="fas fa-' + (match ? 'check' : 'times') + '"></i> ' + (match ? 'Passwords match' : 'Passwords do not match');
-  pwdMatch.style.color = match ? '#10B981' : '#EF4444';
+  pwdMatch.style.color = match ? '#1F6A5C' : '#B42318';
 });
 
 /* ── Email validation ── */
@@ -149,15 +149,15 @@ emailInput.addEventListener('input', function() {
   emailStatus.textContent = result.ok ? '✅' : '❌';
   emailHint.textContent = result.msg;
   emailHint.style.display = 'block';
-  emailHint.style.color = result.ok ? '#10B981' : '#EF4444';
-  emailInput.style.borderColor = result.ok ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)';
+  emailHint.style.color = result.ok ? '#1F6A5C' : '#B42318';
+  emailInput.style.borderColor = result.ok ? 'rgba(31,106,92,0.5)' : 'rgba(180,35,24,0.5)';
 });
 
 emailInput.addEventListener('blur', function() {
   if (this.value && !emailValid) {
     emailHint.textContent = '❌ Please enter a valid email (e.g. yourname@gmail.com)';
     emailHint.style.display = 'block';
-    emailHint.style.color = '#EF4444';
+    emailHint.style.color = '#B42318';
   }
 });
 
@@ -180,7 +180,7 @@ usernameInput.addEventListener('input', function() {
     usernameStatus.textContent = '❌';
     usernameHint.textContent = 'Only letters, numbers, underscores allowed';
     usernameHint.style.display = 'block';
-    usernameHint.style.color = '#EF4444';
+    usernameHint.style.color = '#B42318';
     usernameAvailable = false;
     return;
   }
@@ -193,7 +193,7 @@ usernameInput.addEventListener('input', function() {
       usernameStatus.textContent = data.available ? '✅' : '❌';
       usernameHint.textContent = data.message;
       usernameHint.style.display = 'block';
-      usernameHint.style.color = data.available ? '#10B981' : '#EF4444';
+      usernameHint.style.color = data.available ? '#1F6A5C' : '#B42318';
     } catch(e) { usernameStatus.textContent = ''; }
   }, 600);
 });
@@ -206,15 +206,15 @@ document.getElementById('signupForm').addEventListener('submit', function(e) {
     e.preventDefault();
     emailHint.textContent = emailCheck.msg;
     emailHint.style.display = 'block';
-    emailHint.style.color = '#EF4444';
+    emailHint.style.color = '#B42318';
     emailInput.focus();
-    emailInput.style.borderColor = 'rgba(239,68,68,0.6)';
+    emailInput.style.borderColor = 'rgba(180,35,24,0.6)';
     return;
   }
   if (pwd1.value !== pwd2.value) {
     e.preventDefault();
     pwdMatch.innerHTML = '<i class="fas fa-times"></i> Passwords do not match';
-    pwdMatch.style.color = '#EF4444';
+    pwdMatch.style.color = '#B42318';
     pwdMatch.style.display = 'block';
     pwd2.focus();
     return;

@@ -50,13 +50,13 @@
     ].join(';');
     d.innerHTML = `
       <div style="font-size:52px">🔒</div>
-      <div style="font-size:22px;font-weight:800;color:#00D4FF">Content Protected</div>
-      <p style="color:#9CA3AF;max-width:340px;font-size:14px;line-height:1.6">
+      <div style="font-size:22px;font-weight:800;color:#63CFC3">Content Protected</div>
+      <p style="color:#9AA8B0;max-width:340px;font-size:14px;line-height:1.6">
         Unauthorized recording or distribution of this content is strictly prohibited
         and legally traceable to your account.
       </p>
       <button onclick="document.getElementById('lws-protect-overlay').remove()"
-        style="padding:10px 28px;background:linear-gradient(135deg,#00D4FF,#7C3AED);
+        style="padding:10px 28px;background:#0E7C72;
                border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer;font-size:14px">
         Dismiss
       </button>`;
@@ -117,8 +117,8 @@
     window.addEventListener('beforeprint', () => {
       const d = document.createElement('div');
       d.id = 'print-block';
-      d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0A0E1A;display:flex;align-items:center;justify-content:center;color:#00D4FF;font-size:22px;font-family:Inter,sans-serif;font-weight:700;text-align:center;padding:24px';
-      d.innerHTML = '🔒 Content Protected — Learn With Saurab<br><span style="font-size:13px;color:#6B7280;margin-top:8px;display:block">Printing and screenshots are disabled for this content.</span>';
+      d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#14212B;display:flex;align-items:center;justify-content:center;color:#63CFC3;font-size:22px;font-family:Inter,sans-serif;font-weight:700;text-align:center;padding:24px';
+      d.innerHTML = '🔒 Content Protected — Learn With Saurab<br><span style="font-size:13px;color:#9AA8B0;margin-top:8px;display:block">Printing and screenshots are disabled for this content.</span>';
       document.body.appendChild(d);
     });
     window.addEventListener('afterprint', () => {

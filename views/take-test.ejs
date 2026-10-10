@@ -91,11 +91,11 @@
 <%- include('partials/footer', { extraJs: `
 <script>
 const TEST_DATA = {
-  testId: '<%= test._id %>',
-  duration: <%= test.duration %>,
-  questions: <%- safeQuestions %>,
-  negativeMarking: <%= test.negativeMarking %>,
-  negativeMarkValue: <%= test.negativeMarkValue || 0.25 %>
+  testId: '${test._id}',
+  duration: ${test.duration},
+  questions: ${safeQuestions},
+  negativeMarking: ${test.negativeMarking},
+  negativeMarkValue: ${test.negativeMarkValue || 0.25}
 };
 </script>
 <script src="/js/test-timer.js"></script>

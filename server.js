@@ -16,9 +16,19 @@ const fs = require('fs');
 
 const { loadUser } = require('./middleware/auth');
 const { generalLimiter } = require('./middleware/rateLimiter');
+const xssSanitizer = require('./middleware/xssSanitizer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// ============================================ ENV VALIDATION
+// Sessions cannot be signed without a real secret — fail fast instead of
+// silently falling back to a hardcoded one.
+if (!process.env.SESSION_SECRET) {
+  throw new Error(
+    'SESSION_SECRET is missing. Set SESSION_SECRET in .env (Freebuff → Settings → Environment) before starting the server.'
+  );
+}
 
 // ============================================ DATABASE
 mongoose.connect(process.env.MONGODB_URI, {
@@ -28,21 +38,13 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => console.log('✅ MongoDB connected'))
 .catch(err => { console.error('❌ MongoDB error:', err.message); process.exit(1); });
 
-// ============================================ SECURITY
+// ============================================ APP SETTINGS
 // Trust Replit's reverse proxy
 app.set('trust proxy', 1);
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: 'cross-origin' }
-}));
-app.use(cors({ origin: process.env.BASE_URL || true, credentials: true }));
-
-// ============================================ MIDDLEWARE
-app.use(compression());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// ============================================ STATIC FILES
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0,
   setHeaders: (res) => {
@@ -53,9 +55,24 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ============================================ COMPRESSION
+app.use(compression());
+
+// ============================================ BODY PARSERS (one of each)
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '50mb' }));
+
+// ============================================ SECURITY
+app.use(cors({ origin: process.env.BASE_URL || true, credentials: true }));
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
+
 // ============================================ SESSION
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'lws-dev-fallback-secret',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
@@ -72,12 +89,12 @@ app.use(session({
   }
 }));
 
-// ============================================ VIEW ENGINE
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
 // ============================================ GLOBAL MIDDLEWARE
 app.use(loadUser);
+
+// Rate limiters: the general limiter runs globally here; the strict auth
+// limiter (authLimiter, 10/15min) is applied per-route on login, signup,
+// forgot-password and reset-password inside routes/auth.js
 app.use(generalLimiter);
 
 // Flash messages helper
@@ -91,6 +108,9 @@ app.use((req, res, next) => {
 ['uploads/videos', 'uploads/course-images', 'uploads/question-images', 'uploads/resources'].forEach(dir => {
   fs.mkdirSync(dir, { recursive: true });
 });
+
+// ============================================ XSS SANITIZER
+app.use(xssSanitizer);
 
 // ============================================ ROUTES
 

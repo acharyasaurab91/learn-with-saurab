@@ -83,7 +83,7 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
     if (res.success) { text.textContent = '✅ Uploaded successfully!'; setTimeout(() => location.reload(), 1000); }
     else { text.textContent = '❌ Upload failed: ' + res.message; }
   });
-  xhr.open('POST', '/admin/courses/<%= course._id %>/modules');
+  xhr.open('POST', '/admin/courses/${course._id}/modules');
   xhr.send(formData);
 });
 
@@ -105,6 +105,6 @@ if (list) {
 }
 async function saveOrder() {
   const ids = [...list.querySelectorAll('.module-admin-row')].map(r => r.dataset.id);
-  await fetch('/admin/courses/<%= course._id %>/modules/reorder', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ order: ids }) });
+  await fetch('/admin/courses/${course._id}/modules/reorder', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ order: ids }) });
 }
 </script>` }) %>
