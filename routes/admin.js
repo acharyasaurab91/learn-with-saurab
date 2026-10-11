@@ -64,22 +64,137 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ─── CATEGORY MANAGEMENT ────────────────────────────────────────────
+// All routes below are covered by router.use(requireAdmin) at the top of this
+// file, which verifies session.userId exists AND re-loads the user from the DB
+// to confirm isAdmin (never trusts the session for admin status).
+const parseSubjects = (s) =>
+  Array.isArray(s) ? s.map(x => String(x).trim()).filter(Boolean)
+  : s ? String(s).split(',').map(x => x.trim()).filter(Boolean) : [];
+const isValidHex = (c) => /^#[0-9a-fA-F]{6}$/.test(c || '');
+
 router.get('/categories', async (req, res) => {
   const categories = await Category.find().sort({ order: 1 });
   res.render('admin/categories', { title: 'Manage Categories', categories, admin: req.admin, user: req.admin });
 });
 
+router.get('/categories/new', (req, res) => {
+  res.render('admin/category-form', { title: 'Add Category', category: null, admin: req.admin, user: req.admin });
+});
+
 router.post('/categories', async (req, res) => {
   try {
-    const { name, slug, icon, color, description, subjects, order } = req.body;
-    const subjectsArr = subjects ? subjects.split(',').map(s => s.trim()).filter(Boolean) : [];
-    await Category.create({ name, slug: slug || name.toLowerCase().replace(/\s+/g, '-'), icon, color, description, subjects: subjectsArr, order: order || 0 });
-    res.redirect('/admin/categories?msg=Category+created');
+    const { name, slug, icon, color, description, subjects, order, isVisible } = req.body;
+    if (!name || !name.trim()) {
+      req.session.flash = { error: 'Category name is required.' };
+      return res.redirect('/admin/categories/new');
+    }
+    await Category.create({
+      name: name.trim(),
+      slug: (slug || '').trim(),
+      icon: icon && icon.trim() ? icon.trim() : undefined,
+      color: isValidHex(color) ? color : undefined,
+      description: description || '',
+      subjects: parseSubjects(subjects),
+      isVisible: isVisible === 'true',
+      order: Number(order) || 0
+    });
+    req.session.flash = { success: 'Category saved.' };
+    res.redirect('/admin/categories');
   } catch (err) {
-    res.redirect('/admin/categories?error=' + encodeURIComponent(err.message));
+    req.session.flash = { error: err.message };
+    res.redirect('/admin/categories/new');
   }
 });
 
+// Must stay BEFORE any POST /categories/:id* route so "reorder" is not captured as an :id
+router.post('/categories/reorder', async (req, res) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order)) {
+      return res.status(400).json({ ok: false, success: false, message: 'order array required' });
+    }
+    if (order.length && typeof order[0] === 'object' && order[0] !== null) {
+      // Spec shape: [{ id, order }, ...]
+      await Promise.all(order.map(item => Category.findByIdAndUpdate(item.id, { order: Number(item.order) || 0 })));
+    } else {
+      // Back-compat: plain id array (legacy drag-reorder)
+      await Promise.all(order.map((id, idx) => Category.findByIdAndUpdate(id, { order: idx })));
+    }
+    res.json({ ok: true, success: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, success: false, message: err.message });
+  }
+});
+
+router.get('/categories/:id/edit', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) {
+      req.session.flash = { error: 'Category not found.' };
+      return res.redirect('/admin/categories');
+    }
+    res.render('admin/category-form', { title: 'Edit: ' + category.name, category, admin: req.admin, user: req.admin });
+  } catch (err) {
+    req.session.flash = { error: err.message };
+    res.redirect('/admin/categories');
+  }
+});
+
+// Update — uses doc.save() so the slug auto-generation hook runs
+router.post('/categories/:id', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) {
+      req.session.flash = { error: 'Category not found.' };
+      return res.redirect('/admin/categories');
+    }
+    const { name, slug, icon, color, description, subjects, order, isVisible } = req.body;
+    if (!name || !name.trim()) {
+      req.session.flash = { error: 'Category name is required.' };
+      return res.redirect('/admin/categories/' + req.params.id + '/edit');
+    }
+    category.name = name.trim();
+    category.slug = (slug || '').trim();
+    category.icon = icon && icon.trim() ? icon.trim() : 'fas fa-book';
+    if (isValidHex(color)) category.color = color;
+    category.description = description || '';
+    category.subjects = parseSubjects(subjects);
+    category.isVisible = isVisible === 'true';
+    category.order = Number(order) || 0;
+    await category.save();
+    req.session.flash = { success: 'Category saved.' };
+    res.redirect('/admin/categories');
+  } catch (err) {
+    req.session.flash = { error: err.message };
+    res.redirect('/admin/categories');
+  }
+});
+
+router.post('/categories/:id/delete', async (req, res) => {
+  try {
+    await Category.findByIdAndDelete(req.params.id);
+    req.session.flash = { success: 'Category deleted.' };
+  } catch (err) {
+    req.session.flash = { error: err.message };
+  }
+  res.redirect('/admin/categories');
+});
+
+// AJAX: flips isVisible, returns JSON {isVisible: bool}
+router.post('/categories/:id/toggle', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) return res.status(404).json({ ok: false, message: 'Category not found.' });
+    category.isVisible = !category.isVisible;
+    await category.save();
+    res.json({ isVisible: category.isVisible });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+// Legacy AJAX verbs kept for existing consumers (the old modal view used PUT/DELETE)
 router.put('/categories/:id', async (req, res) => {
   try {
     const { name, slug, icon, color, description, subjects, isVisible, order } = req.body;
@@ -94,16 +209,6 @@ router.put('/categories/:id', async (req, res) => {
 router.delete('/categories/:id', async (req, res) => {
   try {
     await Category.findByIdAndDelete(req.params.id);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
-});
-
-router.post('/categories/reorder', async (req, res) => {
-  try {
-    const { order } = req.body;
-    await Promise.all(order.map((id, idx) => Category.findByIdAndUpdate(id, { order: idx })));
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false });

@@ -1,0 +1,172 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'categories' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <div>
+        <h1><i class="fas fa-tag"></i> <%= category ? 'Edit Category' : 'Add New Category' %></h1>
+        <p class="text-muted" style="margin-top:4px"><%= category ? 'Update "' + category.name + '" — changes appear on the homepage immediately.' : 'New categories appear on the homepage once saved and marked visible.' %></p>
+      </div>
+      <a href="/admin/categories" class="btn-secondary" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none"><i class="fas fa-arrow-left"></i> Back to Categories</a>
+    </div>
+
+    <% if (typeof flash !== 'undefined' && flash && flash.success) { %>
+      <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= flash.success %></div>
+    <% } %>
+    <% if (typeof flash !== 'undefined' && flash && flash.error) { %>
+      <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= flash.error %></div>
+    <% } %>
+
+    <div class="admin-section">
+      <form method="POST" action="<%= category ? '/admin/categories/' + category._id : '/admin/categories' %>">
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="fName">Name *</label>
+            <input type="text" id="fName" name="name" required value="<%= category ? category.name : '' %>" placeholder="e.g. CEE — Medical &amp; Paramedical">
+          </div>
+          <div class="form-group">
+            <label for="fSlug">Slug</label>
+            <input type="text" id="fSlug" name="slug" value="<%= category ? category.slug : '' %>" placeholder="auto-generated from name if left empty">
+            <small class="form-hint">Leave empty to auto-generate from the name (lowercase, hyphenated).</small>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="fIcon">Icon (Font Awesome class)</label>
+            <input type="text" id="fIcon" name="icon" value="<%= category && category.icon ? category.icon : '' %>" placeholder="fas fa-stethoscope" oninput="previewIcon()">
+            <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
+              <span id="fIconPreview" style="width:42px;height:42px;border-radius:10px;background:#E6F2EF;color:#0E7C72;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0"><i class="<%= category && category.icon ? category.icon : 'fas fa-book' %>"></i></span>
+              <small class="form-hint">Live preview as you type</small>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="fColor">Color</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="color" id="fColor" name="color" value="<%= category && category.color ? category.color : '#0E7C72' %>"
+                     oninput="syncFromPicker()" style="width:52px;height:38px;padding:3px;border:1px solid #E2E8E4;border-radius:8px;background:#FFFFFF;cursor:pointer;flex-shrink:0">
+              <input type="text" id="fColorHex" value="<%= category && category.color ? category.color : '#0E7C72' %>" placeholder="#0E7C72" spellcheck="false"
+                     oninput="syncFromHex()" style="width:120px;padding:9px 12px;border:1px solid #E2E8E4;border-radius:8px;background:#FFFFFF;color:#14212B;font-family:monospace;font-size:13px">
+            </div>
+            <small class="form-hint">Pick a color or type a 6-digit hex value.</small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="fDesc">Description</label>
+          <textarea id="fDesc" name="description" rows="2" placeholder="Brief description shown on the homepage card..."><%= category && category.description ? category.description : '' %></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="fSubjectInput">Subjects</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="fSubjectInput" placeholder="e.g. Biology" style="flex:1">
+            <button type="button" class="btn-secondary" onclick="addSubject()"><i class="fas fa-plus"></i> Add</button>
+          </div>
+          <div id="fSubjectChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+            <% (category && category.subjects ? category.subjects : []).forEach(s => { %>
+            <span class="chip-sm" data-subject="<%= s %>" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px">
+              <%= s %>
+              <button type="button" onclick="removeSubject(this)" aria-label="Remove subject" style="border:none;background:none;cursor:pointer;color:#5F6C76;font-size:13px;line-height:1">×</button>
+            </span>
+            <input type="hidden" name="subjects[]" value="<%= s %>">
+            <% }) %>
+          </div>
+          <small class="form-hint">Subjects live inside a category as chips (e.g. MAT under CEE, IQ/Reasoning under Loksewa) — not as top-level categories.</small>
+        </div>
+
+        <div class="form-row-2" style="margin-top:4px">
+          <div class="form-group checkbox-form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" name="isVisible" value="true" <%= (!category || category.isVisible) ? 'checked' : '' %>>
+              Visible on homepage
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="fOrder">Order (display position)</label>
+            <input type="number" id="fOrder" name="order" min="0" value="<%= category ? category.order : 0 %>">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px;padding-top:20px;border-top:1px solid #E2E8E4">
+          <a href="/admin/categories" class="btn-secondary" style="display:inline-flex;align-items:center;text-decoration:none">Cancel</a>
+          <button type="submit" class="btn-admin-primary"><i class="fas fa-save"></i> Save Category</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
+
+<script>
+// ── Live icon preview ──
+function previewIcon() {
+  var v = document.getElementById('fIcon').value.trim() || 'fas fa-book';
+  document.getElementById('fIconPreview').innerHTML = '<i class="' + v.replace(/["'<>]/g, '') + '"></i>';
+}
+
+// ── Color picker ↔ hex input sync ──
+function syncFromPicker() {
+  document.getElementById('fColorHex').value = document.getElementById('fColor').value;
+}
+function syncFromHex() {
+  var v = document.getElementById('fColorHex').value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) document.getElementById('fColor').value = v;
+}
+
+// ── Subjects dynamic chips (submit as subjects[] array) ──
+function addSubject() {
+  var input = document.getElementById('fSubjectInput');
+  var val = input.value.trim();
+  if (!val) return;
+  var existing = document.querySelectorAll('#fSubjectChips [data-subject]');
+  for (var i = 0; i < existing.length; i++) {
+    if (existing[i].getAttribute('data-subject').toLowerCase() === val.toLowerCase()) {
+      input.value = '';
+      input.focus();
+      return;
+    }
+  }
+  var chip = document.createElement('span');
+  chip.className = 'chip-sm';
+  chip.setAttribute('data-subject', val);
+  chip.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:4px 10px';
+  chip.appendChild(document.createTextNode(val));
+
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = '×';
+  btn.setAttribute('aria-label', 'Remove subject');
+  btn.style.cssText = 'border:none;background:none;cursor:pointer;color:#5F6C76;font-size:13px;line-height:1';
+  btn.onclick = function () { removeSubject(btn); };
+  chip.appendChild(btn);
+
+  var hidden = document.createElement('input');
+  hidden.type = 'hidden';
+  hidden.name = 'subjects[]';
+  hidden.value = val;
+
+  var box = document.getElementById('fSubjectChips');
+  box.appendChild(chip);
+  box.appendChild(hidden);
+
+  input.value = '';
+  input.focus();
+}
+
+function removeSubject(btn) {
+  var chip = btn.parentElement;
+  var next = chip.nextElementSibling;
+  if (next && next.tagName === 'INPUT' && next.getAttribute('name') === 'subjects[]') next.remove();
+  chip.remove();
+}
+
+document.getElementById('fSubjectInput').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); addSubject(); }
+});
+
+previewIcon();
+</script>

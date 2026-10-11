@@ -122,18 +122,29 @@ app.get('/', async (req, res) => {
   try {
     const Course = require('./models/Course');
     const Category = require('./models/Category');
-    const [categories, featuredCourses, demoCourses] = await Promise.all([
-      Category.find({ isVisible: true }).sort({ order: 1 }),
+    // DB query is primary: only visible categories, sorted by order
+    const categories = await Category.find({ isVisible: true }).sort({ order: 1 });
+    const slugs = categories.map(c => c.slug);
+    const [featuredCourses, demoCourses, countAgg] = await Promise.all([
       Course.find({ isPublished: true, isFeatured: true }).sort({ createdAt: -1 }).limit(6),
       Course.find({ isPublished: true, demoVideoUrl: { $exists: true, $ne: '' } })
             .sort({ createdAt: -1 }).limit(3)
-            .select('title description category examType imageUrl demoVideoUrl demoVideoType demoTitle')
+            .select('title description category examType imageUrl demoVideoUrl demoVideoType demoTitle'),
+      slugs.length
+        ? Course.aggregate([
+            { $match: { category: { $in: slugs }, isPublished: true } },
+            { $group: { _id: '$category', n: { $sum: 1 } } }
+          ])
+        : Promise.resolve([])
     ]);
+    const courseCounts = {};
+    countAgg.forEach(c => { courseCounts[c._id] = c.n; });
     res.render('index', {
       title: "Nepal's #1 Exam Prep Platform | Learn With Saurab",
       categories,
       featuredCourses,
       demoCourses,
+      courseCounts,
       user: req.user || null
     });
   } catch (err) {
@@ -143,6 +154,7 @@ app.get('/', async (req, res) => {
       categories: [],
       featuredCourses: [],
       demoCourses: [],
+      courseCounts: {},
       user: req.user || null
     });
   }
