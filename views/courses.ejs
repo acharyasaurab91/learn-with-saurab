@@ -21,29 +21,61 @@
             <option value="<%= cat.slug %>" <%= query.category === cat.slug ? 'selected' : '' %>><%= cat.name %></option>
           <% }) %>
         </select>
+        <%
+          const examAllowed = typeof allowedExamTypes !== 'undefined' ? allowedExamTypes : null;
+          const showExam = v => !examAllowed || examAllowed.includes(v);
+        %>
         <select name="examType" onchange="this.form.submit()">
           <option value="">All Exam Types</option>
+          <% if (showExam('CEE - Medical & Paramedical') || showExam('CEE - BNS (B.N.Sc.)')) { %>
           <optgroup label="── CEE ──">
+            <% if (showExam('CEE - Medical & Paramedical')) { %>
             <option value="CEE - Medical & Paramedical" <%= query.examType === 'CEE - Medical & Paramedical' ? 'selected' : '' %>>CEE — Medical & Paramedical (MBBS, BDS, BSc Nursing, B.Pharmacy)</option>
+            <% } %>
+            <% if (showExam('CEE - BNS (B.N.Sc.)')) { %>
             <option value="CEE - BNS (B.N.Sc.)" <%= query.examType === 'CEE - BNS (B.N.Sc.)' ? 'selected' : '' %>>CEE — BNS (Bachelor of Nursing Science)</option>
+            <% } %>
           </optgroup>
+          <% } %>
+          <% if (showExam('IOE - Engineering')) { %>
           <optgroup label="── IOE ──">
             <option value="IOE - Engineering" <%= query.examType === 'IOE - Engineering' ? 'selected' : '' %>>IOE — Engineering (BE, B.Arch, BEI)</option>
           </optgroup>
+          <% } %>
+          <% if (showExam('Loksewa / लोकसेवा')) { %>
           <optgroup label="── Loksewa ──">
             <option value="Loksewa / लोकसेवा" <%= query.examType === 'Loksewa / लोकसेवा' ? 'selected' : '' %>>Loksewa / लोकसेवा (PSC)</option>
           </optgroup>
+          <% } %>
+          <% if (showExam('Nursing License (NLEN)') || showExam('CMLT License') || showExam('Pharmacy License') || showExam('HA License')) { %>
           <optgroup label="── License Exams ──">
+            <% if (showExam('Nursing License (NLEN)')) { %>
             <option value="Nursing License (NLEN)" <%= query.examType === 'Nursing License (NLEN)' ? 'selected' : '' %>>Nursing License Exam (NNC)</option>
+            <% } %>
+            <% if (showExam('CMLT License')) { %>
             <option value="CMLT License" <%= query.examType === 'CMLT License' ? 'selected' : '' %>>CMLT License Exam (NHPC)</option>
+            <% } %>
+            <% if (showExam('Pharmacy License')) { %>
             <option value="Pharmacy License" <%= query.examType === 'Pharmacy License' ? 'selected' : '' %>>Pharmacy License Exam (NPC)</option>
+            <% } %>
+            <% if (showExam('HA License')) { %>
             <option value="HA License" <%= query.examType === 'HA License' ? 'selected' : '' %>>HA License Exam (NHPC)</option>
+            <% } %>
           </optgroup>
+          <% } %>
+          <% if (showExam('SEE (Grade 10)') || showExam('Grade 11') || showExam('Grade 12')) { %>
           <optgroup label="── SEE & NEB ──">
+            <% if (showExam('SEE (Grade 10)')) { %>
             <option value="SEE (Grade 10)" <%= query.examType === 'SEE (Grade 10)' ? 'selected' : '' %>>SEE — Grade 10</option>
+            <% } %>
+            <% if (showExam('Grade 11')) { %>
             <option value="Grade 11" <%= query.examType === 'Grade 11' ? 'selected' : '' %>>Grade 11 (NEB)</option>
+            <% } %>
+            <% if (showExam('Grade 12')) { %>
             <option value="Grade 12" <%= query.examType === 'Grade 12' ? 'selected' : '' %>>Grade 12 (NEB)</option>
+            <% } %>
           </optgroup>
+          <% } %>
         </select>
         <select name="priceFilter" onchange="this.form.submit()">
           <option value="">All Prices</option>

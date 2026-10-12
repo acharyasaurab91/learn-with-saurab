@@ -39,12 +39,26 @@ async function recalcCourseRating(courseId) {
   await Course.findByIdAndUpdate(courseId, { rating: Math.round(avg * 10) / 10, totalRatings: count });
 }
 
+// Exam types each category's second dropdown may offer (Course.examType enum values)
+const EXAM_TYPES_BY_CATEGORY = {
+  'cee-medical':     ['CEE - Medical & Paramedical'],
+  'cee-bns':         ['CEE - BNS (B.N.Sc.)'],
+  'ioe-engineering': ['IOE - Engineering'],
+  'loksewa':         ['Loksewa / लोकसेवा'],
+  'license':         ['Nursing License (NLEN)', 'CMLT License', 'Pharmacy License', 'HA License'],
+  'see-neb':         ['SEE (Grade 10)', 'Grade 11', 'Grade 12']
+};
+
 router.get('/', async (req, res) => {
   try {
     const { category, search, examType } = req.query;
+    // Second dropdown only offers exam types belonging to the selected category
+    const allowedExamTypes = category ? (EXAM_TYPES_BY_CATEGORY[category] || null) : null;
+    // Ignore a stale examType that doesn't belong to the selected category
+    const effectiveExamType = examType && (!allowedExamTypes || allowedExamTypes.includes(examType)) ? examType : '';
     const filter = { isPublished: true };
     if (category) filter.category = category;
-    if (examType) filter.examType = examType;
+    if (effectiveExamType) filter.examType = effectiveExamType;
     if (search) filter.$or = [
       { title: new RegExp(search, 'i') },
       { description: new RegExp(search, 'i') }
@@ -53,7 +67,12 @@ router.get('/', async (req, res) => {
       Course.find(filter).sort({ isFeatured: -1, createdAt: -1 }),
       Category.find({ isVisible: true }).sort({ order: 1 })
     ]);
-    res.render('courses', { title: 'Browse Courses', courses, categories, user: req.user || null, query: req.query });
+    res.render('courses', {
+      title: 'Browse Courses', courses, categories,
+      user: req.user || null,
+      query: { ...req.query, examType: effectiveExamType },
+      allowedExamTypes
+    });
   } catch (err) {
     console.error(err);
     res.render('error', { title: 'Error', message: 'Could not load courses.', user: req.user || null });
