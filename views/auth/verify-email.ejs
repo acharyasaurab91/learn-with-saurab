@@ -1,0 +1,32 @@
+<%- include('../partials/header') %>
+<div class="auth-page">
+  <div class="auth-bg"><div class="auth-orb auth-orb-1"></div><div class="auth-orb auth-orb-2"></div></div>
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header" style="text-align:center">
+        <a href="/" class="auth-logo"><i class="fas fa-graduation-cap"></i><span>Learn With Saurab</span></a>
+        <% if (success) { %>
+          <h1>Email Verified</h1>
+          <p>Your account is now active</p>
+        <% } else { %>
+          <h1>Verification Failed</h1>
+          <p>We couldn&rsquo;t verify your email</p>
+        <% } %>
+      </div>
+      <div style="text-align:center;padding:14px 0 8px 0">
+        <% if (success) { %>
+          <i class="fas fa-check-circle" style="font-size:48px;color:#0E7C72;display:block;margin-bottom:14px"></i>
+          <p style="font-size:15px;line-height:1.7;color:#3D4A54;margin:0 0 18px 0">You&rsquo;re all set! Head to your dashboard to start learning.</p>
+          <a href="/dashboard" class="btn-auth" style="display:block;text-decoration:none">Go to Dashboard</a>
+        <% } else { %>
+          <i class="fas fa-exclamation-circle" style="font-size:48px;color:#A14A4A;display:block;margin-bottom:14px"></i>
+          <p style="font-size:15px;line-height:1.7;color:#3D4A54;margin:0 0 6px 0"><%= typeof message !== 'undefined' && message ? message : 'This verification link is invalid or has expired.' %></p>
+          <p style="font-size:13px;line-height:1.6;color:#5F6C76;margin:0 0 18px 0">Verification links are valid for 24 hours. Request a fresh one below.</p>
+          <a href="/verify-pending" class="btn-auth" style="display:block;text-decoration:none">Resend Verification Email</a>
+        <% } %>
+      </div>
+      <div class="auth-footer"><a href="/login"><i class="fas fa-arrow-left"></i> Back to Login</a></div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

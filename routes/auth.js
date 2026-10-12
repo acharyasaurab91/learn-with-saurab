@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { sendEmail } = require('../utils/mailer');
+const { sendVerificationEmail, sendPasswordResetEmail, sendWelcomeEmail } = require('../helpers/emailHelpers');
 
 router.get('/check-username', async (req, res) => {
   const { username } = req.query;
@@ -31,6 +32,17 @@ router.post('/login', authLimiter, async (req, res) => {
     if (!user) return res.render('auth/login', { title: 'Login', msg: '', error: 'Invalid credentials.', user: null });
     const match = await user.comparePassword(password);
     if (!match) return res.render('auth/login', { title: 'Login', msg: '', error: 'Invalid credentials.', user: null });
+    // Step 2: unverified users cannot log in — no session is created
+    if (user.isVerified === false) {
+      req.session.pendingVerifyEmail = user.email;
+      return res.render('auth/verify-pending', {
+        title: 'Verify Your Email',
+        email: user.email,
+        msg: '',
+        error: 'Please verify your email first.',
+        user: null
+      });
+    }
     req.session.userId = user._id.toString();
     req.session.isAdmin = user.isAdmin;
     user.lastLogin = new Date();
@@ -81,77 +93,76 @@ router.post('/signup', authLimiter, async (req, res) => {
       isVerified: false
     });
     await user.save();
-    const verifyUrl = `${process.env.BASE_URL || `${req.protocol}://${req.get('host')}`}/verify-email/${verifyToken}`;
-    // TODO: move to views/ folder
     try {
-      await sendEmail(email, 'Verify your email – Learn With Saurab', `
-        <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0A0E1A;color:#fff;padding:40px;border-radius:12px;border:1px solid rgba(0,212,255,0.2)">
-          <div style="text-align:center;margin-bottom:32px">
-            <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#00D4FF,#7C3AED);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px">🎓</div>
-            <h1 style="color:#00D4FF;font-size:24px;margin:0">Welcome to Learn With Saurab!</h1>
-          </div>
-          <p style="color:#E5E7EB">Hi <strong>${firstName}</strong>, you're almost ready. Please verify your email address to activate your account:</p>
-          <div style="text-align:center;margin:32px 0">
-            <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#00D4FF,#7C3AED);color:#fff;padding:16px 36px;border-radius:10px;text-decoration:none;font-weight:700;font-size:16px">✓ Verify My Email</a>
-          </div>
-          <p style="color:#9CA3AF;font-size:13px;text-align:center">Link expires in 24 hours. If you didn't create an account, ignore this email.</p>
-        </div>
-      `);
+      await sendEmail(email, 'Verify your email — Learn With Saurab', sendVerificationEmail(user, verifyToken));
     } catch (mailErr) {
       console.error('Verification email failed:', mailErr.message);
     }
-    req.session.userId = user._id.toString();
-    req.session.isAdmin = false;
+    // Step 1: do NOT log the user in — they must verify via email first
     req.session.pendingVerifyEmail = email.toLowerCase().trim();
-    res.redirect('/verify-email-notice');
+    res.redirect('/verify-pending');
   } catch (err) {
     console.error(err);
     res.render('auth/signup', { title: 'Sign Up', error: 'Server error. Please try again.', user: null });
   }
 });
 
-router.post('/resend-verification', async (req, res) => {
+router.get('/verify-pending', (req, res) => {
+  res.render('auth/verify-pending', {
+    title: 'Verify Your Email',
+    email: req.session.pendingVerifyEmail || '',
+    msg: req.query.resent ? 'Verification email sent again — check your inbox.' : '',
+    error: req.query.error ? 'Could not send the verification email. Please try again.' : '',
+    user: null
+  });
+});
+
+router.post('/resend-verification', authLimiter, async (req, res) => {
   try {
-    const userId = req.session.userId;
-    if (!userId) return res.redirect('/login');
-    const user = await User.findById(userId);
-    if (!user) return res.redirect('/login');
-    if (user.isVerified) return res.redirect('/dashboard');
-    const verifyToken = crypto.randomBytes(32).toString('hex');
-    user.emailVerifyToken = verifyToken;
-    user.emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    await user.save();
-    const verifyUrl = `${process.env.BASE_URL || `${req.protocol}://${req.get('host')}`}/verify-email/${verifyToken}`;
-    // TODO: move to views/ folder
-    await sendEmail(user.email, 'Verify your email – Learn With Saurab', `
-      <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0A0E1A;color:#fff;padding:40px;border-radius:12px;border:1px solid rgba(0,212,255,0.2)">
-        <h1 style="color:#00D4FF">Verify Your Email</h1>
-        <p style="color:#E5E7EB">Hi <strong>${user.firstName}</strong>, here is your new verification link:</p>
-        <div style="text-align:center;margin:32px 0">
-          <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#00D4FF,#7C3AED);color:#fff;padding:16px 36px;border-radius:10px;text-decoration:none;font-weight:700;font-size:16px">✓ Verify My Email</a>
-        </div>
-        <p style="color:#9CA3AF;font-size:13px;text-align:center">Link expires in 24 hours.</p>
-      </div>
-    `);
-    res.redirect('/verify-email-notice?resent=1');
+    const email = (req.body && req.body.email) || req.session.pendingVerifyEmail || '';
+    if (!email) return res.redirect('/verify-pending?error=1');
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    // Regenerate the token only for existing unverified users, but always
+    // show the same success page (never reveal whether the email exists)
+    if (user && !user.isVerified) {
+      const verifyToken = crypto.randomBytes(32).toString('hex');
+      user.emailVerifyToken = verifyToken;
+      user.emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await user.save();
+      await sendEmail(user.email, 'Verify your email — Learn With Saurab', sendVerificationEmail(user, verifyToken));
+      req.session.pendingVerifyEmail = user.email;
+    }
+    res.redirect('/verify-pending?resent=1');
   } catch (err) {
     console.error(err);
-    res.redirect('/verify-email-notice?error=1');
+    res.redirect('/verify-pending?error=1');
   }
 });
 
-router.get('/verify-email/:token', async (req, res) => {
+router.get('/verify-email/:token', async (req, res, next) => {
   try {
     const user = await User.findOne({
       emailVerifyToken: req.params.token,
       emailVerifyExpires: { $gt: new Date() }
     });
-    if (!user) return res.render('error', { title: 'Invalid Link', message: 'Verification link is invalid or expired.', user: null });
+    if (!user) {
+      return res.render('auth/verify-email', {
+        title: 'Email Verification',
+        success: false,
+        message: 'This verification link is invalid or has expired.',
+        user: null
+      });
+    }
     user.isVerified = true;
     user.emailVerifyToken = undefined;
     user.emailVerifyExpires = undefined;
     await user.save();
-    res.redirect('/login?msg=Email+verified!+You+can+now+login.');
+    await sendEmail(user.email, 'Welcome to Learn With Saurab! 🎓', sendWelcomeEmail(user));
+    // Step 1: log the verified user in and send them to the dashboard
+    req.session.userId = user._id.toString();
+    req.session.isAdmin = user.isAdmin;
+    delete req.session.pendingVerifyEmail;
+    res.redirect('/dashboard');
   } catch (err) {
     next(err);
   }
@@ -170,16 +181,7 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
       user.resetPasswordToken = token;
       user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
       await user.save();
-      const url = `${process.env.BASE_URL || 'http://localhost:5000'}/reset-password/${token}`;
-      // TODO: move to views/ folder
-      await sendEmail(email, 'Reset Password – Learn With Saurab', `
-        <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#0A0E1A;color:#fff;padding:40px;border-radius:12px;">
-          <h1 style="color:#00D4FF;">Reset Your Password</h1>
-          <p>Hi ${user.firstName}, click below to reset your password:</p>
-          <a href="${url}" style="display:inline-block;background:linear-gradient(135deg,#00D4FF,#7C3AED);color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:20px 0;">Reset Password</a>
-          <p style="color:#9CA3AF;">Expires in 1 hour. If you didn't request this, ignore this email.</p>
-        </div>
-      `);
+      await sendEmail(user.email, 'Reset your password — Learn With Saurab', sendPasswordResetEmail(user, token));
     }
     res.render('auth/forgot-password', { title: 'Forgot Password', msg: 'If that email exists, a reset link was sent.', error: '', user: null });
   } catch (err) {
@@ -188,13 +190,13 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
   }
 });
 
-router.get('/reset-password/:token', async (req, res) => {
+router.get('/reset-password/:token', async (req, res, next) => {
   try {
     const user = await User.findOne({
       resetPasswordToken: req.params.token,
       resetPasswordExpires: { $gt: new Date() }
     });
-    if (!user) return res.render('error', { title: 'Invalid Link', message: 'Password reset link is invalid or expired.', user: null });
+    if (!user) return res.render('auth/forgot-password', { title: 'Forgot Password', msg: '', error: 'Password reset link is invalid or expired. Please request a new one below.', user: null });
     res.render('auth/reset-password', { title: 'Reset Password', token: req.params.token, error: '', user: null });
   } catch (err) {
     next(err);
@@ -214,7 +216,7 @@ router.post('/reset-password/:token', authLimiter, async (req, res) => {
       resetPasswordToken: req.params.token,
       resetPasswordExpires: { $gt: new Date() }
     });
-    if (!user) return res.render('error', { title: 'Invalid Link', message: 'Link expired.', user: null });
+    if (!user) return res.render('auth/forgot-password', { title: 'Forgot Password', msg: '', error: 'Password reset link is invalid or expired. Please request a new one below.', user: null });
     user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
