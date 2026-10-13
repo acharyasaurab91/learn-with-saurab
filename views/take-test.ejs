@@ -10,6 +10,7 @@
       <i class="fas fa-clock"></i>
       <span id="timerDisplay">--:--</span>
     </div>
+    <span class="test-answered-pill" id="headerAnswered">Answered 0/<%= test.questions.length %></span>
     <button class="btn-submit-test" onclick="confirmSubmit()">
       <i class="fas fa-paper-plane"></i> Submit Test
     </button>
@@ -24,6 +25,11 @@
       <div class="question-card" id="questionCard">
         <div class="question-number" id="qNum">Q1</div>
         <div class="question-text" id="qText"></div>
+        <% if (test.negativeMarking) { %>
+        <div class="negative-notice" id="negNotice">
+          <i class="fas fa-exclamation-triangle"></i> Negative marking: -<%= test.negativeMarkValue || 0.25 %> per wrong answer
+        </div>
+        <% } %>
         <div class="question-img-wrap" id="qImgWrap" style="display:none">
           <img id="qImg" src="" alt="Question image">
         </div>
@@ -51,9 +57,10 @@
           <% }) %>
         </div>
         <div class="legend">
-          <span class="legend-item"><span class="legend-dot dot-unanswered"></span>Unanswered</span>
-          <span class="legend-item"><span class="legend-dot dot-answered"></span>Answered</span>
-          <span class="legend-item"><span class="legend-dot dot-review"></span>Review</span>
+          <span class="legend-item"><span class="legend-dot dot-current"></span>● Current</span>
+          <span class="legend-item"><span class="legend-dot dot-answered"></span>✓ Answered</span>
+          <span class="legend-item"><span class="legend-dot dot-review"></span>⚑ Marked</span>
+          <span class="legend-item"><span class="legend-dot dot-unanswered"></span>○ Unvisited</span>
         </div>
       </div>
       <div class="sidebar-section">
@@ -77,7 +84,12 @@
       <h3><i class="fas fa-paper-plane"></i> Submit Test?</h3>
     </div>
     <div class="modal-body">
-      <p>You've answered <strong id="modalAnswered">0</strong> of <strong><%= test.questions.length %></strong> questions.</p>
+      <div class="modal-counts">
+        <div><strong id="modalTotal"><%= test.questions.length %></strong><span>Total questions</span></div>
+        <div><strong id="modalAnswered">0</strong><span>Answered</span></div>
+        <div><strong id="modalUnanswered"><%= test.questions.length %></strong><span>Unanswered</span></div>
+        <div><strong id="modalMarked">0</strong><span>Marked for review</span></div>
+      </div>
       <p id="reviewWarning" class="text-yellow"></p>
       <p>Once submitted, you cannot change your answers.</p>
     </div>

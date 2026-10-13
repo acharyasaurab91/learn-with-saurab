@@ -49,3 +49,64 @@
 .summary-stats span { font-weight: 800; color: #14212B; font-size: 18px; }
 .w-full { width: 100%; justify-content: center; }
 @media (max-width: 768px) { .test-body { flex-direction: column; } .test-sidebar { width: 100%; border-left: none; border-top: 1px solid #E2E8E4; } }
+
+/* ============================================ PHASE 5A — SPEC ALIGNMENT (appended) */
+/* Timer: monospace per spec (system stacks only, no new webfonts) */
+.test-timer { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace; letter-spacing: 0.5px; }
+
+/* Header answered counter pill */
+.test-answered-pill {
+  padding: 9px 16px; border-radius: 50px; white-space: nowrap;
+  background: #F6F7F4; border: 1px solid #E2E8E4;
+  font-size: 13px; font-weight: 700; color: #5F6C76;
+}
+
+/* Negative marking notice under the question */
+.negative-notice {
+  display: flex; align-items: center; gap: 8px;
+  margin: -16px 0 24px; padding: 9px 14px;
+  background: rgba(180,35,24,0.08); border: 1px solid rgba(180,35,24,0.25);
+  border-radius: 8px; font-size: 13px; font-weight: 600; color: #B42318;
+}
+
+/* Option label text (options are built via textContent) */
+.option-btn > span:not(.option-letter-btn) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+
+/* Navigator: 5 columns desktop, 6 columns mobile */
+.question-grid { grid-template-columns: repeat(5, 1fr); justify-content: center; }
+.qgrid-btn { width: 100%; max-width: 44px; }
+
+/* Navigator colors: gray unvisited · teal border answered · yellow marked · solid teal current */
+.qgrid-btn.answered { background: rgba(14,124,114,0.10); border-color: #0E7C72; color: #0E7C72; }
+.qgrid-btn.review { background: rgba(185,133,45,0.22); border-color: #B9852D; color: #7A5618; }
+.qgrid-btn.current, .qgrid-btn.current.answered, .qgrid-btn.current.review {
+  background: #0E7C72; border-color: #0E7C72; color: #FFFFFF;
+}
+.dot-current { background: #0E7C72; }
+
+/* Submit confirm modal counts */
+.modal-counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+.modal-counts > div {
+  background: #F6F7F4; border: 1px solid #E2E8E4; border-radius: 10px;
+  padding: 12px 8px; text-align: center;
+}
+.modal-counts strong { display: block; font-size: 22px; font-weight: 800; color: #14212B; font-family: 'Plus Jakarta Sans', sans-serif; }
+.modal-counts span { display: block; font-size: 11px; color: #5F6C76; margin-top: 2px; }
+
+/* Mobile: compact header, navigator as a horizontal strip at the top */
+@media (max-width: 768px) {
+  .test-header { gap: 10px; padding: 12px 14px; }
+  .test-header h2 { font-size: 15px; flex-basis: 100%; order: -1; }
+  .test-total { display: none; }
+  .test-timer { font-size: 16px; padding: 8px 14px; }
+  .test-answered-pill { font-size: 12px; padding: 7px 12px; }
+  .btn-submit-test { padding: 10px 16px; font-size: 13px; margin-left: auto; }
+  .test-body { flex-direction: column; }
+  .test-sidebar { order: -1; width: 100%; border-left: none; border-top: none; border-bottom: 1px solid #E2E8E4; padding: 14px; gap: 10px; }
+  .test-sidebar .sidebar-section h3, .test-sidebar .summary-stats, .test-sidebar > .btn-submit-test { display: none; }
+  .question-grid { grid-template-columns: repeat(6, 1fr); }
+  .legend { margin-top: 8px; }
+  .test-question-panel { padding: 18px 14px; }
+  .question-card { padding: 20px 16px; }
+  .modal-counts { grid-template-columns: repeat(2, 1fr); }
+}

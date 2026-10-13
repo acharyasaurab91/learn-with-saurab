@@ -12,24 +12,55 @@ for (let i = 0; i < questions.length; i++) {
   answers.push({ questionId: questions[i]._id, selectedOption: -1 });
 }
 
-// ---- Timer ----
-let timeLeft = TEST_DATA.duration * 60;
-let startTime = Date.now();
+// ---- Refresh persistence (per-test keys) ----
+const END_KEY = 'test-' + TEST_DATA.testId + '-endTime';
+const STATE_KEY = 'test-' + TEST_DATA.testId + '-state';
+try {
+  const saved = JSON.parse(sessionStorage.getItem(STATE_KEY) || 'null');
+  if (saved) {
+    (saved.answers || []).forEach(a => {
+      const i = questions.findIndex(q => q._id === a.questionId);
+      if (i >= 0 && typeof a.selectedOption === 'number') answers[i].selectedOption = a.selectedOption;
+    });
+    (saved.marked || []).forEach(i => { if (i >= 0 && i < questions.length) markedForReview.add(i); });
+    if (typeof saved.current === 'number' && saved.current >= 0 && saved.current < questions.length) {
+      currentQuestion = saved.current;
+    }
+  }
+} catch (e) { /* ignore corrupt state */ }
+
+function persistState() {
+  try {
+    sessionStorage.setItem(STATE_KEY, JSON.stringify({
+      answers: answers.map(a => ({ questionId: a.questionId, selectedOption: a.selectedOption })),
+      marked: [...markedForReview],
+      current: currentQuestion
+    }));
+  } catch (e) { /* storage full/unavailable */ }
+}
+
+// ---- Timer (persists across refresh via sessionStorage endTime) ----
+let endTime = parseInt(sessionStorage.getItem(END_KEY), 10);
+if (!endTime || Number.isNaN(endTime)) {
+  endTime = Date.now() + TEST_DATA.duration * 60 * 1000;
+  try { sessionStorage.setItem(END_KEY, String(endTime)); } catch (e) {}
+}
+let timeLeft = Math.max(0, Math.round((endTime - Date.now()) / 1000));
 const timerEl = document.getElementById('timerDisplay');
 const timerContainer = document.querySelector('.test-timer');
 
 function updateTimer() {
-  const elapsed = Math.floor((Date.now() - startTime) / 1000);
-  timeLeft = Math.max(0, TEST_DATA.duration * 60 - elapsed);
+  timeLeft = Math.max(0, Math.round((endTime - Date.now()) / 1000));
   const m = Math.floor(timeLeft / 60);
   const s = timeLeft % 60;
   timerEl.textContent = m + ':' + String(s).padStart(2, '0');
 
+  // teal > 5 min · amber 2–5 min · red < 2 min
   if (timeLeft <= 300) {
     timerContainer.classList.add('warning');
     timerContainer.classList.remove('danger');
   }
-  if (timeLeft <= 60) {
+  if (timeLeft <= 120) {
     timerContainer.classList.add('danger');
     timerContainer.classList.remove('warning');
   }
@@ -69,7 +100,14 @@ function renderQuestion(idx) {
   q.options.forEach((opt, optIdx) => {
     const btn = document.createElement('button');
     btn.className = 'option-btn' + (answers[idx].selectedOption === optIdx ? ' selected' : '');
-    btn.innerHTML = `<span class="option-letter-btn">${['A','B','C','D'][optIdx]}</span>${opt.text}`;
+    // Safe rendering: question/option content goes through textContent only
+    const letter = document.createElement('span');
+    letter.className = 'option-letter-btn';
+    letter.textContent = ['A', 'B', 'C', 'D'][optIdx] || String(optIdx + 1);
+    const label = document.createElement('span');
+    label.textContent = opt.text || '';
+    btn.appendChild(letter);
+    btn.appendChild(label);
     btn.addEventListener('click', () => selectOption(idx, optIdx));
     optionsGrid.appendChild(btn);
   });
@@ -85,6 +123,7 @@ function renderQuestion(idx) {
 
   updateGridBtn(idx);
   updateCurrentGrid();
+  persistState();
 }
 
 function selectOption(qIdx, optIdx) {
@@ -140,11 +179,17 @@ function updateSummary() {
   document.getElementById('answeredCount').textContent = answered;
   document.getElementById('unansweredCount').textContent = unanswered;
   document.getElementById('reviewCount').textContent = markedForReview.size;
+  const pill = document.getElementById('headerAnswered');
+  if (pill) pill.textContent = 'Answered ' + answered + '/' + questions.length;
 }
 
 function confirmSubmit() {
+  const total = questions.length;
   const answered = answers.filter(a => a.selectedOption !== -1).length;
+  document.getElementById('modalTotal').textContent = total;
   document.getElementById('modalAnswered').textContent = answered;
+  document.getElementById('modalUnanswered').textContent = total - answered;
+  document.getElementById('modalMarked').textContent = markedForReview.size;
   const reviewWarn = document.getElementById('reviewWarning');
   if (markedForReview.size > 0) {
     reviewWarn.textContent = '⚠️ ' + markedForReview.size + ' question(s) marked for review.';
@@ -159,7 +204,7 @@ function closeSubmitModal() {
 async function submitTest() {
   clearInterval(timerInterval);
   closeSubmitModal();
-  const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+  const timeTaken = Math.max(0, Math.floor((TEST_DATA.duration * 60 * 1000 - (endTime - Date.now())) / 1000));
 
   const submitBtn = document.querySelector('.btn-submit-test');
   if (submitBtn) {
@@ -175,6 +220,7 @@ async function submitTest() {
     });
     const data = await res.json();
     if (data.success) {
+      try { sessionStorage.removeItem(END_KEY); sessionStorage.removeItem(STATE_KEY); } catch (e) {}
       window.location.href = '/tests/result/' + data.attemptId;
     } else {
       alert('Submission failed: ' + data.message);
@@ -202,6 +248,12 @@ window.addEventListener('beforeunload', e => {
   }
 });
 
-// Start
-renderQuestion(0);
+// Start (resume at the restored question, if any)
+renderQuestion(currentQuestion);
 updateSummary();
+
+// Optional: discourage browser-back mid-test (beforeunload already warns)
+try {
+  history.pushState(null, '', location.href);
+  window.addEventListener('popstate', () => history.pushState(null, '', location.href));
+} catch (e) {}
