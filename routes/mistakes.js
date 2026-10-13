@@ -73,6 +73,19 @@ router.put('/:id/notes', requireLogin, async (req, res) => {
   }
 });
 
+// Delete a mistake entry — owner-scoped: the query only matches documents whose
+// studentId equals the logged-in user's id (req.user is loaded from req.session.userId),
+// so another user's entry can never be found or deleted.
+router.delete('/:id', requireLogin, async (req, res) => {
+  try {
+    const entry = await MistakeEntry.findOneAndDelete({ _id: req.params.id, studentId: req.user._id });
+    if (!entry) return res.status(404).json({ success: false, message: 'Not found' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
 router.get('/quiz', requireLogin, async (req, res) => {
   try {
     const { topic, difficulty } = req.query;

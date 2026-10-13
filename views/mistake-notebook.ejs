@@ -1,4 +1,6 @@
 <%- include('partials/header') %>
+<% // Guard: no StudentNote backend is mounted yet — the route passes no `notes` local
+   const myNotes = (typeof notes !== 'undefined' && Array.isArray(notes)) ? notes : []; %>
 
 <div class="dashboard-page">
   <%- include('partials/sidebar', { active: 'weakness' }) %>
@@ -25,7 +27,7 @@
       </div>
       <div class="wstat-card" style="background:#FFFFFF;border:1px solid rgba(58,106,138,0.2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px">
         <div style="width:44px;height:44px;background:rgba(58,106,138,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#3A6A8A;flex-shrink:0"><i class="fas fa-pen-to-square"></i></div>
-        <div><div style="font-size:26px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif"><%= notes.length %></div><div style="font-size:12px;color:#5F6C76">My Notes</div></div>
+        <div><div style="font-size:26px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif"><%= myNotes.length %></div><div style="font-size:12px;color:#5F6C76">My Notes</div></div>
       </div>
     </div>
 
@@ -115,7 +117,7 @@
 
     <!-- TAB: My Notes -->
     <div id="panel-notes" style="display:none">
-      <% if (notes.length === 0) { %>
+      <% if (myNotes.length === 0) { %>
         <div class="empty-state">
           <i class="fas fa-pen-to-square" style="font-size:48px;color:#3A6A8A;display:block;margin-bottom:16px"></i>
           <h3>No notes yet</h3>
@@ -124,7 +126,7 @@
         </div>
       <% } else { %>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
-          <% notes.forEach(note => { %>
+          <% myNotes.forEach(note => { %>
           <div style="background:#FFFFFF;border:1px solid <%= note.isStarred ? 'rgba(185,133,45,0.3)' : '#E2E8E4' %>;border-radius:12px;padding:16px">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px">
               <h4 style="font-size:15px"><%= note.isStarred ? '⭐ ' : '' %><%= note.title %></h4>
@@ -188,29 +190,34 @@ function filterMistakes() {
   });
 }
 async function markMastered(id) {
-  await fetch('/mistakes/' + id + '/master', { method: 'POST' });
+  await fetch('/mistake-notebook/' + id + '/mastered', { method: 'PUT' });
   location.reload();
 }
 async function deleteMistake(id) {
   if (!confirm('Remove this weakness entry?')) return;
-  const r = await fetch('/mistakes/' + id, { method: 'DELETE' });
+  const r = await fetch('/mistake-notebook/' + id, { method: 'DELETE' });
   if ((await r.json()).success) location.reload();
 }
 async function saveMistakeNote(id) {
   const note = document.getElementById('note-' + id).value;
-  await fetch('/mistakes/' + id + '/note', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ note }) });
+  await fetch('/mistake-notebook/' + id + '/notes', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ notes: note }) });
 }
 async function submitNote(e) {
   e.preventDefault();
   const btn = e.target.querySelector('button');
   btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-  const r = await fetch('/student-notes', {
+  // Manual mistake entry — server: POST /mistake-notebook/manual
+  // questionText is required; correctAnswer/studentAnswer are set server-side to -1
+  const title = document.getElementById('noteTitle').value.trim();
+  const content = document.getElementById('noteContent').value.trim();
+  const firstTag = document.getElementById('noteTags').value.split(',').map(t => t.trim()).filter(Boolean)[0];
+  const r = await fetch('/mistake-notebook/manual', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
-      title: document.getElementById('noteTitle').value,
-      content: document.getElementById('noteContent').value,
-      tags: document.getElementById('noteTags').value,
-      isStarred: document.getElementById('noteStarred').checked
+      questionText: title,
+      studentNotes: content,
+      topic: firstTag || undefined,
+      difficulty: 'Medium'
     })
   });
   const data = await r.json();
