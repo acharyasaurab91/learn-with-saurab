@@ -1,7 +1,35 @@
-<%- include('partials/header') %>
+<%- include('partials/header', { extraCss: '<link rel="stylesheet" href="/css/test.css">' }) %>
+<%
+  const rq = questionsWithResults;
+  const correctCount = rq.filter(q => q.isCorrect).length;
+  const wrongCount = rq.filter(q => !q.isCorrect && q.selected !== -1).length;
+  const skippedCount = rq.filter(q => q.selected === -1).length;
+  const attempted = correctCount + wrongCount;
+  const accuracy = attempted ? Math.round((correctCount / attempted) * 100) : 0;
+  const pct = attempt.totalMarks ? Math.round((attempt.score / attempt.totalMarks) * 100) : 0;
+  const t = Math.max(0, parseInt(attempt.timeTaken, 10) || 0);
+  const timeLabel = Math.floor(t / 60) + ' min ' + (t % 60) + ' sec';
+  const when = new Date(attempt.completedAt || Date.now()).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const letters = ['A', 'B', 'C', 'D'];
+  const shareText = 'I scored ' + attempt.score + '/' + attempt.totalMarks + ' (' + pct + '%) on "' + test.title + '" — ' + (attempt.passed ? 'PASS' : 'FAIL') + ' on Learn With Saurab!';
+%>
 
 <div class="result-page container">
+
+  <!-- A) Header bar -->
+  <div class="rp-topbar">
+    <div class="rp-topbar-left">
+      <span class="rp-eyebrow"><i class="fas fa-clipboard-check"></i> Test Results</span>
+      <h1 class="rp-test-name"><%= test.title %></h1>
+    </div>
+    <a href="/dashboard" class="btn-nav"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+  </div>
+
+  <!-- B) Score card (hero) -->
   <div class="result-hero <%= attempt.passed ? 'result-pass' : 'result-fail' %>">
+    <span class="rp-verdict <%= attempt.passed ? 'verdict-pass' : 'verdict-fail' %>">
+      <i class="fas fa-<%= attempt.passed ? 'check' : 'times' %>"></i> <%= attempt.passed ? 'PASS' : 'FAIL' %>
+    </span>
     <div class="result-icon">
       <% if (attempt.passed) { %>
         <i class="fas fa-trophy"></i>
@@ -13,61 +41,87 @@
     <p><%= attempt.passed ? 'You passed the test!' : 'You didn\'t pass this time, but you\'re learning!' %></p>
     <div class="result-score-circle">
       <div class="score-num"><%= attempt.score %></div>
-      <div class="score-total">/<%= attempt.totalMarks %></div>
+      <div class="score-total">/ <%= attempt.totalMarks %></div>
     </div>
-    <div class="result-stats-row">
-      <div class="r-stat">
-        <span><%= Math.round((attempt.score / attempt.totalMarks) * 100) %>%</span>
-        <label>Percentage</label>
-      </div>
-      <div class="r-stat">
-        <span><%= questionsWithResults.filter(q => q.isCorrect).length %></span>
-        <label>Correct</label>
-      </div>
-      <div class="r-stat">
-        <span><%= questionsWithResults.filter(q => !q.isCorrect && q.selected !== -1).length %></span>
-        <label>Wrong</label>
-      </div>
-      <div class="r-stat">
-        <span><%= questionsWithResults.filter(q => q.selected === -1).length %></span>
-        <label>Skipped</label>
-      </div>
-      <div class="r-stat">
-        <span><%= Math.floor(attempt.timeTaken / 60) %>:<%= String(attempt.timeTaken % 60).padStart(2, '0') %></span>
-        <label>Time Taken</label>
-      </div>
+    <div class="rp-pct-badge"><%= pct %>%</div>
+    <div class="rp-meta">
+      <span><i class="fas fa-clock"></i> <%= timeLabel %></span>
+      <span><i class="fas fa-calendar-alt"></i> <%= when %></span>
     </div>
     <div class="result-cta">
-      <a href="/free-tests" class="btn-hero-outline">Try Another Test</a>
-      <a href="/mistake-notebook" class="btn-hero-primary">⚡ View Weaknesses</a>
+      <a href="/tests/<%= test._id %>/take" class="btn-hero-primary"><i class="fas fa-redo-alt"></i> Retake Test</a>
+      <a href="/dashboard" class="btn-hero-outline"><i class="fas fa-gauge-high"></i> Back to Dashboard</a>
     </div>
   </div>
 
+  <!-- C) Summary stats row -->
+  <div class="rp-summary">
+    <div class="rp-stat rp-correct">
+      <i class="fas fa-check-circle"></i>
+      <strong><%= correctCount %></strong>
+      <span>Correct</span>
+    </div>
+    <div class="rp-stat rp-wrong">
+      <i class="fas fa-times-circle"></i>
+      <strong><%= wrongCount %></strong>
+      <span>Wrong</span>
+    </div>
+    <div class="rp-stat rp-skipped">
+      <i class="fas fa-ban"></i>
+      <strong><%= skippedCount %></strong>
+      <span>Unanswered</span>
+    </div>
+    <div class="rp-stat rp-acc">
+      <i class="fas fa-bullseye"></i>
+      <strong><%= accuracy %>%</strong>
+      <span>Accuracy</span>
+    </div>
+  </div>
+
+  <!-- D) Question-by-question review -->
   <div class="result-review">
-    <h2><i class="fas fa-search"></i> Question Review</h2>
-    <% questionsWithResults.forEach((q, i) => { %>
-    <div class="review-card <%= q.isCorrect ? 'review-correct' : q.selected === -1 ? 'review-skipped' : 'review-wrong' %>">
+    <div class="rp-review-head">
+      <h2><i class="fas fa-search"></i> Question Review</h2>
+      <!-- Step 3: client-side filters -->
+      <div class="rp-filters" id="rpFilters">
+        <button type="button" class="rp-filter active" data-filter="all">All <span><%= rq.length %></span></button>
+        <button type="button" class="rp-filter" data-filter="correct">Correct <span><%= correctCount %></span></button>
+        <button type="button" class="rp-filter" data-filter="wrong">Wrong <span><%= wrongCount %></span></button>
+        <button type="button" class="rp-filter" data-filter="skipped">Skipped <span><%= skippedCount %></span></button>
+      </div>
+    </div>
+
+    <% rq.forEach((q, i) => { %>
+    <div class="review-card <%= q.isCorrect ? 'review-correct' : q.selected === -1 ? 'review-skipped' : 'review-wrong' %>"
+         data-status="<%= q.isCorrect ? 'correct' : q.selected === -1 ? 'skipped' : 'wrong' %>">
       <div class="review-header">
         <span class="review-num">Q<%= i + 1 %></span>
-        <span class="review-tag">
-          <% if (q.isCorrect) { %><i class="fas fa-check-circle text-green"></i> Correct
-          <% } else if (q.selected === -1) { %><i class="fas fa-minus-circle text-gray"></i> Skipped
-          <% } else { %><i class="fas fa-times-circle text-red"></i> Wrong<% } %>
-        </span>
+        <% if (q.isCorrect) { %>
+          <span class="rp-status status-correct"><i class="fas fa-check"></i> Correct</span>
+        <% } else if (q.selected === -1) { %>
+          <span class="rp-status status-skipped"><i class="fas fa-ban"></i> Skipped</span>
+        <% } else { %>
+          <span class="rp-status status-wrong"><i class="fas fa-times"></i> Wrong</span>
+        <% } %>
         <span class="review-diff diff-<%= q.difficulty ? q.difficulty.toLowerCase() : 'medium' %>"><%= q.difficulty || 'Medium' %></span>
       </div>
       <div class="review-question"><%= q.questionText %></div>
-      <% if (q.questionImage) { %><img src="<%= q.questionImage %>" alt="Q image" class="review-img"><% } %>
+      <% if (q.questionImage) { %><img src="<%= q.questionImage %>" alt="Question image" class="review-img"><% } %>
       <div class="review-options">
         <% q.options.forEach((opt, idx) => { %>
         <div class="review-option
           <%= idx === q.correctIdx ? 'opt-correct' : '' %>
           <%= idx === q.selected && idx !== q.correctIdx ? 'opt-wrong' : '' %>">
-          <span class="opt-letter"><%= ['A','B','C','D'][idx] %></span>
-          <%= opt.text %>
-          <% if (idx === q.correctIdx) { %><i class="fas fa-check-circle"></i><% } %>
-          <% if (idx === q.selected && idx !== q.correctIdx) { %><i class="fas fa-times-circle"></i><% } %>
-          <% if (idx === q.selected) { %><span class="your-ans">(Your answer)</span><% } %>
+          <span class="opt-letter"><%= letters[idx] || (idx + 1) %></span>
+          <span class="rp-opt-text"><%= opt.text %></span>
+          <span class="rp-opt-labels">
+            <% if (idx === q.correctIdx) { %>
+              <span class="rp-opt-label label-correct"><i class="fas fa-check"></i> Correct answer</span>
+            <% } %>
+            <% if (idx === q.selected) { %>
+              <span class="rp-opt-label label-yours <%= idx === q.correctIdx ? 'label-is-correct' : '' %>"><i class="fas fa-user"></i> Your answer</span>
+            <% } %>
+          </span>
         </div>
         <% }) %>
       </div>
@@ -77,6 +131,75 @@
     </div>
     <% }) %>
   </div>
+
+  <!-- F) Bottom actions -->
+  <div class="rp-bottom">
+    <a href="/tests/<%= test._id %>/take" class="btn-hero-primary"><i class="fas fa-redo-alt"></i> Retake Test</a>
+    <a href="/my-tests" class="btn-hero-outline"><i class="fas fa-clipboard-list"></i> Back to My Tests</a>
+    <button type="button" class="btn-hero-outline" id="rpShare"><i class="fas fa-share-alt"></i> Share Result</button>
+  </div>
 </div>
+
+<!-- E) Sticky back-to-top -->
+<button type="button" class="rp-top" id="rpTop" aria-label="Back to top"><i class="fas fa-arrow-up"></i></button>
+
+<script>
+(function () {
+  // Step 3: client-side review filters
+  var filters = document.getElementById('rpFilters');
+  if (filters) {
+    filters.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-filter]');
+      if (!btn) return;
+      filters.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var f = btn.getAttribute('data-filter');
+      document.querySelectorAll('.review-card[data-status]').forEach(function (card) {
+        var show = f === 'all' || card.getAttribute('data-status') === f;
+        card.classList.toggle('rp-hidden', !show);
+      });
+    });
+  }
+
+  // E) back-to-top visibility + action
+  var topBtn = document.getElementById('rpTop');
+  if (topBtn) {
+    window.addEventListener('scroll', function () {
+      topBtn.classList.toggle('rp-visible', window.scrollY > 500);
+    }, { passive: true });
+    topBtn.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  // F) share — copy a text summary
+  var share = document.getElementById('rpShare');
+  if (share) {
+    var text = <%- JSON.stringify(shareText).replace(/</g, '\\u003c') %>;
+    function done() {
+      share.innerHTML = '<i class="fas fa-check"></i> Copied!';
+      setTimeout(function () { share.innerHTML = '<i class="fas fa-share-alt"></i> Share Result'; }, 2000);
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'absolute';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (err) { /* ignored */ }
+      document.body.removeChild(ta);
+    }
+    share.addEventListener('click', function () {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(fallback);
+      } else {
+        fallback();
+      }
+    });
+  }
+})();
+</script>
 
 <%- include('partials/footer') %>

@@ -110,3 +110,92 @@
   .question-card { padding: 20px 16px; }
   .modal-counts { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ============================================ PHASE 5B — RESULT PAGE POLISH (appended) */
+/* Correct #10B981 · Wrong #EF4444 · Skipped #F59E0B · teal #0E7C72 */
+
+/* A) Header bar */
+.rp-topbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.rp-eyebrow { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #0E7C72; margin-bottom: 6px; }
+.rp-test-name { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 800; color: #14212B; line-height: 1.25; }
+
+/* B) Score card */
+.rp-verdict { display: inline-flex; align-items: center; gap: 8px; padding: 8px 22px; border-radius: 50px; font-size: 14px; font-weight: 800; letter-spacing: 1.5px; margin-bottom: 14px; }
+.verdict-pass { background: rgba(16,185,129,0.12); border: 1.5px solid rgba(16,185,129,0.45); color: #10B981; }
+.verdict-fail { background: rgba(239,68,68,0.10); border: 1.5px solid rgba(239,68,68,0.4); color: #EF4444; }
+.result-hero .result-icon { margin-bottom: 12px; }
+.result-hero h1 { margin-bottom: 6px; }
+.rp-pct-badge { display: flex; align-items: center; justify-content: center; width: fit-content; margin: -14px auto 0; padding: 10px 22px; border-radius: 50px; background: rgba(14,124,114,0.1); border: 1.5px solid rgba(14,124,114,0.35); color: #0E7C72; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 24px; font-weight: 900; }
+.rp-meta { display: flex; justify-content: center; gap: 12px 24px; flex-wrap: wrap; margin: 22px 0 30px; }
+.rp-meta span { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #5F6C76; }
+.rp-meta i { color: #0E7C72; }
+
+/* C) Summary stats row */
+.rp-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 36px; }
+.rp-stat { background: #FFFFFF; border: 1px solid #E2E8E4; border-radius: 14px; padding: 18px 12px; text-align: center; }
+.rp-stat i { display: block; font-size: 20px; margin-bottom: 8px; }
+.rp-stat strong { display: block; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 900; color: #14212B; line-height: 1.1; }
+.rp-stat span { display: block; font-size: 12px; font-weight: 600; color: #5F6C76; margin-top: 5px; }
+.rp-stat.rp-correct i, .rp-stat.rp-correct strong { color: #10B981; }
+.rp-stat.rp-wrong i, .rp-stat.rp-wrong strong { color: #EF4444; }
+.rp-stat.rp-skipped i, .rp-stat.rp-skipped strong { color: #F59E0B; }
+.rp-stat.rp-acc i, .rp-stat.rp-acc strong { color: #0E7C72; }
+
+/* D) Review: filter row + status badges + option labels */
+.rp-review-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+.rp-review-head h2 { margin-bottom: 0; }
+.rp-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.rp-filter { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; border-radius: 50px; border: 1px solid #CDD7D1; background: #FFFFFF; color: #5F6C76; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+.rp-filter span { background: #EEF2EF; border-radius: 50px; padding: 1px 8px; font-size: 11px; font-weight: 800; color: inherit; }
+.rp-filter:hover { border-color: rgba(14,124,114,0.45); color: #0E7C72; }
+.rp-filter.active { background: #0E7C72; border-color: #0E7C72; color: #FFFFFF; }
+.rp-filter.active span { background: rgba(255,255,255,0.22); }
+.rp-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 800; letter-spacing: 0.3px; }
+.status-correct { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.4); color: #10B981; }
+.status-wrong { background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.35); color: #EF4444; }
+.status-skipped { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.4); color: #F59E0B; }
+.review-card.rp-hidden { display: none; }
+.rp-opt-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.rp-opt-labels { display: inline-flex; align-items: center; gap: 8px; margin-left: 10px; flex-shrink: 0; }
+.rp-opt-label { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.label-correct { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.4); color: #10B981; }
+.label-yours { background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.35); color: #EF4444; }
+.label-yours.label-is-correct { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.4); color: #10B981; }
+.review-explanation { background: rgba(58,106,138,0.06); border-color: rgba(58,106,138,0.2); }
+
+/* F) Bottom actions */
+.rp-bottom { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 36px; padding-top: 28px; border-top: 1px solid #E2E8E4; }
+
+/* Button shape for btn-hero-* (style.css only defines their colors) — result page only */
+.result-cta .btn-hero-primary, .result-cta .btn-hero-outline,
+.rp-bottom .btn-hero-primary, .rp-bottom .btn-hero-outline {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 13px 26px; border-radius: 10px;
+  font-size: 15px; font-weight: 700; text-decoration: none;
+  transition: all 0.2s;
+}
+
+/* Difficulty chip base (diff-* classes only set colors) */
+.review-diff { margin-left: auto; padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 700; }
+
+/* E) Sticky back-to-top */
+.rp-top { position: fixed; right: 22px; bottom: 26px; width: 46px; height: 46px; border-radius: 50%; border: none; background: #0E7C72; color: #FFFFFF; font-size: 16px; cursor: pointer; box-shadow: 0 8px 24px rgba(14,124,114,0.35); opacity: 0; visibility: hidden; transform: translateY(10px); transition: all 0.25s; z-index: 60; }
+.rp-top.rp-visible { opacity: 1; visibility: visible; transform: translateY(0); }
+.rp-top:hover { background: #0B665D; }
+
+/* Mobile-first: 360px-friendly */
+@media (max-width: 768px) {
+  .rp-test-name { font-size: 20px; }
+  .rp-topbar { align-items: stretch; margin-bottom: 18px; }
+  .rp-topbar .btn-nav { justify-content: center; }
+  .result-hero { padding: 32px 18px; }
+  .rp-summary { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .rp-stat strong { font-size: 22px; }
+  .rp-review-head h2 { font-size: 19px; }
+  .rp-filters { width: 100%; }
+  .rp-filter { flex: 1; justify-content: center; padding: 9px 10px; font-size: 12px; }
+  .review-card { padding: 18px 14px; }
+  .review-option { flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
+  .rp-opt-labels { margin-left: 32px; width: 100%; }
+  .rp-bottom .btn-hero-primary, .rp-bottom .btn-hero-outline { width: 100%; justify-content: center; }
+}
