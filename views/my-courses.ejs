@@ -128,6 +128,12 @@
             </div>
           <% } %>
 
+          <!-- Enrollment date + last accessed -->
+          <div class="mc-card-dates">
+            <span><i class="fas fa-calendar-check"></i> Enrolled: <%= enrollmentDate[cid] ? new Date(enrollmentDate[cid]).toLocaleDateString() : '—' %></span>
+            <span><i class="fas fa-clock"></i> Last accessed: <%= lastAccessed[cid] ? new Date(lastAccessed[cid]).toLocaleDateString() : 'Never' %></span>
+          </div>
+
           <!-- Action -->
           <a href="/courses/<%= course._id %>/learn" class="mc-cta-btn <% if (pct === 100) { %>mc-cta-done<% } %>">
             <% if (pct === 0) { %>
@@ -217,6 +223,11 @@
 /* Last watched */
 .mc-last-watched { display:flex; align-items:center; gap:6px; font-size:12px; color:#5F6C76; background:#F6F7F4; border-radius:6px; padding:6px 10px; }
 .mc-last-watched i { color:#5F6C76; flex-shrink:0; }
+
+/* Enrollment date + last accessed */
+.mc-card-dates { display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:#5F6C76; }
+.mc-card-dates span { display:flex; align-items:center; gap:6px; }
+.mc-card-dates i { width:14px; text-align:center; color:#4B5563; flex-shrink:0; }
 
 /* CTA button */
 .mc-cta-btn { display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; background:#0E7C72; color:#fff; border-radius:10px; text-decoration:none; font-weight:700; font-size:14px; margin-top:auto; transition:opacity 0.2s, transform 0.2s; }

@@ -1,110 +1,162 @@
 const express = require('express');
 const router = express.Router();
 const { requireLogin, requireVerified } = require('../middleware/auth');
-const Course = require('../models/Course');
+const Transaction = require('../models/Transaction');
 const TestAttempt = require('../models/TestAttempt');
 const MistakeEntry = require('../models/MistakeEntry');
 const User = require('../models/User');
 const VideoProgress = require('../models/VideoProgress');
 
-router.get('/', requireVerified, async (req, res) => {
+// Load the signed-in user with enrolled course documents populated.
+async function loadUser(req) {
+  return User.findById(req.session.userId).populate('enrolledCourses');
+}
+
+// Enrolled courses with deleted references dropped (never reassign the
+// populated Mongoose array itself — that can drop the populated docs).
+function enrolledCoursesOf(user) {
+  return ((user && user.enrolledCourses) || []).filter(Boolean);
+}
+
+// Per-course data shared by /dashboard and /my-courses.
+//  - courseProgress % : completed VideoProgress rows / total videos in course.modules[].videos[]
+//  - lastAccessed     : most recent VideoProgress updatedAt per course
+//  - enrollmentDate   : completed purchase date if any, else first lesson activity (no date is
+//                       stored on User.enrolledCourses, so this is the best available signal)
+async function computeCourseData(userId, courses) {
+  const courseProgress = {};
+  const lastAccessed = {};
+  const enrollmentDate = {};
+  const lastVideoId = {};
+  if (!courses.length) return { courseProgress, lastAccessed, enrollmentDate, lastVideoId };
+
+  const ids = courses.map(c => c._id);
+  const [progRecords, txns] = await Promise.all([
+    VideoProgress.find({ userId, courseId: { $in: ids } }).sort({ updatedAt: -1 }),
+    Transaction.find({ userId, courseId: { $in: ids }, status: 'completed' }).sort({ createdAt: 1 })
+  ]);
+
+  courses.forEach(course => {
+    const cid = course._id.toString();
+    const totalVideos = (course.modules || []).reduce((sum, m) => sum + (m.videos || []).length, 0);
+    const rows = progRecords.filter(p => p.courseId.toString() === cid);
+    const watched = rows.filter(p => p.completed).length;
+    courseProgress[cid] = totalVideos > 0 ? Math.round((watched / totalVideos) * 100) : 0;
+
+    const purchase = txns.find(t => t.courseId.toString() === cid);
+    if (rows.length) {
+      lastAccessed[cid] = rows[0].updatedAt;                 // sorted desc → most recent
+      lastVideoId[cid] = rows[0].videoId;
+      const firstActivity = rows[rows.length - 1].createdAt; // sorted desc → oldest
+      enrollmentDate[cid] = purchase ? purchase.createdAt : firstActivity;
+    } else if (purchase) {
+      enrollmentDate[cid] = purchase.createdAt;
+    }
+  });
+
+  return { courseProgress, lastAccessed, enrollmentDate, lastVideoId };
+}
+
+// ─── GET /dashboard ─────────────────────────────────────────────────
+async function showDashboard(req, res) {
   try {
-    const [enrolledCourses, recentAttempts, topMistakes] = await Promise.all([
-      Course.find({ _id: { $in: req.user.enrolledCourses } }),
-      TestAttempt.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(5).populate('testId', 'title'),
-      MistakeEntry.find({ studentId: req.user._id, mastered: false }).sort({ timesMistaken: -1 }).limit(5)
+    const user = await loadUser(req);
+    if (!user) return res.redirect('/login');
+
+    const enrolledCourses = enrolledCoursesOf(user);
+
+    const [recentAttempts, topMistakes, courseData] = await Promise.all([
+      TestAttempt.find({ userId: user._id }).sort({ completedAt: -1 }).limit(5).populate('testId', 'title'),
+      MistakeEntry.find({ studentId: user._id, mastered: false }).sort({ timesMistaken: -1 }).limit(5),
+      computeCourseData(user._id, enrolledCourses)
     ]);
 
-    // Compute per-course progress % for dashboard preview
-    let courseProgress = {};
-    if (enrolledCourses.length > 0) {
-      const progRecords = await VideoProgress.find({
-        userId: req.user._id,
-        courseId: { $in: enrolledCourses.map(c => c._id) }
+    // Continue Learning → most recently accessed course, else most recently enrolled
+    let continueCourse = null;
+    if (enrolledCourses.length) {
+      let recentId = null, recentAt = 0;
+      enrolledCourses.forEach(c => {
+        const at = courseData.lastAccessed[c._id.toString()];
+        const t = at ? new Date(at).getTime() : 0;
+        if (t > recentAt) { recentAt = t; recentId = c._id.toString(); }
       });
-      enrolledCourses.forEach(course => {
-        const totalVideos = course.modules.reduce((sum, m) => sum + m.videos.length, 0);
-        const watched = progRecords.filter(p => p.courseId.toString() === course._id.toString() && p.completed).length;
-        courseProgress[course._id.toString()] = totalVideos > 0 ? Math.round((watched / totalVideos) * 100) : 0;
-      });
+      continueCourse = recentId
+        ? enrolledCourses.find(c => c._id.toString() === recentId)
+        : enrolledCourses[enrolledCourses.length - 1];
     }
 
     res.render('dashboard', {
       title: 'Dashboard',
-      user: req.user,
+      user,
       enrolledCourses,
       recentAttempts,
       topMistakes,
-      courseProgress,
+      courseProgress: courseData.courseProgress,
+      continueCourse,
+      continuePct: continueCourse ? (courseData.courseProgress[continueCourse._id.toString()] || 0) : 0,
       welcome: req.query.welcome === '1'
     });
   } catch (err) {
     console.error(err);
-    res.render('error', { title: 'Error', message: 'Could not load dashboard.', user: req.user });
+    res.render('error', { title: 'Error', message: 'Could not load dashboard.', user: req.user || null });
   }
-});
+}
 
-router.get('/my-courses', requireVerified, async (req, res) => {
+// ─── GET /my-courses ────────────────────────────────────────────────
+async function showMyCourses(req, res) {
   try {
-    const courses = await Course.find({ _id: { $in: req.user.enrolledCourses } });
+    const user = await loadUser(req);
+    if (!user) return res.redirect('/login');
 
-    // Compute real progress % per course
-    let courseProgress = {};
-    let lastWatched = {};
-    if (courses.length > 0) {
-      const [progRecords, lastRecords] = await Promise.all([
-        VideoProgress.find({ userId: req.user._id, courseId: { $in: courses.map(c => c._id) } }),
-        VideoProgress.find({ userId: req.user._id, courseId: { $in: courses.map(c => c._id) } })
-          .sort({ updatedAt: -1 })
-      ]);
+    const courses = enrolledCoursesOf(user);
+    const { courseProgress, lastAccessed, enrollmentDate, lastVideoId } =
+      await computeCourseData(user._id, courses);
 
-      courses.forEach(course => {
-        const cid = course._id.toString();
-        const totalVideos = course.modules.reduce((sum, m) => sum + m.videos.length, 0);
-        const watched = progRecords.filter(p => p.courseId.toString() === cid && p.completed).length;
-        courseProgress[cid] = totalVideos > 0 ? Math.round((watched / totalVideos) * 100) : 0;
+    // Resolve the last watched lesson title per course
+    const lastWatched = {};
+    courses.forEach(course => {
+      const cid = course._id.toString();
+      const vid = lastVideoId[cid];
+      if (!vid) return;
+      for (const mod of course.modules || []) {
+        const v = (mod.videos || []).find(x => x._id.toString() === vid || x.videoUrl === vid);
+        if (v) { lastWatched[cid] = v.videoTitle; break; }
+      }
+    });
 
-        // Find last watched video label for this course
-        const last = lastRecords.find(p => p.courseId.toString() === cid);
-        if (last) {
-          for (const mod of course.modules) {
-            const vid = mod.videos.find(v => v._id.toString() === last.videoId || v.videoUrl === last.videoId);
-            if (vid) { lastWatched[cid] = vid.videoTitle; break; }
-          }
-        }
-      });
-    }
-
-    // Separate into in-progress and not-started
-    const inProgress = courses.filter(c => (courseProgress[c._id.toString()] || 0) > 0 && (courseProgress[c._id.toString()] || 0) < 100);
+    // Separate into in-progress / not-started / completed
+    const inProgress = courses.filter(c => { const p = courseProgress[c._id.toString()] || 0; return p > 0 && p < 100; });
     const notStarted = courses.filter(c => (courseProgress[c._id.toString()] || 0) === 0);
     const completed  = courses.filter(c => (courseProgress[c._id.toString()] || 0) === 100);
 
     // Total lesson count across all enrolled courses
-    const totalLessons = courses.reduce((sum, c) => sum + c.modules.reduce((s, m) => s + m.videos.length, 0), 0);
+    const totalLessons = courses.reduce((sum, c) => sum + (c.modules || []).reduce((s, m) => s + (m.videos || []).length, 0), 0);
 
     res.render('my-courses', {
       title: 'My Courses',
       courses,
       courseProgress,
       lastWatched,
+      lastAccessed,
+      enrollmentDate,
       inProgress,
       notStarted,
       completed,
       totalLessons,
-      user: req.user
+      user
     });
   } catch (err) {
     console.error(err);
-    res.render('error', { title: 'Error', message: 'Could not load courses.', user: req.user });
+    res.render('error', { title: 'Error', message: 'Could not load courses.', user: req.user || null });
   }
-});
+}
 
-router.get('/profile', requireVerified, async (req, res) => {
+// ─── /profile ───────────────────────────────────────────────────────
+async function showProfile(req, res) {
   res.render('profile', { title: 'My Profile', user: req.user, msg: req.query.msg || '', error: '' });
-});
+}
 
-router.post('/profile', requireVerified, async (req, res) => {
+async function updateProfile(req, res) {
   try {
     const { firstName, lastName, mobile } = req.body;
     await User.findByIdAndUpdate(req.user._id, { firstName, lastName, mobile });
@@ -112,7 +164,43 @@ router.post('/profile', requireVerified, async (req, res) => {
   } catch (err) {
     res.render('profile', { title: 'My Profile', user: req.user, msg: '', error: 'Update failed.' });
   }
+}
+
+// ─── /my-tests ──────────────────────────────────────────────────────
+async function showMyTests(req, res) {
+  try {
+    const attempts = await TestAttempt.find({ userId: req.user._id })
+      .sort({ completedAt: -1 }).populate('testId', 'title category');
+    res.render('my-tests', { title: 'My Tests', attempts, user: req.user });
+  } catch (err) {
+    res.render('error', { title: 'Error', message: 'Could not load tests.', user: req.user || null });
+  }
+}
+
+// ─── Dispatch ───────────────────────────────────────────────────────
+// server.js mounts this same router at /dashboard, /my-courses, /profile and
+// /my-tests. A GET or POST to the mount root (path '/') therefore has to pick
+// the handler from req.baseUrl — otherwise every one of those URLs would fall
+// through to the first registered handler (the dashboard view).
+router.get('/', requireVerified, (req, res, next) => {
+  switch (req.baseUrl) {
+    case '/my-courses': return showMyCourses(req, res, next);
+    case '/profile':    return showProfile(req, res, next);
+    case '/my-tests':   return showMyTests(req, res, next);
+    default:            return showDashboard(req, res, next);
+  }
 });
+
+router.post('/', requireVerified, (req, res, next) => {
+  if (req.baseUrl === '/profile') return updateProfile(req, res, next);
+  next();
+});
+
+// Explicit sub-paths (e.g. /dashboard/my-courses) kept for back-compat
+router.get('/my-courses', requireVerified, showMyCourses);
+router.get('/profile', requireVerified, showProfile);
+router.post('/profile', requireVerified, updateProfile);
+router.get('/my-tests', requireVerified, showMyTests);
 
 // Video progress — mark lesson watched + update minutes
 router.post('/progress/video', requireLogin, async (req, res) => {
@@ -145,16 +233,6 @@ router.post('/progress/video', requireLogin, async (req, res) => {
   } catch (err) {
     console.error('Video progress error:', err);
     res.status(500).json({ success: false });
-  }
-});
-
-router.get('/my-tests', requireVerified, async (req, res) => {
-  try {
-    const attempts = await TestAttempt.find({ userId: req.user._id })
-      .sort({ createdAt: -1 }).populate('testId', 'title category');
-    res.render('my-tests', { title: 'My Tests', attempts, user: req.user });
-  } catch (err) {
-    res.render('error', { title: 'Error', message: 'Could not load tests.', user: req.user });
   }
 });
 

@@ -13,75 +13,158 @@
     </div>
     <% } %>
 
-    <div class="dashboard-header">
-      <h1>Welcome back, <span class="gradient-text"><%= user.firstName %></span>! 👋</h1>
-      <p>Here's your learning overview</p>
+    <!-- 1. Welcome header -->
+    <div class="dashboard-header dash-header-row">
+      <div class="dash-header-left">
+        <div class="dash-avatar"><%= user.firstName[0] %><%= user.lastName[0] %></div>
+        <div>
+          <h1>Welcome back, <span class="gradient-text"><%= user.firstName %></span>! 👋</h1>
+          <p>Continue your preparation</p>
+        </div>
+      </div>
     </div>
 
+    <!-- 2. Progress stats row -->
     <div class="stats-grid">
       <div class="stat-card stat-card-1">
         <div class="stat-icon"><i class="fas fa-book-open"></i></div>
         <div class="stat-body">
           <div class="stat-number"><%= enrolledCourses.length %></div>
-          <div class="stat-label">Enrolled Courses</div>
+          <div class="stat-label">Courses Enrolled</div>
         </div>
       </div>
       <div class="stat-card stat-card-2">
         <div class="stat-icon"><i class="fas fa-clipboard-check"></i></div>
         <div class="stat-body">
-          <div class="stat-number"><%= user.progress.testsTaken %></div>
+          <div class="stat-number"><%= (user.progress && user.progress.testsTaken) || 0 %></div>
           <div class="stat-label">Tests Taken</div>
         </div>
       </div>
       <div class="stat-card stat-card-3">
         <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
         <div class="stat-body">
-          <div class="stat-number"><%= user.progress.avgScore %>%</div>
+          <div class="stat-number"><%= (user.progress && user.progress.avgScore) || 0 %>%</div>
           <div class="stat-label">Avg Score</div>
         </div>
       </div>
       <div class="stat-card stat-card-4">
         <div class="stat-icon"><i class="fas fa-clock"></i></div>
         <div class="stat-body">
-          <div class="stat-number"><%= user.progress.totalMinutesWatched %></div>
+          <div class="stat-number"><%= (user.progress && user.progress.totalMinutesWatched) || 0 %></div>
           <div class="stat-label">Minutes Watched</div>
         </div>
       </div>
     </div>
 
-    <div class="dashboard-grid-2">
-      <div class="dashboard-section">
-        <div class="section-head">
-          <h2><i class="fas fa-book-open"></i> My Courses</h2>
-          <a href="/browse-courses" class="btn-sm">Browse More</a>
+    <!-- 3. Continue Learning -->
+    <div class="dashboard-section">
+      <div class="section-head">
+        <h2><i class="fas fa-play-circle"></i> Continue Learning</h2>
+      </div>
+      <% if (!continueCourse) { %>
+        <div class="empty-state-sm">
+          <i class="fas fa-book-open"></i>
+          <p>You're not enrolled in any course yet.<br><a href="/browse-courses">Browse Courses →</a></p>
         </div>
-        <% if (enrolledCourses.length === 0) { %>
-          <div class="empty-state-sm">
-            <i class="fas fa-book-open"></i>
-            <p>No courses yet. <a href="/browse-courses">Find your first course!</a></p>
+      <% } else { %>
+        <div class="continue-card">
+          <div class="continue-thumb">
+            <% if (continueCourse.imageUrl) { %>
+              <img src="<%= continueCourse.imageUrl %>" alt="<%= continueCourse.title %>" loading="lazy">
+            <% } else { %>
+              <div class="course-img-placeholder"><i class="fas fa-book-open"></i></div>
+            <% } %>
           </div>
-        <% } else { %>
+          <div class="continue-body">
+            <span class="dash-cat-badge"><%= continueCourse.examType || continueCourse.category || 'Course' %></span>
+            <h3 class="continue-title"><%= continueCourse.title %></h3>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" style="width: <%= continuePct %>%"></div>
+            </div>
+            <div class="continue-meta">
+              <span><%= continuePct %>% complete</span>
+              <span><i class="fas fa-layer-group"></i> <%= (continueCourse.modules || []).length %> modules</span>
+              <span><i class="fas fa-play-circle"></i> <%= (continueCourse.modules || []).reduce((s, m) => s + (m.videos || []).length, 0) %> lessons</span>
+            </div>
+            <a href="/courses/<%= continueCourse._id %>/learn" class="btn-enroll">
+              <span>Resume Learning</span><i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- 4. My Enrolled Courses grid -->
+    <div class="dashboard-section">
+      <div class="section-head">
+        <h2><i class="fas fa-book-open"></i> My Enrolled Courses</h2>
+        <a href="/my-courses" class="btn-sm">View All →</a>
+      </div>
+      <% if (enrolledCourses.length === 0) { %>
+        <div class="empty-state-sm">
+          <i class="fas fa-book-open"></i>
+          <p>No courses yet.<br><a href="/browse-courses">Browse Courses →</a></p>
+        </div>
+      <% } else { %>
+        <div class="courses-grid courses-grid-wide dash-course-grid">
           <% enrolledCourses.slice(0, 3).forEach(course => {
             const pct = (courseProgress && courseProgress[course._id.toString()]) || 0;
           %>
-          <div class="enrolled-course-row">
-            <div class="enrolled-course-img">
-              <% if (course.imageUrl) { %><img src="<%= course.imageUrl %>" alt="<%= course.title %>"><% } else { %><i class="fas fa-book"></i><% } %>
+          <div class="course-card">
+            <div class="course-img-wrap">
+              <% if (course.imageUrl) { %>
+                <img src="<%= course.imageUrl %>" alt="<%= course.title %>" loading="lazy">
+              <% } else { %>
+                <div class="course-img-placeholder"><i class="fas fa-book-open"></i></div>
+              <% } %>
+              <div class="course-badge"><%= course.examType || course.category || 'Course' %></div>
             </div>
-            <div class="enrolled-course-info">
-              <h4><%= course.title %></h4>
-              <span class="badge-category"><%= course.category || course.examType || '' %></span>
+            <div class="course-body">
+              <h3 class="course-title"><%= course.title %></h3>
               <div class="progress-bar-wrap">
                 <div class="progress-bar-fill" style="width: <%= pct %>%"></div>
               </div>
-              <span style="font-size:11px;color:#5F6C76;"><%= pct %>% complete</span>
+              <div class="dash-progress-label"><span><%= pct %>% complete</span></div>
+              <div class="course-footer">
+                <a href="/courses/<%= course._id %>/learn" class="btn-enroll">
+                  <span>Continue</span><i class="fas fa-arrow-right"></i>
+                </a>
+              </div>
             </div>
-            <a href="/courses/<%= course._id %>/learn" class="btn-sm-outline"><%= pct === 100 ? 'Review' : pct > 0 ? 'Continue' : 'Start' %></a>
           </div>
           <% }) %>
-          <% if (enrolledCourses.length > 3) { %>
-            <a href="/my-courses" class="view-all-link">View all <%= enrolledCourses.length %> courses <i class="fas fa-arrow-right"></i></a>
-          <% } %>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- 5. Recent Test Results + Top Weaknesses -->
+    <div class="dashboard-grid-2">
+      <div class="dashboard-section">
+        <div class="section-head">
+          <h2><i class="fas fa-history"></i> Recent Test Results</h2>
+          <a href="/my-tests" class="btn-sm">View All</a>
+        </div>
+        <% if (recentAttempts.length === 0) { %>
+          <div class="empty-state-sm">
+            <i class="fas fa-clipboard-list"></i>
+            <p>No tests taken yet.<br><a href="/free-tests">Take your first test →</a></p>
+          </div>
+        <% } else { %>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Test name</th><th>Score</th><th>Date</th><th></th></tr></thead>
+              <tbody>
+                <% recentAttempts.forEach(a => { %>
+                <tr>
+                  <td><%= a.testId ? a.testId.title : 'Unknown Test' %></td>
+                  <td><strong><%= a.score %>/<%= a.totalMarks %></strong></td>
+                  <td><%= new Date(a.completedAt).toLocaleDateString() %></td>
+                  <td><a href="/tests/result/<%= a._id %>" class="btn-xs">View</a></td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
         <% } %>
       </div>
 
@@ -114,34 +197,37 @@
       </div>
     </div>
 
+    <!-- 6. Quick Links -->
     <div class="dashboard-section">
       <div class="section-head">
-        <h2><i class="fas fa-history"></i> Recent Test Results</h2>
-        <a href="/my-tests" class="btn-sm">View All</a>
+        <h2><i class="fas fa-link"></i> Quick Links</h2>
       </div>
-      <% if (recentAttempts.length === 0) { %>
-        <div class="empty-state-sm">
-          <i class="fas fa-clipboard-list"></i>
-          <p>No tests taken yet. <a href="/free-tests">Try a free test!</a></p>
-        </div>
-      <% } else { %>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Test</th><th>Score</th><th>Result</th><th>Date</th><th></th></tr></thead>
-            <tbody>
-              <% recentAttempts.forEach(a => { %>
-              <tr>
-                <td><%= a.testId ? a.testId.title : 'Unknown Test' %></td>
-                <td><strong><%= a.score %>/<%= a.totalMarks %></strong></td>
-                <td><span class="badge-result <%= a.passed ? 'badge-pass' : 'badge-fail' %>"><%= a.passed ? 'PASS' : 'FAIL' %></span></td>
-                <td><%= new Date(a.completedAt).toLocaleDateString() %></td>
-                <td><a href="/tests/result/<%= a._id %>" class="btn-xs">Review</a></td>
-              </tr>
-              <% }) %>
-            </tbody>
-          </table>
-        </div>
-      <% } %>
+      <div class="quick-links">
+        <a href="/browse-courses" class="quick-link">
+          <span class="quick-link-icon"><i class="fas fa-compass"></i></span>
+          <span class="quick-link-text">
+            <strong>Browse Courses</strong>
+            <small>Find your next course</small>
+          </span>
+          <i class="fas fa-arrow-right quick-link-arrow"></i>
+        </a>
+        <a href="/free-tests" class="quick-link">
+          <span class="quick-link-icon"><i class="fas fa-clipboard-list"></i></span>
+          <span class="quick-link-text">
+            <strong>Free Tests</strong>
+            <small>Practice & check your level</small>
+          </span>
+          <i class="fas fa-arrow-right quick-link-arrow"></i>
+        </a>
+        <a href="/profile" class="quick-link">
+          <span class="quick-link-icon"><i class="fas fa-user"></i></span>
+          <span class="quick-link-text">
+            <strong>My Profile</strong>
+            <small>Account & personal details</small>
+          </span>
+          <i class="fas fa-arrow-right quick-link-arrow"></i>
+        </a>
+      </div>
     </div>
   </div>
 </div>
