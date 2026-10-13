@@ -1,17 +1,26 @@
 <%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<% const totalQMarks = test.questions.reduce((s, q) => s + (q.marks || 1), 0); %>
 <div class="admin-layout">
   <%- include('./partials/sidebar', { activePage: 'tests' }) %>
   <div class="admin-main">
     <div class="admin-topbar">
       <h1><i class="fas fa-question-circle"></i> Questions: <span class="text-teal"><%= test.title %></span></h1>
       <div class="topbar-actions">
+        <span class="badge-blue"><%= test.duration %> min</span>
+        <span class="badge-blue"><%= totalQMarks %> marks</span>
         <span class="badge-blue"><%= test.questions.length %> questions</span>
         <a href="/admin/tests" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
       </div>
     </div>
+    <% if (typeof flash !== 'undefined' && flash && flash.success) { %>
+      <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= flash.success %></div>
+    <% } %>
+    <% if (typeof flash !== 'undefined' && flash && flash.error) { %>
+      <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= flash.error %></div>
+    <% } %>
     <div class="admin-grid-2">
       <div class="admin-section">
-        <div class="admin-section-header"><h2><i class="fas fa-plus"></i> Add Question</h2></div>
+        <div class="admin-section-header"><h2 id="qFormTitle"><i class="fas fa-plus"></i> Add Question</h2></div>
         <form id="qForm" enctype="multipart/form-data" onsubmit="addQuestion(event)">
           <div class="form-group"><label>Question Text *</label><textarea id="qText" rows="3" required placeholder="Enter question text..."></textarea></div>
           <div class="form-group"><label>Question Image (optional)</label><input type="file" id="qImage" name="questionImage" accept="image/*"></div>
@@ -32,11 +41,17 @@
             <div class="form-group"><label>Topic</label><input type="text" id="qTopic" placeholder="e.g. Kinematics"></div>
           </div>
           <div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="qTags" placeholder="e.g. velocity, acceleration"></div>
-          <button type="submit" class="btn-admin-primary w-full" id="qSubmitBtn"><i class="fas fa-plus"></i> Add Question</button>
+          <div class="form-actions">
+            <button type="submit" class="btn-admin-primary" id="qSubmitBtn"><i class="fas fa-plus"></i> Add Question</button>
+            <button type="button" class="btn-secondary is-hidden" id="qCancelBtn" onclick="cancelEdit()"><i class="fas fa-times"></i> Cancel Edit</button>
+          </div>
         </form>
       </div>
       <div class="admin-section">
-        <div class="admin-section-header"><h2><i class="fas fa-list"></i> Questions (<%= test.questions.length %>)</h2></div>
+        <div class="admin-section-header">
+          <h2><i class="fas fa-list"></i> Questions (<%= test.questions.length %>)</h2>
+          <span class="badge-blue">Total: <%= totalQMarks %> marks</span>
+        </div>
         <% if (test.questions.length === 0) { %>
           <div class="empty-state-sm"><i class="fas fa-question-circle"></i><p>No questions yet. Add your first question.</p></div>
         <% } else { %>
@@ -47,7 +62,8 @@
               <span class="qnum">Q<%= i + 1 %></span>
               <span class="badge-diff diff-<%= q.difficulty.toLowerCase() %>"><%= q.difficulty %></span>
               <span class="text-muted text-sm"><%= q.marks %> mark<%= q.marks !== 1 ? 's' : '' %></span>
-              <button onclick="deleteQuestion('<%= q._id %>')" class="btn-icon btn-delete ml-auto"><i class="fas fa-trash"></i></button>
+              <button type="button" onclick="editQuestion('<%= q._id %>')" class="btn-icon btn-edit" title="Edit question"><i class="fas fa-edit"></i></button>
+              <button type="button" onclick="deleteQuestion('<%= q._id %>')" class="btn-icon btn-delete ml-auto" title="Delete question"><i class="fas fa-trash"></i></button>
             </div>
             <p class="question-admin-text"><%= q.questionText.substring(0, 120) %><%= q.questionText.length > 120 ? '...' : '' %></p>
             <div class="options-preview">
@@ -63,11 +79,54 @@
     </div>
   </div>
 </div>
+<script type="application/json" id="qData"><%- JSON.stringify(test.questions.map(q => ({ _id: q._id.toString(), questionText: q.questionText, options: q.options.map(o => ({ text: o.text, isCorrect: !!o.isCorrect })), explanation: q.explanation || '', marks: q.marks || 1, difficulty: q.difficulty || 'Medium', topic: q.topic || '', tags: (q.tags || []).join(', ') }))).replace(/</g, '\\u003c') %></script>
 <%- include('../partials/footer', { extraJs: `<script>
+let editingQId = null;
+
+function setFormMode(editing) {
+  document.getElementById('qFormTitle').innerHTML = editing
+    ? '<i class="fas fa-edit"></i> Edit Question'
+    : '<i class="fas fa-plus"></i> Add Question';
+  const btn = document.getElementById('qSubmitBtn');
+  btn.innerHTML = editing
+    ? '<i class="fas fa-save"></i> Update Question'
+    : '<i class="fas fa-plus"></i> Add Question';
+  document.getElementById('qCancelBtn').classList.toggle('is-hidden', !editing);
+}
+
+function editQuestion(qid) {
+  let questions = [];
+  try { questions = JSON.parse(document.getElementById('qData').textContent); } catch (e) { return; }
+  const q = questions.find(x => x._id === qid);
+  if (!q) return;
+  editingQId = qid;
+  document.getElementById('qText').value = q.questionText || '';
+  (q.options || []).forEach((o, i) => {
+    const input = document.getElementById('option' + i);
+    if (input) input.value = o.text || '';
+    if (o.isCorrect) { const radio = document.getElementById('opt' + i); if (radio) radio.checked = true; }
+  });
+  document.getElementById('qExp').value = q.explanation || '';
+  document.getElementById('qMarks').value = q.marks || 1;
+  document.getElementById('qDiff').value = q.difficulty || 'Medium';
+  document.getElementById('qTopic').value = q.topic || '';
+  document.getElementById('qTags').value = q.tags || '';
+  setFormMode(true);
+  document.getElementById('qForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelEdit() {
+  editingQId = null;
+  document.getElementById('qForm').reset();
+  setFormMode(false);
+}
+
 async function addQuestion(e) {
   e.preventDefault();
   const btn = document.getElementById('qSubmitBtn');
-  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+  const wasEditing = !!editingQId;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + (wasEditing ? 'Updating...' : 'Adding...');
   const formData = new FormData();
   formData.append('questionText', document.getElementById('qText').value);
   const options = ['option0','option1','option2','option3'].map(id => document.getElementById(id).value);
@@ -81,11 +140,19 @@ async function addQuestion(e) {
   formData.append('tags', document.getElementById('qTags').value);
   const img = document.getElementById('qImage').files[0];
   if (img) formData.append('questionImage', img);
-  const res = await fetch('/admin/tests/${test._id}/questions', { method: 'POST', body: formData });
+  const url = wasEditing
+    ? '/admin/tests/${test._id}/questions/' + editingQId
+    : '/admin/tests/${test._id}/questions';
+  const res = await fetch(url, { method: wasEditing ? 'PUT' : 'POST', body: formData });
   const data = await res.json();
   if (data.success) { location.reload(); }
-  else { alert('Error: ' + data.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Add Question'; }
+  else {
+    alert('Error: ' + (data.message || 'unknown error'));
+    btn.disabled = false;
+    setFormMode(wasEditing);
+  }
 }
+
 async function deleteQuestion(qId) {
   if (!confirm('Delete this question?')) return;
   const res = await fetch('/admin/tests/${test._id}/questions/' + qId, { method: 'DELETE' });

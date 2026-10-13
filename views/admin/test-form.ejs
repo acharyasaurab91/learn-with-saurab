@@ -1,0 +1,98 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'tests' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-<%= test ? 'edit' : 'plus' %>"></i> <%= test ? 'Edit Test' : 'New Test' %></h1>
+      <a href="/admin/tests" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back to Tests</a>
+    </div>
+    <div class="admin-section">
+      <% if (typeof flash !== 'undefined' && flash && flash.success) { %>
+        <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= flash.success %></div>
+      <% } %>
+      <% if (typeof flash !== 'undefined' && flash && flash.error) { %>
+        <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= flash.error %></div>
+      <% } %>
+
+      <form method="POST" action="<%= test ? '/admin/tests/' + test._id : '/admin/tests' %>">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Title *</label>
+            <input type="text" name="title" required value="<%= test ? test.title : '' %>" placeholder="e.g. CEE Physics Mock Test 1">
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select name="category">
+              <option value="">— Select category —</option>
+              <% categories.forEach(c => { %>
+                <option value="<%= c.name %>" <%= test && test.category === c.name ? 'selected' : '' %>><%= c.name %></option>
+              <% }) %>
+              <% if (test && test.category && !categories.some(c => c.name === test.category)) { %>
+                <option value="<%= test.category %>" selected><%= test.category %></option>
+              <% } %>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="description" rows="3" placeholder="What does this test cover?"><%= test ? (test.description || '') : '' %></textarea>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Course (optional — leave blank for standalone)</label>
+            <select name="courseId">
+              <option value="">— Standalone test —</option>
+              <% courses.forEach(c => { %>
+                <option value="<%= c._id %>" <%= test && test.courseId && test.courseId.toString() === c._id.toString() ? 'selected' : '' %>><%= c.title %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Duration (minutes)</label>
+            <input type="number" name="duration" min="1" value="<%= test ? test.duration : 30 %>">
+          </div>
+        </div>
+
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>Total Marks</label>
+            <input type="number" name="totalMarks" min="0" value="<%= test && test.totalMarks != null ? test.totalMarks : 20 %>">
+          </div>
+          <div class="form-group">
+            <label>Pass Marks</label>
+            <input type="number" name="passMarks" min="0" value="<%= test && test.passMarks != null ? test.passMarks : 10 %>">
+          </div>
+          <div class="form-group is-hidden" id="nmvGroup">
+            <label>Negative Mark Value</label>
+            <input type="number" name="negativeMarkValue" min="0" step="0.25" value="<%= test && test.negativeMarkValue != null ? test.negativeMarkValue : 0.25 %>">
+          </div>
+        </div>
+
+        <div class="form-row-3">
+          <label class="checkbox-label">
+            <input type="checkbox" name="negativeMarking" <%= test && test.negativeMarking ? 'checked' : '' %>
+              onchange="document.getElementById('nmvGroup').classList.toggle('is-hidden', !this.checked)">
+            Negative Marking
+          </label>
+          <label class="checkbox-label"><input type="checkbox" name="isFree" <%= test && test.isFree ? 'checked' : '' %>> Is Free</label>
+          <label class="checkbox-label"><input type="checkbox" name="isPublished" <%= test && test.isPublished ? 'checked' : '' %>> Is Published</label>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-admin-primary"><i class="fas fa-save"></i> Save &amp; Add Questions</button>
+          <a href="/admin/tests" class="btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer', { extraJs: `<script>
+  // Show negative-mark-value field only when negative marking is on
+  (function () {
+    var cb = document.querySelector('input[name="negativeMarking"]');
+    var grp = document.getElementById('nmvGroup');
+    if (cb && grp) grp.classList.toggle('is-hidden', !cb.checked);
+  })();
+</script>` }) %>

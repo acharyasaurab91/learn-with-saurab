@@ -375,19 +375,96 @@ router.get('/tests', async (req, res) => {
 
 router.post('/tests', async (req, res) => {
   try {
-    const { title, description, category, subject, duration, passMarks, negativeMarking, negativeMarkValue, isFree, isPublished } = req.body;
+    const { title, description, category, courseId, subject, duration, totalMarks, passMarks, negativeMarking, negativeMarkValue, isFree, isPublished } = req.body;
     const test = await Test.create({
       title, description, category, subject,
+      courseId: courseId || null,
       duration: parseInt(duration) || 30,
-      passMarks: parseInt(passMarks) || 0,
+      totalMarks: parseInt(totalMarks) || 20,
+      passMarks: parseInt(passMarks) || 10,
       negativeMarking: negativeMarking === 'on',
       negativeMarkValue: parseFloat(negativeMarkValue) || 0.25,
       isFree: isFree === 'on',
       isPublished: isPublished === 'on'
     });
+    req.session.flash = { success: 'Test saved. Add questions now.' };
     res.redirect(`/admin/tests/${test._id}/questions`);
   } catch (err) {
-    res.redirect('/admin/tests?error=' + encodeURIComponent(err.message));
+    req.session.flash = { error: err.message };
+    res.redirect('/admin/tests/new');
+  }
+});
+
+// ─── TEST BUILDER — form pages, update, delete, publish ─────────────
+router.get('/tests/new', async (req, res) => {
+  try {
+    const [categories, courses] = await Promise.all([
+      Category.find().sort({ order: 1 }),
+      Course.find({}).sort({ title: 1 }).select('title')
+    ]);
+    res.render('admin/test-form', { title: 'New Test', test: null, categories, courses, admin: req.admin, user: req.admin });
+  } catch (err) {
+    res.render('error', { title: 'Error', message: err.message, user: req.admin });
+  }
+});
+
+router.get('/tests/:id/edit', async (req, res) => {
+  try {
+    const test = await Test.findById(req.params.id);
+    if (!test) return res.redirect('/admin/tests');
+    const [categories, courses] = await Promise.all([
+      Category.find().sort({ order: 1 }),
+      Course.find({}).sort({ title: 1 }).select('title')
+    ]);
+    res.render('admin/test-form', { title: 'Edit Test', test, categories, courses, admin: req.admin, user: req.admin });
+  } catch (err) {
+    res.render('error', { title: 'Error', message: err.message, user: req.admin });
+  }
+});
+
+router.post('/tests/:id', async (req, res) => {
+  try {
+    const { title, description, category, courseId, duration, totalMarks, passMarks, negativeMarking, negativeMarkValue, isFree, isPublished } = req.body;
+    await Test.findByIdAndUpdate(req.params.id, {
+      $set: {
+        title, description, category,
+        courseId: courseId || null,
+        duration: parseInt(duration) || 30,
+        totalMarks: parseInt(totalMarks) || 20,
+        passMarks: parseInt(passMarks) || 10,
+        negativeMarking: negativeMarking === 'on',
+        negativeMarkValue: parseFloat(negativeMarkValue) || 0.25,
+        isFree: isFree === 'on',
+        isPublished: isPublished === 'on'
+      }
+    });
+    req.session.flash = { success: 'Test saved. Add questions now.' };
+    res.redirect(`/admin/tests/${req.params.id}/questions`);
+  } catch (err) {
+    req.session.flash = { error: err.message };
+    res.redirect(`/admin/tests/${req.params.id}/edit`);
+  }
+});
+
+router.post('/tests/:id/delete', async (req, res) => {
+  try {
+    await Test.findByIdAndDelete(req.params.id);
+    req.session.flash = { success: 'Test deleted.' };
+  } catch (err) {
+    req.session.flash = { error: 'Could not delete test: ' + err.message };
+  }
+  res.redirect('/admin/tests');
+});
+
+router.post('/tests/:id/publish', async (req, res) => {
+  try {
+    const test = await Test.findById(req.params.id);
+    if (!test) return res.status(404).json({ success: false, message: 'Test not found' });
+    test.isPublished = !test.isPublished;
+    await test.save();
+    res.json({ success: true, isPublished: test.isPublished });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -427,6 +504,40 @@ router.delete('/tests/:testId/questions/:qId', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false });
+  }
+});
+
+// Spec-named alias (POST) — same behavior as the DELETE above
+router.post('/tests/:id/questions/:qid/delete', async (req, res) => {
+  try {
+    await Test.findByIdAndUpdate(req.params.id, { $pull: { questions: { _id: req.params.qid } } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
+router.put('/tests/:id/questions/:qid', upload.single('questionImage'), async (req, res) => {
+  try {
+    const test = await Test.findById(req.params.id);
+    if (!test) return res.status(404).json({ success: false, message: 'Test not found' });
+    const q = test.questions.id(req.params.qid);
+    if (!q) return res.status(404).json({ success: false, message: 'Question not found' });
+    const { questionText, options, correctOption, explanation, marks, difficulty, topic, tags } = req.body;
+    const optionsArr = Array.isArray(options) ? options : [options];
+    const correctIdx = parseInt(correctOption);
+    q.questionText = questionText;
+    q.options = optionsArr.map((text, i) => ({ text, isCorrect: i === correctIdx }));
+    q.explanation = explanation;
+    q.marks = parseInt(marks) || 1;
+    q.difficulty = difficulty || 'Medium';
+    q.topic = topic;
+    q.tags = tags ? tags.split(',').map(t => t.trim()) : [];
+    if (req.file) q.questionImage = '/' + req.file.path.replace(/\\/g, '/');
+    await test.save();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
