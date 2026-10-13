@@ -1,5 +1,6 @@
 <%- include('partials/header', { extraCss: '<link rel="stylesheet" href="/css/player.css">' }) %>
 <script>document.body.classList.add('paid-content-page');</script>
+<% const resIcon = r => { const s = ((r.type || '') + ' ' + (r.fileUrl || '')).toLowerCase(); return /pdf/.test(s) ? 'fa-file-pdf' : /(ppt|powerpoint|keynote)/.test(s) ? 'fa-file-powerpoint' : /(xls|excel|csv)/.test(s) ? 'fa-file-excel' : /(zip|rar|7z)/.test(s) ? 'fa-file-archive' : 'fa-file'; }; %>
 
 <div class="learn-page" id="learnPage">
   <!-- ── SIDEBAR ── -->
@@ -20,19 +21,51 @@
     </div>
 
     <div class="modules-list">
-      <% lessons.forEach((lesson, i) => { %>
+      <% sidebarModules.forEach(mod => { %>
+      <div class="module-header">
+        <h4 class="module-title"><%= mod.title %></h4>
+        <span class="module-count"><%= mod.videos.length %> lesson<%= mod.videos.length !== 1 ? 's' : '' %></span>
+      </div>
+      <% if (mod.description) { %>
+      <p class="module-desc"><%= mod.description %></p>
+      <% } %>
+      <% mod.videos.forEach(v => { const i = v.lessonIdx; const watched = !!progressMap[v.videoId]; const locked = !v.isFree && !isEnrolled; %>
       <div class="learn-video-item <%= i === activeIdx ? 'active' : '' %>"
            id="lvi-<%= i %>"
            onclick="loadLesson(<%= i %>)">
         <div class="lvi-num"><%= i + 1 %></div>
         <div class="lvi-body">
-          <span class="lvi-title"><%= lesson.title %></span>
-          <% if (lesson.duration) { %>
-          <span class="lvi-dur"><i class="fas fa-clock"></i> <%= Math.floor(lesson.duration/60) %>:<%= String(lesson.duration%60).padStart(2,'0') %></span>
+          <span class="lvi-title"><%= v.title %></span>
+          <% if (v.duration) { %>
+          <span class="lvi-dur"><i class="fas fa-clock"></i> <%= Math.floor(v.duration/60) %>:<%= String(v.duration%60).padStart(2,'0') %></span>
           <% } %>
         </div>
-        <i class="lvi-status fas fa-<%= lesson.isFree || isEnrolled ? 'play-circle' : 'lock' %> <%= lesson.isFree || isEnrolled ? 'text-teal' : 'text-gray' %>"></i>
+        <% if (watched) { %>
+        <i class="lvi-status fas fa-check st-watched" title="Watched"></i>
+        <% } else if (i === activeIdx) { %>
+        <i class="lvi-status fas fa-play st-current" title="Now playing"></i>
+        <% } else if (locked) { %>
+        <i class="lvi-status fas fa-lock st-locked" title="Enroll to unlock"></i>
+        <% } else { %>
+        <i class="lvi-status fas fa-circle st-todo" title="Not started"></i>
+        <% } %>
       </div>
+      <% }) %>
+      <% if (mod.resources && mod.resources.length) { %>
+      <div class="module-resources">
+        <% mod.resources.forEach(r => { %>
+        <div class="sidebar-res">
+          <i class="fas <%= resIcon(r) %>"></i>
+          <span><%= r.title %></span>
+          <% if (r.isFree || isEnrolled) { %>
+          <a href="<%= r.fileUrl %>" download title="Download"><i class="fas fa-download"></i></a>
+          <% } else { %>
+          <i class="fas fa-lock st-locked" title="Enroll to unlock"></i>
+          <% } %>
+        </div>
+        <% }) %>
+      </div>
+      <% } %>
       <% }) %>
       <% if (lessons.length === 0) { %>
       <div style="padding:32px 20px;text-align:center;color:#4B5563">
@@ -52,6 +85,7 @@
       <div style="flex:1;min-width:0">
         <span id="currentVideoTitle" style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">Select a lesson to begin</span>
       </div>
+      <a href="/dashboard" class="topbar-link"><i class="fas fa-th-large"></i> Dashboard</a>
       <a href="/courses/<%= course._id %>" style="font-size:12px;color:#5F6C76;text-decoration:none;flex-shrink:0;padding:6px 12px;border-radius:6px;border:1px solid #E2E8E4" onmouseenter="this.style.color='#14212B'" onmouseleave="this.style.color='#5F6C76'">
         <i class="fas fa-arrow-left"></i> Course
       </a>
@@ -123,10 +157,20 @@
     </div>
 
     <div class="learn-tab-content" id="tab-resources" style="display:none">
-      <% let hasResources = false; course.modules && course.modules.forEach(mod => { %>
-        <% mod.resources && mod.resources.forEach(r => { hasResources = true; %>
+      <% let resCursor = 0; let anyResources = false; %>
+      <% sidebarModules.forEach(mod => {
+           const from = resCursor; resCursor += mod.videos.length; const to = resCursor - 1;
+           if (mod.resources.length) anyResources = true;
+           const showGroup = activeIdx >= from && activeIdx <= to;
+      %>
+      <div class="res-group" data-from="<%= from %>" data-to="<%= to %>" style="display:<%= showGroup ? 'block' : 'none' %>">
+        <h4 class="res-group-title"><%= mod.title %></h4>
+        <% if (mod.resources.length === 0) { %>
+          <p class="res-empty">No resources for this module.</p>
+        <% } else { %>
+          <% mod.resources.forEach(r => { %>
           <div class="resource-item">
-            <i class="fas fa-file-pdf text-red"></i>
+            <i class="fas <%= resIcon(r) %> text-red"></i>
             <span><%= r.title %></span>
             <% if (r.isFree || isEnrolled) { %>
               <a href="<%= r.fileUrl %>" download class="btn-xs"><i class="fas fa-download"></i></a>
@@ -134,9 +178,11 @@
               <span class="text-gray"><i class="fas fa-lock"></i></span>
             <% } %>
           </div>
-        <% }) %>
+          <% }) %>
+        <% } %>
+      </div>
       <% }) %>
-      <% if (!hasResources) { %><p style="color:#4B5563;font-size:13px">No resources attached to this course yet.</p><% } %>
+      <% if (!anyResources) { %><p style="color:#4B5563;font-size:13px">No resources attached to this course yet.</p><% } %>
     </div>
 
     <div class="learn-tab-content" id="tab-about" style="display:none">

@@ -129,3 +129,57 @@
   .controls-row { gap: 6px; }
   #volumeSlider { display: none; }
 }
+
+/* ============================================
+   PHASE 4B — MODULE GROUPING / STATUS ICONS
+   Light header + left teal bar (consistent choice)
+   ============================================ */
+.module-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 10px; padding: 8px 14px;
+  background: #F6F7F4; border-left: 3px solid #0E7C72; border-radius: 0 6px 6px 0;
+}
+.module-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12.5px; font-weight: 800; color: #14212B; margin: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.module-count {
+  font-size: 10.5px; color: #5F6C76; background: #FFFFFF;
+  border: 1px solid #E2E8E4; border-radius: 50px; padding: 2px 8px; white-space: nowrap; flex-shrink: 0;
+}
+.module-desc {
+  font-size: 11.5px; color: #5F6C76; line-height: 1.5;
+  padding: 6px 16px 2px 19px; margin: 0;
+}
+
+/* Status icons — ✓ teal, ▶ teal, 🔒 muted gray, ○ faint */
+.st-watched { color: #0E7C72; }
+.st-current { color: #0E7C72; }
+.st-locked  { color: #9AA8B0; }
+.st-todo    { color: #CDD7D1; font-size: 9px; }
+
+/* Per-module resources inside the sidebar */
+.module-resources { padding: 4px 12px 10px; display: flex; flex-direction: column; gap: 4px; }
+.sidebar-res {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: #53616D;
+  background: #FFFFFF; border: 1px solid #E2E8E4; border-radius: 6px; padding: 7px 10px;
+}
+.sidebar-res > i:first-child { color: #5F6C76; flex-shrink: 0; }
+.sidebar-res span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-res a { color: #0E7C72; text-decoration: none; flex-shrink: 0; }
+.sidebar-res a:hover { color: #14212B; }
+.sidebar-res .fa-lock { flex-shrink: 0; font-size: 11px; }
+
+/* Resources tab — per-module groups */
+.res-group-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700; color: #14212B; margin: 0 0 10px; }
+.res-empty { color: #4B5563; font-size: 13px; margin: 0; }
+
+/* Topbar links */
+.topbar-link {
+  font-size: 12px; color: #5F6C76; text-decoration: none; flex-shrink: 0;
+  padding: 6px 12px; border-radius: 6px; border: 1px solid #E2E8E4; white-space: nowrap;
+  transition: color 0.2s, border-color 0.2s;
+}
+.topbar-link:hover { color: #14212B; border-color: #CDD7D1; }

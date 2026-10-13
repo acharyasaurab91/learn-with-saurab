@@ -4,6 +4,7 @@ const Course = require('../models/Course');
 const Category = require('../models/Category');
 const Review = require('../models/Review');
 const Module = require('../models/Module');
+const VideoProgress = require('../models/VideoProgress');
 const mongoose = require('mongoose');
 const { requireLogin, requireVerified } = require('../middleware/auth');
 const { sendEmail } = require('../utils/mailer');
@@ -146,7 +147,7 @@ router.get('/:id/learn', requireVerified, async (req, res) => {
     if (!course) return res.render('error', { title: 'Not Found', message: 'Course not found.', user: req.user });
     const isEnrolled = req.user.enrolledCourses.some(id => id.toString() === course._id.toString());
     if (!isEnrolled && course.price > 0) {
-      return res.redirect(`/courses/${course._id}?msg=Please+enroll+first`);
+      return res.redirect(`/courses/${course._id}?msg=Enroll+to+access+this+course`);
     }
     // Load standalone Module lessons (preferred) — fall back to embedded course.modules
     const standaloneModules = await Module.find({ course: course._id }).sort({ order: 1 });
@@ -181,10 +182,59 @@ router.get('/:id/learn', requireVerified, async (req, res) => {
         });
       });
     }
-    const activeIdx = Math.max(0, parseInt(req.query.v) || 0);
+    // ── Module-grouped sidebar data (works for both lesson sources) ──
+    const sidebarModules = [];
+    if (standaloneModules.length > 0) {
+      // Standalone Module docs are one lesson each and carry no resources
+      lessons.forEach((l, i) => {
+        sidebarModules.push({
+          title: l.title,
+          description: l.description,
+          videos: [{ lessonIdx: i, videoId: String(l._id), title: l.title, duration: l.duration, isFree: l.isFree }],
+          resources: []
+        });
+      });
+    } else {
+      let li = 0;
+      (course.modules || []).forEach(mod => {
+        const videos = [];
+        for (let k = 0; k < (mod.videos || []).length; k++) {
+          const l = lessons[li];
+          if (l) videos.push({ lessonIdx: li, videoId: String(l._id), title: l.title, duration: l.duration, isFree: l.isFree });
+          li++;
+        }
+        sidebarModules.push({
+          title: mod.moduleTitle || 'Untitled Module',
+          description: mod.moduleDescription || '',
+          videos,
+          resources: (mod.resources || []).map(r => ({ title: r.title, fileUrl: r.fileUrl, type: r.type || '', isFree: !!r.isFree }))
+        });
+      });
+    }
+
+    // ── Watched status per video (existing VideoProgress store) ──
+    const progressRecords = await VideoProgress.find({ userId: req.user._id, courseId: course._id });
+    const progressMap = {};
+    progressRecords.forEach(p => { progressMap[String(p.videoId)] = !!p.completed; });
+
+    // ── Resolve ?v= → videoId first, then legacy integer index, else first lesson ──
+    let activeIdx = 0;
+    const vParam = req.query.v ? String(req.query.v) : '';
+    if (vParam && lessons.length) {
+      const byId = lessons.findIndex(l => String(l._id) === vParam);
+      if (byId >= 0) {
+        activeIdx = byId;
+      } else {
+        const asIdx = parseInt(vParam, 10);
+        if (!Number.isNaN(asIdx) && asIdx >= 0 && asIdx < lessons.length) activeIdx = asIdx;
+      }
+    }
+    const currentVideoId = lessons[activeIdx] ? String(lessons[activeIdx]._id) : '';
+
     res.render('course-learn', {
       title: 'Learning: ' + course.title,
       course, isEnrolled, lessons,
+      sidebarModules, progressMap, currentVideoId,
       activeIdx,
       user: req.user
     });

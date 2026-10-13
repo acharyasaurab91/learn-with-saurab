@@ -59,6 +59,18 @@ function loadLesson(idx) {
     activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
+  // Shareable URL: keep ?v=<videoId> in sync (videoId-first resolution is done by the route)
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState(null, '', '?v=' + encodeURIComponent(String(lesson._id)));
+  }
+
+  // Resources tab: show only the group belonging to this lesson's module
+  document.querySelectorAll('.res-group').forEach(el => {
+    const from = parseInt(el.dataset.from, 10);
+    const to = parseInt(el.dataset.to, 10);
+    el.style.display = (!Number.isNaN(from) && idx >= from && idx <= to) ? 'block' : 'none';
+  });
+
   progressReported = false;
   if (autoSaveInterval) clearInterval(autoSaveInterval);
 
