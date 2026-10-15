@@ -234,11 +234,12 @@ router.get('/courses/new', async (req, res) => {
 
 router.post('/courses', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'demoVideo', maxCount: 1 }]), async (req, res) => {
   try {
-    const { title, description, price, category, subject, examType, demoVideoUrl, demoVideoType, demoTitle, isFeatured, isPublished, stream } = req.body;
+    const { title, description, price, duration, category, subject, examType, demoVideoUrl, demoVideoType, demoTitle, isFeatured, isPublished, stream, thumbnailMode, imageUrl } = req.body;
     let targetPrograms = req.body.targetPrograms;
     if (targetPrograms && !Array.isArray(targetPrograms)) targetPrograms = [targetPrograms];
     const course = new Course({
       title, description, price: parseFloat(price) || 0,
+      duration: parseInt(duration) || 0,
       category, subject, examType,
       targetPrograms: targetPrograms || [],
       stream: stream || '',
@@ -250,12 +251,15 @@ router.post('/courses', upload.fields([{ name: 'image', maxCount: 1 }, { name: '
       course.demoVideoUrl = '/' + req.files.demoVideo[0].path.replace(/\\/g, '/');
       course.demoVideoType = 'local';
     }
-    if (req.files && req.files.image) {
+    if (thumbnailMode === 'url' && imageUrl && imageUrl.trim()) {
+      course.imageUrl = imageUrl.trim();
+    } else if (req.files && req.files.image) {
       course.imagePath = req.files.image[0].path;
       course.imageUrl = '/' + req.files.image[0].path.replace(/\\/g, '/');
     }
     await course.save();
-    res.redirect('/admin/courses?msg=Course+created');
+    req.session.flash = { success: 'Course saved. Add modules next.' };
+    res.redirect('/admin/courses/' + course._id + '/modules');
   } catch (err) {
     res.redirect('/admin/courses?error=' + encodeURIComponent(err.message));
   }
@@ -273,11 +277,12 @@ router.get('/courses/:id/edit', async (req, res) => {
 
 router.post('/courses/:id', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'demoVideo', maxCount: 1 }]), async (req, res) => {
   try {
-    const { title, description, price, category, subject, examType, demoVideoUrl, demoVideoType, demoTitle, isFeatured, isPublished, stream } = req.body;
+    const { title, description, price, duration, category, subject, examType, demoVideoUrl, demoVideoType, demoTitle, isFeatured, isPublished, stream, thumbnailMode, imageUrl } = req.body;
     let targetPrograms = req.body.targetPrograms;
     if (targetPrograms && !Array.isArray(targetPrograms)) targetPrograms = [targetPrograms];
     const update = {
       title, description, price: parseFloat(price) || 0,
+      duration: parseInt(duration) || 0,
       category, subject, examType,
       targetPrograms: targetPrograms || [],
       stream: stream || '',
@@ -285,7 +290,9 @@ router.post('/courses/:id', upload.fields([{ name: 'image', maxCount: 1 }, { nam
       isFeatured: isFeatured === 'on', isPublished: isPublished === 'on'
     };
     if (demoVideoUrl) update.demoVideoUrl = demoVideoUrl;
-    if (req.files && req.files.image) {
+    if (thumbnailMode === 'url' && imageUrl && imageUrl.trim()) {
+      update.imageUrl = imageUrl.trim();
+    } else if (req.files && req.files.image) {
       update.imagePath = req.files.image[0].path;
       update.imageUrl = '/' + req.files.image[0].path.replace(/\\/g, '/');
     }
@@ -294,7 +301,8 @@ router.post('/courses/:id', upload.fields([{ name: 'image', maxCount: 1 }, { nam
       update.demoVideoType = 'local';
     }
     await Course.findByIdAndUpdate(req.params.id, update);
-    res.redirect('/admin/courses?msg=Course+updated');
+    req.session.flash = { success: 'Course saved. Add modules next.' };
+    res.redirect('/admin/courses/' + req.params.id + '/modules');
   } catch (err) {
     res.redirect('/admin/courses?error=' + encodeURIComponent(err.message));
   }
@@ -752,6 +760,155 @@ router.delete('/reviews/:id/reply', async (req, res) => {
   try {
     await Review.findByIdAndUpdate(req.params.id, { $unset: { adminReply: 1, adminReplyAt: 1 } });
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── MODULE BUILDER ROUTES ────────────────────────────────────────
+// JSON in / JSON out, same contract as the existing add-module and
+// reorder handlers above (the old XHR callers keep working). The
+// global express.json / express.urlencoded parsers in server.js mean
+// both JSON and form-encoded bodies are accepted. Every route below
+// sits behind router.use(requireAdmin), so unauthenticated requests
+// get the 302 to /login before any handler runs.
+const isObjId = (id) => mongoose.Types.ObjectId.isValid(id);
+const asBool = (v) => v === true || v === 'true' || v === 'on' || v === 1 || v === '1';
+
+// Load a module ONLY when it belongs to :id (the course); responds
+// 404 itself on any id mismatch or miss, returns null in that case.
+async function findModuleInCourse(req, res) {
+  if (!isObjId(req.params.id) || !isObjId(req.params.mid)) {
+    res.status(404).json({ success: false, message: 'Module not found.' });
+    return null;
+  }
+  const mod = await Module.findOne({ _id: req.params.mid, course: req.params.id });
+  if (!mod) {
+    res.status(404).json({ success: false, message: 'Module not found.' });
+    return null;
+  }
+  return mod;
+}
+
+// Edit module (title, description, order) — course membership verified
+router.post('/courses/:id/modules/:mid/edit', async (req, res) => {
+  try {
+    const mod = await findModuleInCourse(req, res);
+    if (!mod) return;
+    const { title, description, order } = req.body;
+    if (title !== undefined && String(title).trim()) mod.title = String(title).trim();
+    if (description !== undefined) mod.description = String(description);
+    const newOrder = parseInt(order);
+    if (!isNaN(newOrder)) mod.order = newOrder;
+    await mod.save();
+    res.json({ success: true, module: mod });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Delete module — verifies courseId match, then removes the doc and
+// its uploaded video file (same cleanup as the legacy DELETE /modules/:id)
+router.post('/courses/:id/modules/:mid/delete', async (req, res) => {
+  try {
+    const mod = await findModuleInCourse(req, res);
+    if (!mod) return;
+    await Module.deleteOne({ _id: mod._id });
+    if (mod.videoPath && fs.existsSync(mod.videoPath)) fs.unlinkSync(mod.videoPath);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Add a video to Module.videos[]
+router.post('/courses/:id/modules/:mid/videos', async (req, res) => {
+  try {
+    const mod = await findModuleInCourse(req, res);
+    if (!mod) return;
+    const videoTitle = String(req.body.videoTitle || '').trim();
+    const videoUrl = String(req.body.videoUrl || '').trim();
+    if (!videoTitle) return res.status(400).json({ success: false, message: 'Video title is required.' });
+    if (!videoUrl) return res.status(400).json({ success: false, message: 'Video URL is required.' });
+    mod.videos.push({
+      videoTitle,
+      videoUrl,
+      duration: parseInt(req.body.duration) || 0,
+      isFree: asBool(req.body.isFree),
+      description: req.body.description ? String(req.body.description) : '',
+      order: mod.videos.length
+    });
+    await mod.save();
+    res.json({ success: true, module: mod });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Remove one entry from Module.videos[]
+router.post('/courses/:id/modules/:mid/videos/:vid/delete', async (req, res) => {
+  try {
+    const mod = await findModuleInCourse(req, res);
+    if (!mod) return;
+    const idx = mod.videos.findIndex(v => String(v._id) === req.params.vid);
+    if (idx === -1) return res.status(404).json({ success: false, message: 'Video not found.' });
+    mod.videos.splice(idx, 1);
+    await mod.save();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Add a resource to Module.resources[]
+router.post('/courses/:id/modules/:mid/resources', async (req, res) => {
+  try {
+    const mod = await findModuleInCourse(req, res);
+    if (!mod) return;
+    const title = String(req.body.title || '').trim();
+    const fileUrl = String(req.body.fileUrl || '').trim();
+    if (!title) return res.status(400).json({ success: false, message: 'Resource title is required.' });
+    if (!fileUrl) return res.status(400).json({ success: false, message: 'Resource file URL is required.' });
+    mod.resources.push({
+      title,
+      fileUrl,
+      // Schema field is resourceType (a literal `type` key inside the inline
+      // subdocs literal collapses the array to [String]); accept legacy `type` too
+      resourceType: String(req.body.resourceType || req.body.type || '').trim(),
+      isFree: asBool(req.body.isFree),
+      order: mod.resources.length
+    });
+    await mod.save();
+    res.json({ success: true, module: mod });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Remove one entry from Module.resources[]
+router.post('/courses/:id/modules/:mid/resources/:rid/delete', async (req, res) => {
+  try {
+    const mod = await findModuleInCourse(req, res);
+    if (!mod) return;
+    const idx = mod.resources.findIndex(r => String(r._id) === req.params.rid);
+    if (idx === -1) return res.status(404).json({ success: false, message: 'Resource not found.' });
+    mod.resources.splice(idx, 1);
+    await mod.save();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Flip Course.isPublished (list-page toggle)
+router.post('/courses/:id/toggle-publish', async (req, res) => {
+  try {
+    if (!isObjId(req.params.id)) return res.status(404).json({ success: false, message: 'Course not found.' });
+    const course = await Course.findById(req.params.id).select('isPublished');
+    if (!course) return res.status(404).json({ success: false, message: 'Course not found.' });
+    course.isPublished = !course.isPublished;
+    await course.save();
+    res.json({ success: true, isPublished: course.isPublished });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

@@ -7,41 +7,124 @@
       <a href="/admin/courses/new" class="btn-admin-primary"><i class="fas fa-plus"></i> New Course</a>
     </div>
     <div class="admin-section">
-      <form method="GET" class="admin-search-bar">
-        <input type="text" name="search" placeholder="Search courses..." value="<%= query.search || '' %>">
-        <button type="submit" class="btn-admin-primary"><i class="fas fa-search"></i></button>
-      </form>
       <% if (courses.length === 0) { %>
-        <div class="empty-state"><i class="fas fa-book-open"></i><h3>No courses found</h3><p><a href="/admin/courses/new">Create your first course</a></p></div>
+        <div class="empty-state">
+          <i class="fas fa-book-open"></i>
+          <h3>No courses yet</h3>
+          <p>Create your first course and start adding modules to it.</p>
+          <a href="/admin/courses/new" class="btn-admin-primary"><i class="fas fa-plus"></i> New Course →</a>
+        </div>
       <% } else { %>
-      <table class="data-table">
-        <thead><tr><th>Course</th><th>Category</th><th>Price</th><th>Students</th><th>Status</th><th>Actions</th></tr></thead>
+      <div class="tests-toolbar">
+        <input type="text" id="courseSearch" class="tests-search" placeholder="Search courses...">
+        <div class="tests-filters" id="courseFilters">
+          <button type="button" class="tf-btn active" data-filter="all">All</button>
+          <button type="button" class="tf-btn" data-filter="published">Published</button>
+          <button type="button" class="tf-btn" data-filter="draft">Draft</button>
+          <button type="button" class="tf-btn" data-filter="free">Free</button>
+          <button type="button" class="tf-btn" data-filter="paid">Paid</button>
+        </div>
+      </div>
+      <table class="data-table" id="coursesTable">
+        <thead><tr><th>Course</th><th>Category</th><th>Price</th><th>Students</th><th>Published</th><th>Actions</th></tr></thead>
         <tbody>
-          <% courses.forEach(c => { %>
-          <tr>
-            <td><strong><%= c.title %></strong></td>
+          <% courses.forEach(c => { const isFree = c.price === 0; %>
+          <tr data-title="<%= c.title.toLowerCase() %>" data-published="<%= c.isPublished %>" data-free="<%= isFree %>">
+            <td>
+              <div class="course-cell">
+                <div class="course-thumb">
+                  <% if (c.imageUrl) { %>
+                    <img src="<%= c.imageUrl %>" alt="">
+                  <% } else { %>
+                    <i class="fas fa-book-open"></i>
+                  <% } %>
+                </div>
+                <strong><%= c.title %></strong>
+              </div>
+            </td>
             <td><%= c.category || '—' %></td>
-            <td><%= c.price === 0 ? 'FREE' : 'Rs. ' + c.price.toLocaleString() %></td>
+            <td><%= isFree ? 'FREE' : 'Rs. ' + c.price.toLocaleString() %></td>
             <td><%= c.enrolledCount || 0 %></td>
-            <td><span class="badge-<%= c.isPublished ? 'green' : 'gray' %>"><%= c.isPublished ? 'Published' : 'Draft' %></span></td>
+            <td>
+              <label class="pub-toggle" title="<%= c.isPublished ? 'Published — click to unpublish' : 'Draft — click to publish' %>">
+                <input type="checkbox" <%= c.isPublished ? 'checked' : '' %> onchange="toggleCoursePublish('<%= c._id %>', this)">
+                <span class="pub-slider"></span>
+              </label>
+            </td>
             <td class="actions-cell">
-              <a href="/admin/courses/<%= c._id %>/modules" class="btn-icon btn-blue" title="Modules"><i class="fas fa-video"></i></a>
+              <a href="/admin/courses/<%= c._id %>/modules" class="btn-icon btn-blue" title="Modules"><i class="fas fa-layer-group"></i></a>
               <a href="/admin/courses/<%= c._id %>/edit" class="btn-icon btn-edit" title="Edit"><i class="fas fa-edit"></i></a>
-              <button onclick="deleteCourse('<%= c._id %>', '<%= c.title.replace(/'/g, '') %>')" class="btn-icon btn-delete" title="Delete"><i class="fas fa-trash"></i></button>
+              <button type="button" data-id="<%= c._id %>" data-title="<%= c.title %>" onclick="deleteCourse(this)" class="btn-icon btn-delete" title="Delete"><i class="fas fa-trash"></i></button>
             </td>
           </tr>
           <% }) %>
         </tbody>
       </table>
+      <p class="text-muted text-sm" id="noCourses" style="display:none">No courses match your search.</p>
       <% } %>
     </div>
   </div>
 </div>
 <%- include('../partials/footer', { extraJs: `<script>
-async function deleteCourse(id, name) {
-  if (!confirm('Delete course "' + name + '"? This cannot be undone.')) return;
-  const res = await fetch('/admin/courses/' + id, { method: 'DELETE' });
-  if ((await res.json()).success) location.reload();
-  else alert('Delete failed');
+(function () {
+  var activeFilter = 'all';
+  var search = document.getElementById('courseSearch');
+  var filters = document.getElementById('courseFilters');
+
+  function applyFilters() {
+    var q = search ? search.value.toLowerCase() : '';
+    var table = document.getElementById('coursesTable');
+    if (!table) return;
+    var visible = 0;
+    table.querySelectorAll('tbody tr').forEach(function (row) {
+      var matchQ = (row.dataset.title || '').indexOf(q) !== -1;
+      var pub = row.dataset.published === 'true';
+      var free = row.dataset.free === 'true';
+      var matchF = activeFilter === 'all' ||
+        (activeFilter === 'published' && pub) ||
+        (activeFilter === 'draft' && !pub) ||
+        (activeFilter === 'free' && free) ||
+        (activeFilter === 'paid' && !free);
+      var show = matchQ && matchF;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    var empty = document.getElementById('noCourses');
+    if (empty) empty.style.display = visible ? 'none' : 'block';
+  }
+  window.applyCourseFilters = applyFilters;
+
+  if (search) search.addEventListener('input', applyFilters);
+  if (filters) filters.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-filter]');
+    if (!btn) return;
+    filters.querySelectorAll('.tf-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    applyFilters();
+  });
+})();
+
+async function toggleCoursePublish(id, el) {
+  try {
+    var res = await fetch('/admin/courses/' + id + '/toggle-publish', { method: 'POST' });
+    var data = await res.json();
+    if (!data.success) throw new Error(data.message || 'failed');
+    el.closest('label').title = data.isPublished ? 'Published — click to unpublish' : 'Draft — click to publish';
+    var row = el.closest('tr');
+    if (row) row.dataset.published = String(data.isPublished);
+    if (window.applyCourseFilters) window.applyCourseFilters();
+  } catch (err) {
+    alert('Could not update publish state.');
+    el.checked = !el.checked;
+  }
+}
+
+function deleteCourse(el) {
+  if (!confirm('Delete course "' + el.dataset.title + '"? This cannot be undone.')) return;
+  fetch('/admin/courses/' + el.dataset.id, { method: 'DELETE' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) { if (d.success) location.reload(); else alert('Delete failed'); })
+    .catch(function () { alert('Delete failed'); });
 }
 </script>` }) %>

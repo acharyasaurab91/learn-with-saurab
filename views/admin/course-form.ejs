@@ -37,11 +37,19 @@
           <textarea name="description" rows="4" required placeholder="Describe what students will learn..."><%= course ? course.description : '' %></textarea>
         </div>
 
-        <div class="form-row-3">
+        <div class="form-row-2">
           <div class="form-group">
             <label>Price (Rs.)</label>
             <input type="number" name="price" value="<%= course ? course.price : 0 %>" min="0" placeholder="0 = Free">
           </div>
+          <div class="form-group">
+            <label>Duration (minutes)</label>
+            <input type="number" name="duration" value="<%= course ? course.duration : 0 %>" min="0" placeholder="e.g. 240">
+            <small class="form-hint">Total course length in minutes.</small>
+          </div>
+        </div>
+
+        <div class="form-row-2">
           <div class="form-group">
             <label>Subject / Topic</label>
             <input type="text" name="subject" value="<%= course ? course.subject || '' : '' %>" placeholder="e.g. Biology, Physics">
@@ -84,8 +92,18 @@
 
         <div class="form-group">
           <label>Course Thumbnail Image</label>
-          <input type="file" name="image" accept="image/*">
-          <small class="form-hint">Recommended: 1280×720px (16:9). JPG/PNG/WebP.</small>
+          <div style="display:flex;gap:16px;margin-top:4px">
+            <label class="checkbox-label"><input type="radio" name="thumbnailMode" value="upload" <%= !course || !course.imageUrl || course.imagePath ? 'checked' : '' %> onchange="toggleThumbMode(this.value)"> Upload file</label>
+            <label class="checkbox-label"><input type="radio" name="thumbnailMode" value="url" <%= course && course.imageUrl && !course.imagePath ? 'checked' : '' %> onchange="toggleThumbMode(this.value)"> Paste URL</label>
+          </div>
+          <div id="thumbUpload" style="display:<%= !course || !course.imageUrl || course.imagePath ? 'block' : 'none' %>">
+            <input type="file" name="image" accept="image/*">
+            <small class="form-hint">Recommended: 1280×720px (16:9). JPG/PNG/WebP.</small>
+          </div>
+          <div id="thumbUrl" style="display:<%= course && course.imageUrl && !course.imagePath ? 'block' : 'none' %>">
+            <input type="url" name="imageUrl" value="<%= course && !course.imagePath ? (course.imageUrl || '') : '' %>" placeholder="https://example.com/thumbnail.jpg">
+            <small class="form-hint">Direct image link (JPG/PNG/WebP) — used as the course card thumbnail.</small>
+          </div>
           <% if (course && course.imageUrl) { %>
             <div class="current-img">
               <img src="<%= course.imageUrl %>" alt="Thumbnail" style="max-height:100px;border-radius:8px">
@@ -153,6 +171,10 @@
 function toggleDemoType(val) {
   document.getElementById('demoYoutube').style.display = val === 'youtube' ? 'block' : 'none';
   document.getElementById('demoLocal').style.display = val === 'local' ? 'block' : 'none';
+}
+function toggleThumbMode(val) {
+  document.getElementById('thumbUpload').style.display = val === 'upload' ? 'block' : 'none';
+  document.getElementById('thumbUrl').style.display = val === 'url' ? 'block' : 'none';
 }
 function toggleConditionalFields(val) {
   document.getElementById('targetProgramsGroup').style.display = val === 'CEE - Medical & Paramedical' ? 'block' : 'none';
