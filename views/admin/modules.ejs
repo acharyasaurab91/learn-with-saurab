@@ -164,8 +164,20 @@
                   <input type="text" name="videoTitle" required placeholder="e.g. Lecture 1 — Motion in 1D">
                 </div>
                 <div class="form-group">
+                  <label>Source</label>
+                  <div class="mf-toggle" role="radiogroup" aria-label="Video source">
+                    <label class="mf-opt"><input type="radio" name="videoSource" value="upload" checked> <i class="fas fa-upload"></i> Upload file</label>
+                    <label class="mf-opt"><input type="radio" name="videoSource" value="url"> <i class="fas fa-link"></i> Paste URL</label>
+                  </div>
+                </div>
+                <div class="form-group mf-pane mf-pane-file">
+                  <label>Video file</label>
+                  <input type="file" name="videoFile" accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime">
+                  <small class="mf-hint">MP4, WebM or MOV — max 500 MB</small>
+                </div>
+                <div class="form-group mf-pane mf-pane-url is-hidden">
                   <label>Video URL / Path *</label>
-                  <input type="text" name="videoUrl" required placeholder="https://... or uploads/videos/file.mp4">
+                  <input type="text" name="videoUrl" placeholder="https://... or uploads/videos/file.mp4">
                 </div>
                 <div class="form-group">
                   <label>Duration (min)</label>
@@ -175,6 +187,11 @@
                   <label class="checkbox-label"><input type="checkbox" name="isFree"> Free video</label>
                 </div>
               </div>
+              <div class="up-progress is-hidden" aria-hidden="true">
+                <div class="up-progress-bar"></div>
+                <span class="up-progress-pct">0%</span>
+              </div>
+              <div class="up-error is-hidden" role="alert"></div>
               <div class="form-actions">
                 <button type="submit" class="btn-admin-primary"><i class="fas fa-save"></i> Save Video</button>
                 <button type="button" class="btn-secondary" onclick="toggleVideoForm('<%= mod._id %>')">Cancel</button>
@@ -214,8 +231,20 @@
                   <input type="text" name="title" required placeholder="e.g. Chapter 1 Notes">
                 </div>
                 <div class="form-group">
+                  <label>Source</label>
+                  <div class="mf-toggle" role="radiogroup" aria-label="Resource source">
+                    <label class="mf-opt"><input type="radio" name="resSource" value="upload" checked> <i class="fas fa-upload"></i> Upload file</label>
+                    <label class="mf-opt"><input type="radio" name="resSource" value="url"> <i class="fas fa-link"></i> Paste URL</label>
+                  </div>
+                </div>
+                <div class="form-group mf-pane mf-pane-file">
+                  <label>Resource file</label>
+                  <input type="file" name="resourceFile" accept=".pdf,.pptx,.docx,.txt,.zip,.ppt,.doc">
+                  <small class="mf-hint">PDF, PPTX, DOCX, TXT or ZIP — max 50 MB</small>
+                </div>
+                <div class="form-group mf-pane mf-pane-url is-hidden">
                   <label>File URL / Path *</label>
-                  <input type="text" name="fileUrl" required placeholder="https://... or uploads/resources/file.pdf">
+                  <input type="text" name="fileUrl" placeholder="https://... or uploads/resources/file.pdf">
                 </div>
                 <div class="form-group">
                   <label>Type</label>
@@ -225,6 +254,11 @@
                   <label class="checkbox-label"><input type="checkbox" name="isFree"> Free resource</label>
                 </div>
               </div>
+              <div class="up-progress is-hidden" aria-hidden="true">
+                <div class="up-progress-bar"></div>
+                <span class="up-progress-pct">0%</span>
+              </div>
+              <div class="up-error is-hidden" role="alert"></div>
               <div class="form-actions">
                 <button type="submit" class="btn-admin-primary"><i class="fas fa-save"></i> Save Resource</button>
                 <button type="button" class="btn-secondary" onclick="toggleResourceForm('<%= mod._id %>')">Cancel</button>
@@ -333,15 +367,22 @@ async function moveModule(mid, dir) {
   }
 }
 
-async function addVideo(e, mid) {
+function addVideo(e, mid) {
   e.preventDefault();
-  try {
-    await postJson(BASE + '/' + mid + '/videos', formToJson(e.target));
-    location.reload();
-  } catch (err) {
-    alert('Could not add video: ' + err.message);
-    return false;
-  }
+  var form = e.target;
+  var errBox = form.querySelector('.up-error');
+  errBox.classList.add('is-hidden');
+  var upload = (form.querySelector('input[name="videoSource"]:checked') || {}).value === 'upload';
+  var fileInput = form.querySelector('input[name="videoFile"]');
+  var urlInput = form.querySelector('input[name="videoUrl"]');
+  if (upload && !fileInput.files.length) { showFormError(errBox, 'Choose a video file first.'); return false; }
+  if (!upload && !urlInput.value.trim()) { showFormError(errBox, 'Video URL is required.'); return false; }
+  sendBuilderForm(form, BASE + '/' + mid + '/videos', upload ? ['videoUrl'] : ['videoFile'], function (body) {
+    appendBuilderRow(body, 'video');
+    form.reset();
+    syncBuilderForm(form);
+  });
+  return false;
 }
 
 function deleteVideo(mid, vid) {
@@ -351,16 +392,163 @@ function deleteVideo(mid, vid) {
     .catch(function (err) { alert('Could not remove video: ' + err.message); });
 }
 
-async function addResource(e, mid) {
+function addResource(e, mid) {
   e.preventDefault();
-  try {
-    await postJson(BASE + '/' + mid + '/resources', formToJson(e.target));
-    location.reload();
-  } catch (err) {
-    alert('Could not add resource: ' + err.message);
-    return false;
-  }
+  var form = e.target;
+  var errBox = form.querySelector('.up-error');
+  errBox.classList.add('is-hidden');
+  var upload = (form.querySelector('input[name="resSource"]:checked') || {}).value === 'upload';
+  var fileInput = form.querySelector('input[name="resourceFile"]');
+  var urlInput = form.querySelector('input[name="fileUrl"]');
+  if (upload && !fileInput.files.length) { showFormError(errBox, 'Choose a resource file first.'); return false; }
+  if (!upload && !urlInput.value.trim()) { showFormError(errBox, 'Resource file URL is required.'); return false; }
+  sendBuilderForm(form, BASE + '/' + mid + '/resources', upload ? ['fileUrl'] : ['resourceFile'], function (body) {
+    appendBuilderRow(body, 'resource');
+    form.reset();
+    syncBuilderForm(form);
+  });
+  return false;
 }
+
+// ── Phase 6B: upload-file ⇄ paste-URL toggle, XHR progress, inline errors ──
+function showFormError(box, msg) {
+  box.textContent = msg;
+  box.classList.remove('is-hidden');
+}
+
+function applyBuilderPanes(form) {
+  var checked = form.querySelector('.mf-toggle input[type="radio"]:checked');
+  var upload = !!checked && checked.value === 'upload';
+  var filePane = form.querySelector('.mf-pane-file');
+  var urlPane = form.querySelector('.mf-pane-url');
+  if (filePane) filePane.classList.toggle('is-hidden', !upload);
+  if (urlPane) urlPane.classList.toggle('is-hidden', upload);
+  var fileInput = form.querySelector('input[type="file"]');
+  var urlInput = urlPane ? urlPane.querySelector('input[type="text"]') : null;
+  if (fileInput) fileInput.disabled = !upload;
+  if (urlInput) { urlInput.disabled = upload; urlInput.required = !upload; }
+}
+
+function syncBuilderForm(form) {
+  if (form.dataset.mfBound !== '1') {
+    form.dataset.mfBound = '1';
+    Array.prototype.forEach.call(form.querySelectorAll('.mf-toggle input[type="radio"]'), function (r) {
+      r.addEventListener('change', function () { applyBuilderPanes(form); });
+    });
+  }
+  applyBuilderPanes(form);
+}
+
+function sendBuilderForm(form, url, dropKeys, onSuccess) {
+  var errBox = form.querySelector('.up-error');
+  var prog = form.querySelector('.up-progress');
+  var bar = prog.querySelector('.up-progress-bar');
+  var pct = prog.querySelector('.up-progress-pct');
+  var btn = form.querySelector('button[type="submit"]');
+  var data = new FormData(form);
+  data.delete('videoSource');
+  data.delete('resSource');
+  dropKeys.forEach(function (k) { data.delete(k); });
+  btn.disabled = true;
+  prog.classList.remove('is-hidden');
+  bar.style.width = '0%';
+  pct.textContent = '0%';
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', url);
+  xhr.upload.addEventListener('progress', function (ev) {
+    if (ev.lengthComputable) {
+      var p = Math.round((ev.loaded / ev.total) * 100);
+      bar.style.width = p + '%';
+      pct.textContent = p + '%';
+    }
+  });
+  function done() { btn.disabled = false; prog.classList.add('is-hidden'); }
+  xhr.addEventListener('load', function () {
+    done();
+    var body = null;
+    try { body = JSON.parse(xhr.responseText); } catch (err) { /* non-JSON */ }
+    if (xhr.status >= 200 && xhr.status < 300 && body && body.success) onSuccess(body);
+    else showFormError(errBox, (body && body.message) || ('Upload failed (HTTP ' + xhr.status + ').'));
+  });
+  xhr.addEventListener('error', function () {
+    done();
+    showFormError(errBox, 'Network error — please try again.');
+  });
+  xhr.send(data);
+}
+
+// Append the freshly-saved entry to the list without a page reload
+function appendBuilderRow(body, kind) {
+  var mod = body.module;
+  var form = document.getElementById((kind === 'video' ? 'videoForm-' : 'resourceForm-') + mod._id);
+  if (!form || !form.parentNode) { location.reload(); return; }
+  var block = form.parentNode;
+  var empty = block.querySelector('.mv-empty');
+  if (empty) empty.parentNode.removeChild(empty);
+  var items = kind === 'video' ? mod.videos : mod.resources;
+  var item = items[items.length - 1];
+  var row = document.createElement('div');
+  row.className = 'mv-row';
+  var num = document.createElement('span');
+  num.className = 'mv-num';
+  var info = document.createElement('div');
+  info.className = 'mv-info';
+  var name = document.createElement('strong');
+  var meta = document.createElement('div');
+  meta.className = 'mv-meta';
+  var badge = document.createElement('span');
+  badge.className = item.isFree ? 'badge-green' : 'badge-yellow';
+  badge.textContent = item.isFree ? 'Free' : 'Paid';
+  if (kind === 'video') {
+    num.textContent = items.length;
+    name.textContent = item.videoTitle;
+    var dur = document.createElement('span');
+    dur.className = 'text-muted text-sm';
+    dur.innerHTML = '<i class="far fa-clock"></i> ';   // static icon markup only
+    dur.appendChild(document.createTextNode(item.duration ? item.duration + ' min' : '—'));
+    meta.appendChild(dur);
+  } else {
+    num.innerHTML = '<i class="fas ' + resTypeIcon(item.resourceType) + '"></i>';  // fixed allowlist below
+    name.textContent = item.title;
+    var type = document.createElement('span');
+    type.className = 'text-muted text-sm';
+    type.textContent = item.resourceType || 'file';
+    meta.appendChild(type);
+  }
+  meta.appendChild(badge);
+  info.appendChild(name);
+  info.appendChild(meta);
+  var del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'btn-icon btn-delete';
+  del.title = kind === 'video' ? 'Remove video' : 'Remove resource';
+  del.innerHTML = '<i class="fas fa-trash"></i>';
+  del.addEventListener('click', function () {
+    if (kind === 'video') deleteVideo(mod._id, item._id);
+    else deleteResource(mod._id, item._id);
+  });
+  row.appendChild(num);
+  row.appendChild(info);
+  row.appendChild(del);
+  block.insertBefore(row, form);
+}
+
+// Mirrors the EJS typeIcon() helper; only fixed class names are returned
+function resTypeIcon(t) {
+  var x = String(t || '').toLowerCase();
+  if (x.indexOf('pdf') >= 0) return 'fa-file-pdf';
+  if (x.indexOf('doc') >= 0) return 'fa-file-word';
+  if (x.indexOf('video') >= 0 || x.indexOf('mp4') >= 0) return 'fa-film';
+  if (x.indexOf('link') >= 0 || x.indexOf('url') >= 0) return 'fa-link';
+  if (x.indexOf('image') >= 0 || x.indexOf('png') >= 0 || x.indexOf('jpg') >= 0) return 'fa-image';
+  return 'fa-file';
+}
+
+function initBuilderForms() {
+  Array.prototype.forEach.call(document.querySelectorAll('.mv-form'), syncBuilderForm);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initBuilderForms);
+else initBuilderForms();
 
 function deleteResource(mid, rid) {
   if (!confirm('Remove this resource from the module?')) return;

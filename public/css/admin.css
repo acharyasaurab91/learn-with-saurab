@@ -214,3 +214,28 @@
 .course-thumb { width: 46px; height: 32px; border-radius: 6px; overflow: hidden; background: #F6F7F4; border: 1px solid #E2E8E4; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .course-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .course-thumb i { font-size: 13px; color: #5F6C76; }
+
+/* ============================================ PHASE 6B — MODULE BUILDER FILE UPLOADS (appended) */
+
+/* Source toggle: Upload file ⇄ Paste URL (one visible at a time) */
+.mf-toggle { display: flex; gap: 8px; flex-wrap: wrap; }
+.mf-opt { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border: 1px solid #CDD7D1; border-radius: 8px; background: #FFFFFF; color: #5F6C76; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; user-select: none; }
+.mf-opt:hover { border-color: rgba(14,124,114,0.45); color: #0E7C72; }
+.mf-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+.mf-opt:has(input:checked) { background: rgba(14,124,114,0.1); border-color: #0E7C72; color: #0E7C72; }
+.mf-opt:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(14,124,114,0.25); }
+
+/* File input inside its pane */
+.mf-pane input[type="file"] { display: block; width: 100%; padding: 9px 12px; border: 1px dashed #CDD7D1; border-radius: 8px; background: #FFFFFF; color: #53616D; font-size: 13px; }
+.mf-pane input[type="file"]::file-selector-button { margin-right: 10px; padding: 6px 14px; border: none; border-radius: 6px; background: #0E7C72; color: #FFFFFF; font-size: 12px; font-weight: 700; cursor: pointer; }
+.mf-hint { display: block; margin-top: 5px; font-size: 11px; color: #5F6C76; }
+
+/* XHR progress bar: teal #0E7C72 fill on gray track, with % text */
+.up-progress { position: relative; height: 20px; margin-top: 4px; background: #E2E8E4; border-radius: 4px; overflow: hidden; }
+.up-progress-bar { height: 100%; width: 0; background: #0E7C72; border-radius: 4px; transition: width 0.2s; }
+.up-progress-pct { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.92); color: #14212B; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 800; }
+
+/* Inline error under the form */
+.up-error { padding: 9px 12px; margin-top: 2px; border: 1px solid rgba(180,35,24,0.3); border-radius: 8px; background: rgba(180,35,24,0.08); color: #B42318; font-size: 13px; font-weight: 600; }
+
+@media (max-width: 768px) { .mf-toggle { flex-direction: column; } .mf-opt { justify-content: center; } }

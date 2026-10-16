@@ -29,6 +29,84 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 * 1024 } });
 
+// ─── Phase 6B: dedicated uploaders for the module builder ─────────────
+// The shared `upload` above is deliberately untouched: it backs course
+// create/edit, the legacy add-module route and question images at 2GB.
+fs.mkdirSync('uploads/videos', { recursive: true });
+fs.mkdirSync('uploads/resources', { recursive: true });
+
+const VIDEO_EXTS = ['.mp4', '.webm', '.mov'];
+const RESOURCE_EXTS = ['.pdf', '.pptx', '.docx', '.txt', '.zip'];
+const VIDEO_MAX_MB = 500;          // configurable: bytes = MB * 1024 * 1024
+const RESOURCE_MAX_MB = 50;
+const VIDEO_TYPE_MSG = 'Video must be .mp4, .webm, or .mov under 500MB';
+const RESOURCE_TYPE_MSG = 'Resource must be .pdf, .pptx, .docx, .txt, or .zip under 50MB';
+
+// Unique, collision-resistant name: timestamp + random + sanitized original name
+// (special chars stripped, extension kept, lowercased)
+const builderFilename = (req, file, cb) => {
+  const rawExt = path.extname(file.originalname || '');
+  const ext = rawExt.toLowerCase().replace(/[^.a-z0-9]/g, '');
+  const base = (path.basename(file.originalname || '', rawExt) || 'upload')
+    .replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60) || 'upload';
+  cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${base}${ext}`);
+};
+
+// Multer rejections (bad extension, oversize, unexpected field) → 400 JSON, never 500
+const multerJson = (uploadMw, typeMsg) => (req, res, next) =>
+  uploadMw(req, res, (err) => {
+    if (!err) return next();
+    const message = err.code === 'LIMIT_FILE_SIZE' ? typeMsg
+      : err.code === 'LIMIT_UNEXPECTED_FILE' ? 'Unexpected file field.'
+      : (err.message || typeMsg);
+    res.status(400).json({ success: false, message });
+  });
+
+const uploadVideoFile = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, 'uploads/videos'),
+    filename: builderFilename
+  }),
+  limits: { fileSize: VIDEO_MAX_MB * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    if (!VIDEO_EXTS.includes(ext)) return cb(new Error(VIDEO_TYPE_MSG));
+    cb(null, true);
+  }
+});
+
+const uploadResourceFile = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, 'uploads/resources'),
+    filename: builderFilename
+  }),
+  limits: { fileSize: RESOURCE_MAX_MB * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    if (!RESOURCE_EXTS.includes(ext)) return cb(new Error(RESOURCE_TYPE_MSG));
+    cb(null, true);
+  }
+});
+
+const videoUploadMw = multerJson(uploadVideoFile.single('videoFile'), VIDEO_TYPE_MSG);
+const resourceUploadMw = multerJson(uploadResourceFile.single('resourceFile'), RESOURCE_TYPE_MSG);
+
+// Auto-detect resourceType from extension (a non-empty form value always wins)
+const RESOURCE_TYPE_BY_EXT = {
+  '.pdf': 'pdf', '.pptx': 'ppt', '.ppt': 'ppt',
+  '.docx': 'doc', '.doc': 'doc', '.txt': 'txt', '.zip': 'zip'
+};
+const detectResourceType = (name) => {
+  const clean = String(name || '').split(/[?#]/)[0];   // strip URL query/hash
+  return RESOURCE_TYPE_BY_EXT[path.extname(clean).toLowerCase()] || '';
+};
+
+// Best-effort cleanup when a request is rejected after multer already wrote the file
+const discardUploaded = (file) => {
+  if (!file || !file.path) return;
+  try { fs.unlinkSync(file.path); } catch (e) { /* already gone */ }
+};
+
 router.use(requireAdmin);
 
 router.get('/', async (req, res) => {
@@ -821,15 +899,24 @@ router.post('/courses/:id/modules/:mid/delete', async (req, res) => {
   }
 });
 
-// Add a video to Module.videos[]
-router.post('/courses/:id/modules/:mid/videos', async (req, res) => {
+// Add a video to Module.videos[] — multipart (file upload) OR JSON (URL);
+// file mode stores the relative path in videoUrl: uploads/videos/<filename>
+router.post('/courses/:id/modules/:mid/videos', videoUploadMw, async (req, res) => {
   try {
     const mod = await findModuleInCourse(req, res);
-    if (!mod) return;
+    if (!mod) { discardUploaded(req.file); return; }
     const videoTitle = String(req.body.videoTitle || '').trim();
-    const videoUrl = String(req.body.videoUrl || '').trim();
-    if (!videoTitle) return res.status(400).json({ success: false, message: 'Video title is required.' });
-    if (!videoUrl) return res.status(400).json({ success: false, message: 'Video URL is required.' });
+    const videoUrl = req.file
+      ? 'uploads/videos/' + req.file.filename
+      : String(req.body.videoUrl || '').trim();
+    if (!videoTitle) {
+      discardUploaded(req.file);
+      return res.status(400).json({ success: false, message: 'Video title is required.' });
+    }
+    if (!videoUrl) {
+      discardUploaded(req.file);
+      return res.status(400).json({ success: false, message: 'Choose a video file or paste a URL.' });
+    }
     mod.videos.push({
       videoTitle,
       videoUrl,
@@ -841,6 +928,7 @@ router.post('/courses/:id/modules/:mid/videos', async (req, res) => {
     await mod.save();
     res.json({ success: true, module: mod });
   } catch (err) {
+    discardUploaded(req.file);
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -860,27 +948,39 @@ router.post('/courses/:id/modules/:mid/videos/:vid/delete', async (req, res) => 
   }
 });
 
-// Add a resource to Module.resources[]
-router.post('/courses/:id/modules/:mid/resources', async (req, res) => {
+// Add a resource to Module.resources[] — multipart (file upload) OR JSON (URL);
+// file mode stores uploads/resources/<filename> and auto-detects resourceType
+router.post('/courses/:id/modules/:mid/resources', resourceUploadMw, async (req, res) => {
   try {
     const mod = await findModuleInCourse(req, res);
-    if (!mod) return;
+    if (!mod) { discardUploaded(req.file); return; }
     const title = String(req.body.title || '').trim();
-    const fileUrl = String(req.body.fileUrl || '').trim();
-    if (!title) return res.status(400).json({ success: false, message: 'Resource title is required.' });
-    if (!fileUrl) return res.status(400).json({ success: false, message: 'Resource file URL is required.' });
+    const fileUrl = req.file
+      ? 'uploads/resources/' + req.file.filename
+      : String(req.body.fileUrl || '').trim();
+    if (!title) {
+      discardUploaded(req.file);
+      return res.status(400).json({ success: false, message: 'Resource title is required.' });
+    }
+    if (!fileUrl) {
+      discardUploaded(req.file);
+      return res.status(400).json({ success: false, message: 'Choose a resource file or paste a URL.' });
+    }
+    // Form override wins; otherwise auto-detect from uploaded file or pasted URL extension
+    const override = String(req.body.resourceType || req.body.type || '').trim();
     mod.resources.push({
       title,
       fileUrl,
       // Schema field is resourceType (a literal `type` key inside the inline
       // subdocs literal collapses the array to [String]); accept legacy `type` too
-      resourceType: String(req.body.resourceType || req.body.type || '').trim(),
+      resourceType: override || detectResourceType(req.file ? req.file.originalname : fileUrl),
       isFree: asBool(req.body.isFree),
       order: mod.resources.length
     });
     await mod.save();
     res.json({ success: true, module: mod });
   } catch (err) {
+    discardUploaded(req.file);
     res.status(500).json({ success: false, message: err.message });
   }
 });
