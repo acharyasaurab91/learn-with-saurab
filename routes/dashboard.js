@@ -6,6 +6,7 @@ const TestAttempt = require('../models/TestAttempt');
 const MistakeEntry = require('../models/MistakeEntry');
 const User = require('../models/User');
 const VideoProgress = require('../models/VideoProgress');
+const Setting = require('../models/Setting');
 
 // Load the signed-in user with enrolled course documents populated.
 async function loadUser(req) {
@@ -182,6 +183,15 @@ async function showMyTests(req, res) {
 // /my-tests. A GET or POST to the mount root (path '/') therefore has to pick
 // the handler from req.baseUrl — otherwise every one of those URLs would fall
 // through to the first registered handler (the dashboard view).
+// ─── Phase 6.5 dispatch: the /live-class mount (path '/' inside this router) ──
+// server.js also mounts this router at /live-class; serve the live class page
+// there with requireLogin (per feature spec — not requireVerified) before the
+// shared dispatch below claims the path.
+router.get('/', requireLogin, (req, res, next) => {
+  if (req.baseUrl === '/live-class') return showLiveClass(req, res, next);
+  next();
+});
+
 router.get('/', requireVerified, (req, res, next) => {
   switch (req.baseUrl) {
     case '/my-courses': return showMyCourses(req, res, next);
@@ -235,5 +245,68 @@ router.post('/progress/video', requireLogin, async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
+
+// ─── Phase 6.5: Live class (/live-class) ───────────────────────────────
+const LIVE_CLASS_TYPES = ['off', 'public', 'private'];
+const LIVE_SETTING_KEYS = ['live_class_type', 'live_youtube_url', 'live_jitsi_room'];
+
+// Same read helper as routes/admin.js (keys shared across the feature)
+async function liveClassSettings() {
+  const rows = await Setting.find({ key: { $in: LIVE_SETTING_KEYS } });
+  const map = {};
+  rows.forEach(r => { map[r.key] = r.value; });
+  return {
+    type: LIVE_CLASS_TYPES.includes(map.live_class_type) ? map.live_class_type : 'off',
+    youtubeUrl: typeof map.live_youtube_url === 'string' ? map.live_youtube_url : '',
+    jitsiRoom: typeof map.live_jitsi_room === 'string' ? map.live_jitsi_room : ''
+  };
+}
+
+// Server-side video id parsing for the 4 URL formats (bare ids accepted too)
+function youtubeVideoId(raw) {
+  const url = String(raw || '').trim();
+  if (!url) return null;
+  if (/^[A-Za-z0-9_-]{11}$/.test(url)) return url;   // bare id pasted
+  const patterns = [
+    /youtu\.be\/([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])/,            // https://youtu.be/ID
+    /[?&]v=([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])/,                  // youtube.com/watch?v=ID
+    /\/(?:embed|live|shorts|v)\/([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])/ // /embed|/live|/shorts|/v/ID
+  ];
+  for (const re of patterns) {
+    const m = url.match(re);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+// ─── GET /live-class — student live class page (login required) ─────
+async function showLiveClass(req, res, next) {
+  try {
+    if (!req.user) return res.redirect('/login');
+    const settings = await liveClassSettings();
+    const videoId = settings.type === 'public' ? youtubeVideoId(settings.youtubeUrl) : null;
+    const room = settings.jitsiRoom;
+
+    // Graceful degradation: a public/private type with no URL/room renders as off
+    let mode = settings.type;
+    if (mode === 'public' && !videoId) mode = 'off';
+    if (mode === 'private' && !room) mode = 'off';
+
+    // Paid gate (per approved decision): enrolledCourses.length > 0
+    const isPaid = (req.user.enrolledCourses || []).length > 0;
+    res.render('live-class', {
+      title: 'Live Class',
+      mode, videoId, room, isPaid,
+      user: req.user
+    });
+  } catch (err) {
+    console.error('Live class error:', err);
+    res.render('error', { title: 'Error', message: 'Could not load the live class page.', user: req.user });
+  }
+}
+
+// Sub-path kept like the other student pages (e.g. /dashboard/live-class);
+// the primary URL /live-class is served by the mount dispatch above
+router.get('/live-class', requireLogin, showLiveClass);
 
 module.exports = router;

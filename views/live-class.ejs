@@ -1,0 +1,52 @@
+<%- include('partials/header') %>
+<div class="container" style="padding-top:48px; padding-bottom:72px; min-height:70vh;">
+
+  <div class="section-head">
+    <h2><i class="fas fa-broadcast-tower" style="color:var(--color-teal)"></i> Live Class</h2>
+    <a href="/dashboard" class="btn-outline-sm"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+  </div>
+
+  <% if (mode === 'off') { %>
+    <!-- Off / not configured -->
+    <div class="empty-state">
+      <i class="fas fa-broadcast-tower"></i>
+      <h3>No live class currently scheduled.</h3>
+      <p>Check back soon — or <a href="/browse-courses">browse courses</a> while you wait.</p>
+      <p style="margin-top:22px"><a href="/dashboard" class="btn-outline-sm">Back to Dashboard</a></p>
+    </div>
+
+  <% } else if (mode === 'public') { %>
+    <!-- Public: YouTube Live, open to everyone -->
+    <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; padding:20px;">
+      <p style="margin-top:0; font-size:14px; color:var(--text-secondary);">
+        <strong>Public live class</strong> — open to everyone, streaming live on YouTube.
+      </p>
+      <iframe src="https://www.youtube.com/embed/<%= videoId %>"
+              allow="autoplay; encrypted-media" allowfullscreen
+              style="width:100%; aspect-ratio:16/9; border:none; border-radius:12px;"></iframe>
+    </div>
+
+  <% } else if (mode === 'private') { %>
+    <% if (isPaid) { %>
+      <!-- Private + paid: Jitsi room -->
+      <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; padding:20px;">
+        <p style="margin-top:0; font-size:14px; color:var(--text-secondary);">
+          <strong>Members-only live class</strong> — you're enrolled, so the classroom is open below.
+        </p>
+        <iframe src="https://meet.jit.si/<%= encodeURIComponent(room) %>?config.prejoinPageEnabled=false"
+                allow="camera; microphone; fullscreen; display-capture; autoplay"
+                style="width:100%; height:600px; border:none; border-radius:12px;"></iframe>
+      </div>
+    <% } else { %>
+      <!-- Private + free: premium upgrade card -->
+      <div class="empty-state">
+        <i class="fas fa-lock"></i>
+        <h3>Enrolled students only</h3>
+        <p>This live class is for enrolled students only.</p>
+        <p style="margin-top:22px"><a href="/browse-courses" class="btn-primary-sm">Browse Courses</a></p>
+      </div>
+    <% } %>
+  <% } %>
+
+</div>
+<%- include('partials/footer') %>

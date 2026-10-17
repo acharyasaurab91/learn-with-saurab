@@ -1,0 +1,59 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'live' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-broadcast-tower"></i> Live Class Settings</h1>
+      <span class="badge-blue">YouTube Live &middot; Jitsi Meet</span>
+    </div>
+
+    <% if (saved) { %>
+      <div class="alert alert-success"><i class="fas fa-check-circle"></i> Settings saved.</div>
+    <% } %>
+
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <h2><i class="fas fa-sliders"></i> Who can join?</h2>
+      </div>
+      <form method="POST" action="/admin/live" id="liveForm">
+        <div class="form-group">
+          <label>Live Class Type</label>
+          <div class="mf-toggle">
+            <label class="mf-opt"><input type="radio" name="type" value="off" <%= settings.type === 'off' ? 'checked' : '' %> onchange="syncLiveUI()"> <i class="fas fa-power-off"></i> Off</label>
+            <label class="mf-opt"><input type="radio" name="type" value="public" <%= settings.type === 'public' ? 'checked' : '' %> onchange="syncLiveUI()"> <i class="fas fa-youtube"></i> Public (YouTube)</label>
+            <label class="mf-opt"><input type="radio" name="type" value="private" <%= settings.type === 'private' ? 'checked' : '' %> onchange="syncLiveUI()"> <i class="fas fa-lock"></i> Private (Paid Students)</label>
+          </div>
+        </div>
+
+        <div class="form-group is-hidden" id="youtubePane">
+          <label>YouTube Live URL</label>
+          <input type="url" name="youtubeUrl" id="youtubeUrl" placeholder="https://youtube.com/live/..." value="<%= settings.youtubeUrl %>">
+          <span class="form-hint">Paste the YouTube Live link — /live/, watch?v=, youtu.be or /embed/ URLs are all supported.</span>
+        </div>
+
+        <div class="form-group is-hidden" id="jitsiPane">
+          <label>Jitsi Room Name</label>
+          <input type="text" name="jitsiRoom" id="jitsiRoom" placeholder="LearnWithSaurab-Loksewa-2026" value="<%= settings.jitsiRoom %>">
+          <span class="form-hint">Generate a unique room name per class (letters, numbers and hyphens). Only enrolled students get access.</span>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-admin-primary"><i class="fas fa-save"></i> Save</button>
+          <a href="/admin" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer', { extraJs: `<script>
+function syncLiveUI() {
+  var checked = document.querySelector('input[name="type"]:checked');
+  var type = checked ? checked.value : 'off';
+  document.getElementById('youtubePane').classList.toggle('is-hidden', type !== 'public');
+  document.getElementById('jitsiPane').classList.toggle('is-hidden', type !== 'private');
+  document.getElementById('youtubeUrl').required = (type === 'public');
+  document.getElementById('jitsiRoom').required = (type === 'private');
+}
+syncLiveUI();
+</script>` }) %>

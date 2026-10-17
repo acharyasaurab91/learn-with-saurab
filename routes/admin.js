@@ -12,6 +12,7 @@ const Transaction = require('../models/Transaction');
 const TestAttempt = require('../models/TestAttempt');
 const Module = require('../models/Module');
 const VideoProgress = require('../models/VideoProgress');
+const Setting = require('../models/Setting');
 const Review = require('../models/Review');
 const mongoose = require('mongoose');
 
@@ -1241,6 +1242,53 @@ router.get('/courses/:id/students', async (req, res) => {
       title: 'Course Students', course, rows, total, avgPct,
       admin: req.admin, user: req.admin
     });
+  } catch (err) {
+    res.render('error', { title: 'Error', message: err.message, user: req.admin });
+  }
+});
+
+// ============================================ PHASE 6.5 — LIVE CLASS SETTINGS
+// Stores: live_class_type (off|public|private), live_youtube_url, live_jitsi_room
+const LIVE_CLASS_TYPES = ['off', 'public', 'private'];
+const LIVE_SETTING_KEYS = ['live_class_type', 'live_youtube_url', 'live_jitsi_room'];
+
+async function liveClassSettings() {
+  const rows = await Setting.find({ key: { $in: LIVE_SETTING_KEYS } });
+  const map = {};
+  rows.forEach(r => { map[r.key] = r.value; });
+  return {
+    type: LIVE_CLASS_TYPES.includes(map.live_class_type) ? map.live_class_type : 'off',
+    youtubeUrl: typeof map.live_youtube_url === 'string' ? map.live_youtube_url : '',
+    jitsiRoom: typeof map.live_jitsi_room === 'string' ? map.live_jitsi_room : ''
+  };
+}
+
+// ─── GET /admin/live — live class settings page ─────────────────────
+router.get('/live', async (req, res) => {
+  try {
+    const settings = await liveClassSettings();
+    res.render('admin/live-settings', {
+      title: 'Live Class Settings', settings,
+      saved: req.query.saved === '1',
+      admin: req.admin, user: req.admin
+    });
+  } catch (err) {
+    res.render('error', { title: 'Error', message: err.message, user: req.admin });
+  }
+});
+
+// ─── POST /admin/live — upsert the 3 settings ───────────────────────
+router.post('/live', async (req, res) => {
+  try {
+    const type = LIVE_CLASS_TYPES.includes(req.body.type) ? req.body.type : 'off';
+    const youtubeUrl = String(req.body.youtubeUrl || '').trim();
+    const jitsiRoom = String(req.body.jitsiRoom || '').trim();
+    await Promise.all([
+      Setting.findOneAndUpdate({ key: 'live_class_type' },  { $set: { value: type } },       { upsert: true }),
+      Setting.findOneAndUpdate({ key: 'live_youtube_url' }, { $set: { value: youtubeUrl } }, { upsert: true }),
+      Setting.findOneAndUpdate({ key: 'live_jitsi_room' },  { $set: { value: jitsiRoom } },  { upsert: true })
+    ]);
+    res.redirect('/admin/live?saved=1');
   } catch (err) {
     res.render('error', { title: 'Error', message: err.message, user: req.admin });
   }

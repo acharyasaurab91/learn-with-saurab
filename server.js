@@ -173,6 +173,7 @@ app.use('/dashboard', require('./routes/dashboard'));
 app.use('/profile', require('./routes/dashboard'));
 app.use('/my-courses', require('./routes/dashboard'));
 app.use('/my-tests', require('./routes/dashboard'));
+app.use('/live-class', require('./routes/dashboard'));
 
 // Mistake / Weakness notebook
 app.use('/mistake-notebook', require('./routes/mistakes'));
