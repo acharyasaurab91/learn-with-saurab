@@ -1,0 +1,129 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'students' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-user-graduate"></i> <%= student.firstName %> <%= student.lastName %></h1>
+      <div class="topbar-actions">
+        <span class="badge-<%= student.isVerified ? 'green' : 'yellow' %>"><%= student.isVerified ? 'Verified' : 'Unverified' %></span>
+        <a href="/admin/students" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back to Students</a>
+      </div>
+    </div>
+
+    <!-- Profile + key stats -->
+    <div class="admin-section detail-head">
+      <div class="detail-avatar"><%= student.firstName.charAt(0).toUpperCase() %><%= student.lastName.charAt(0).toUpperCase() %></div>
+      <div class="cs-info">
+        <h2><%= student.firstName %> <%= student.lastName %></h2>
+        <div class="detail-meta">
+          <span><i class="fas fa-envelope"></i> <%= student.email %></span>
+          <span><i class="fas fa-phone"></i> <%= student.mobile %></span>
+          <span><i class="fas fa-user"></i> @<%= student.username %></span>
+          <span><i class="fas fa-calendar-plus"></i> Joined: <%= new Date(student.createdAt).toLocaleDateString() %></span>
+          <span><i class="fas fa-sign-in-alt"></i> Last login: <%= student.lastLogin ? new Date(student.lastLogin).toLocaleString() : '—' %></span>
+          <span><i class="fas fa-bolt"></i> Last activity: <%= stats.lastActivity ? new Date(stats.lastActivity).toLocaleString() : '—' %></span>
+          <span><i class="fas fa-film"></i> Videos completed: <%= stats.videosDone %></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-stats-grid">
+      <div class="admin-stat-card asc-blue">
+        <div class="asc-icon"><i class="fas fa-layer-group"></i></div>
+        <div><div class="asc-num"><%= enrolledCourses.length %></div><div class="asc-label">Enrolled Courses</div></div>
+      </div>
+      <div class="admin-stat-card asc-purple">
+        <div class="asc-icon"><i class="fas fa-clock"></i></div>
+        <div><div class="asc-num"><%= stats.minutesWatched %></div><div class="asc-label">Minutes Watched</div></div>
+      </div>
+      <div class="admin-stat-card asc-yellow">
+        <div class="asc-icon"><i class="fas fa-clipboard-list"></i></div>
+        <div><div class="asc-num"><%= stats.tests %></div><div class="asc-label">Tests Taken</div></div>
+      </div>
+      <div class="admin-stat-card asc-green">
+        <div class="asc-icon"><i class="fas fa-chart-line"></i></div>
+        <div><div class="asc-num"><%= stats.tests ? stats.avgScore + '%' : '—' %></div><div class="asc-label">Average Score</div></div>
+      </div>
+    </div>
+
+    <!-- Per-course progress -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <h2><i class="fas fa-book-open"></i> Course Progress</h2>
+        <span class="badge-blue"><%= enrolledCourses.length %> course<%= enrolledCourses.length === 1 ? '' : 's' %></span>
+      </div>
+      <% if (enrolledCourses.length === 0) { %>
+        <div class="empty-state-sm"><i class="fas fa-book-open"></i><p>Not enrolled in any course yet.</p></div>
+      <% } else { %>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Course</th>
+            <th>Progress</th>
+            <th>Lessons Completed</th>
+            <th>Enrolled</th>
+            <th>Last Activity</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% enrolledCourses.forEach(row => { %>
+          <tr>
+            <td><strong><%= row.course.title %></strong></td>
+            <td>
+              <div class="prog-cell">
+                <strong><%= row.pct %>%</strong>
+                <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:<%= row.pct %>%"></div></div>
+              </div>
+            </td>
+            <td><%= row.done %> / <%= row.total %> lesson<%= row.total === 1 ? '' : 's' %></td>
+            <td><%= row.enrolledAt ? new Date(row.enrolledAt).toLocaleDateString() : 'Unknown' %></td>
+            <td><%= row.lastActivity ? new Date(row.lastActivity).toLocaleString() : '—' %></td>
+            <td class="actions-cell">
+              <a href="/admin/courses/<%= row.course._id %>/students" class="btn-icon btn-blue" title="Course roster"><i class="fas fa-users"></i></a>
+              <a href="/courses/<%= row.course._id %>" class="btn-icon btn-edit" title="View course page" target="_blank"><i class="fas fa-external-link-alt"></i></a>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } %>
+    </div>
+
+    <!-- Recent test attempts -->
+    <div class="admin-section" style="margin-top:22px">
+      <div class="admin-section-header">
+        <h2><i class="fas fa-clipboard-list"></i> Recent Tests</h2>
+        <span class="text-muted text-sm">Last <%= attempts.length %> attempt<%= attempts.length === 1 ? '' : 's' %></span>
+      </div>
+      <% if (attempts.length === 0) { %>
+        <div class="empty-state-sm"><i class="fas fa-clipboard-list"></i><p>No tests attempted yet.</p></div>
+      <% } else { %>
+      <table class="data-table">
+        <thead>
+          <tr><th>Test</th><th>Score</th><th>Percentage</th><th>Result</th><th>Completed</th></tr>
+        </thead>
+        <tbody>
+          <% attempts.forEach(a => {
+               const pct = a.totalMarks > 0 ? Math.round((a.score / a.totalMarks) * 100) : 0;
+          %>
+          <tr>
+            <td><strong><%= a.testId ? a.testId.title : 'Deleted test' %></strong></td>
+            <td><%= a.score != null ? a.score : '—' %> / <%= a.totalMarks != null ? a.totalMarks : '—' %></td>
+            <td>
+              <div class="prog-cell">
+                <strong><%= a.score != null ? pct + '%' : '—' %></strong>
+                <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:<%= a.score != null ? pct : 0 %>%"></div></div>
+              </div>
+            </td>
+            <td><span class="badge-<%= a.passed ? 'green' : 'red' %>"><%= a.passed ? 'Passed' : 'Failed' %></span></td>
+            <td><%= a.completedAt ? new Date(a.completedAt).toLocaleString() : '—' %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

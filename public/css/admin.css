@@ -239,3 +239,18 @@
 .up-error { padding: 9px 12px; margin-top: 2px; border: 1px solid rgba(180,35,24,0.3); border-radius: 8px; background: rgba(180,35,24,0.08); color: #B42318; font-size: 13px; font-weight: 600; }
 
 @media (max-width: 768px) { .mf-toggle { flex-direction: column; } .mf-opt { justify-content: center; } }
+
+/* ============================================ PHASE 6C — STUDENT PROGRESS VIEWS (appended) */
+
+/* Progress cell: percent above a slim bar */
+.prog-cell { min-width: 150px; }
+.prog-cell .progress-bar-wrap { margin-top: 6px; }
+
+/* Student detail: avatar + inline meta row */
+.detail-head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 22px; }
+.detail-avatar { width: 58px; height: 58px; border-radius: 50%; background: rgba(14,124,114,0.12); color: #0E7C72; display: flex; align-items: center; justify-content: center; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 800; flex-shrink: 0; }
+.detail-meta { display: flex; gap: 8px 18px; flex-wrap: wrap; font-size: 13px; color: #5F6C76; }
+.detail-meta span { display: inline-flex; align-items: center; gap: 6px; }
+.detail-meta i { color: #0E7C72; width: 14px; text-align: center; }
+
+@media (max-width: 768px) { .prog-cell { min-width: 110px; } .detail-head { gap: 12px; } }

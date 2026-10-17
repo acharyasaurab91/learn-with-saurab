@@ -11,6 +11,7 @@ const Category = require('../models/Category');
 const Transaction = require('../models/Transaction');
 const TestAttempt = require('../models/TestAttempt');
 const Module = require('../models/Module');
+const VideoProgress = require('../models/VideoProgress');
 const Review = require('../models/Review');
 const mongoose = require('mongoose');
 
@@ -1011,6 +1012,237 @@ router.post('/courses/:id/toggle-publish', async (req, res) => {
     res.json({ success: true, isPublished: course.isPublished });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ============================================ PHASE 6C — STUDENT PROGRESS VIEWS
+// Read-only routes for admin student/progress monitoring.
+// Decisions honoured here:
+//  - VideoProgress.completed is the watched flag (there is no `watched` field)
+//  - Total lessons = Option B (player-accurate): each standalone Module doc is
+//    one lesson (course-learn keys progress by module._id); embedded
+//    course.modules[].videos[] is only the fallback when none exist
+//  - Enrollment date = read-only proxy reused from routes/dashboard.js
+//    (earliest completed Transaction.createdAt, else first lesson activity,
+//    else null → view prints "Unknown"); no schema changes
+
+// lesson totals per course id (Option B above)
+async function lessonTotalsByCourse(courseIds) {
+  const totals = {};
+  if (!courseIds.length) return totals;
+  const oid = (id) => new mongoose.Types.ObjectId(String(id));
+  const counts = await Module.aggregate([
+    { $match: { course: { $in: courseIds.map(oid) } } },
+    { $group: { _id: '$course', n: { $sum: 1 } } }
+  ]);
+  const standalone = {};
+  counts.forEach(c => { standalone[String(c._id)] = c.n; });
+
+  const embeddedOnly = courseIds.filter(id => standalone[String(id)] === undefined);
+  if (embeddedOnly.length) {
+    const courses = await Course.find({ _id: { $in: embeddedOnly } }).select('modules');
+    courses.forEach(c => {
+      totals[String(c._id)] = (c.modules || []).reduce((s, m) => s + (m.videos || []).length, 0);
+    });
+  }
+  courseIds.forEach(id => {
+    const k = String(id);
+    if (standalone[k] !== undefined) totals[k] = standalone[k];
+  });
+  return totals;
+}
+
+// Per-user stats computed live from source collections (User.progress.*
+// counters are write-only placeholders): tests taken, average score %,
+// videos completed, last activity across both streams.
+async function studentStatsByUser(userIds) {
+  const stats = {};
+  const oids = userIds.map(id => new mongoose.Types.ObjectId(String(id)));
+  if (!oids.length) return stats;
+  const [attempts, videos] = await Promise.all([
+    TestAttempt.aggregate([
+      { $match: { userId: { $in: oids } } },
+      { $project: {
+          completedAt: 1,
+          pct: { $cond: [{ $gt: ['$totalMarks', 0] }, { $multiply: [{ $divide: ['$score', '$totalMarks'] }, 100] }, 0] }
+      } },
+      { $group: { _id: '$userId', tests: { $sum: 1 }, avg: { $avg: '$pct' }, last: { $max: '$completedAt' } } }
+    ]),
+    VideoProgress.aggregate([
+      { $match: { userId: { $in: oids }, completed: true } },
+      { $group: { _id: '$userId', done: { $sum: 1 }, last: { $max: '$updatedAt' } } }
+    ])
+  ]);
+  const byId = {};
+  attempts.forEach(a => {
+    byId[String(a._id)] = { tests: a.tests, avg: Math.round(a.avg || 0), done: 0, last: a.last || null };
+  });
+  videos.forEach(v => {
+    const k = String(v._id);
+    const cur = byId[k] || { tests: 0, avg: 0, done: 0, last: null };
+    cur.done = v.done;
+    if (v.last && (!cur.last || new Date(v.last) > new Date(cur.last))) cur.last = v.last;
+    byId[k] = cur;
+  });
+  userIds.forEach(id => {
+    stats[String(id)] = byId[String(id)] || { tests: 0, avg: 0, done: 0, last: null };
+  });
+  return stats;
+}
+
+// Per (user, course): completed lessons, most recent activity, and the
+// enrollment-date proxy — same derivation as routes/dashboard.js:
+// earliest completed Transaction.createdAt, else first lesson activity.
+async function courseActivityByUserCourse(userIds, courseIds) {
+  const map = {};
+  if (!userIds.length || !courseIds.length) return map;
+  const uids = userIds.map(id => new mongoose.Types.ObjectId(String(id)));
+  const cids = courseIds.map(id => new mongoose.Types.ObjectId(String(id)));
+  const [progress, txns] = await Promise.all([
+    VideoProgress.aggregate([
+      { $match: { userId: { $in: uids }, courseId: { $in: cids } } },
+      { $group: {
+          _id: { u: '$userId', c: '$courseId' },
+          done: { $sum: { $cond: [{ $eq: ['$completed', true] }, 1, 0] } },
+          last: { $max: '$updatedAt' },
+          first: { $min: '$createdAt' }
+      } }
+    ]),
+    Transaction.aggregate([
+      { $match: { userId: { $in: uids }, courseId: { $in: cids }, status: 'completed' } },
+      { $group: { _id: { u: '$userId', c: '$courseId' }, at: { $min: '$createdAt' } } }
+    ])
+  ]);
+  progress.forEach(p => {
+    map[`${p._id.u}|${p._id.c}`] = { done: p.done, last: p.last, enrolledAt: p.first };
+  });
+  txns.forEach(t => {
+    const k = `${t._id.u}|${t._id.c}`;
+    const row = map[k] || { done: 0, last: null, enrolledAt: null };
+    row.enrolledAt = t.at;   // a completed purchase date wins (dashboard parity)
+    map[k] = row;
+  });
+  return map;
+}
+
+// ─── GET /admin/students — progress-focused student list ─────────────
+router.get('/students', async (req, res) => {
+  try {
+    const { search } = req.query;
+    const filter = { isAdmin: false };
+    if (search) filter.$or = [
+      { email: new RegExp(search, 'i') },
+      { username: new RegExp(search, 'i') },
+      { firstName: new RegExp(search, 'i') },
+      { lastName: new RegExp(search, 'i') }
+    ];
+    const users = await User.find(filter).sort({ createdAt: -1 }).select('-password');
+    const stats = await studentStatsByUser(users.map(u => u._id));
+    res.render('admin/students', {
+      title: 'Students', users, stats, admin: req.admin, user: req.admin, query: req.query
+    });
+  } catch (err) {
+    res.render('error', { title: 'Error', message: err.message, user: req.admin });
+  }
+});
+
+// ─── GET /admin/student/:id — one student's progress detail ──────────
+router.get('/student/:id', async (req, res) => {
+  try {
+    if (!isObjId(req.params.id)) {
+      return res.render('error', { title: 'Not Found', message: 'Student not found.', user: req.admin });
+    }
+    const student = await User.findById(req.params.id).select('-password');
+    if (!student) {
+      return res.render('error', { title: 'Not Found', message: 'Student not found.', user: req.admin });
+    }
+
+    const courseIds = (student.enrolledCourses || []).filter(Boolean);
+    const [courses, totals, activity, stats, attempts] = await Promise.all([
+      Course.find({ _id: { $in: courseIds } }),
+      lessonTotalsByCourse(courseIds),
+      courseActivityByUserCourse([student._id], courseIds),
+      studentStatsByUser([student._id]),
+      TestAttempt.find({ userId: student._id }).sort({ completedAt: -1 }).limit(10).populate('testId', 'title')
+    ]);
+
+    const enrolledCourses = courses.map(c => {
+      const cid = String(c._id);
+      const act = activity[`${student._id}|${cid}`] || { done: 0, last: null, enrolledAt: null };
+      const total = totals[cid] || 0;
+      const done = act.done || 0;
+      return {
+        course: c,
+        total,
+        done,
+        pct: total > 0 ? Math.round((done / total) * 100) : 0,
+        lastActivity: act.last || null,
+        enrolledAt: act.enrolledAt || null
+      };
+    });
+
+    const me = stats[String(student._id)] || { tests: 0, avg: 0, done: 0, last: null };
+    res.render('admin/student-detail', {
+      title: `${student.firstName} ${student.lastName}`,
+      student, enrolledCourses, attempts,
+      stats: {
+        tests: me.tests,
+        avgScore: me.avg,
+        videosDone: me.done,
+        // only live source for minutes watched
+        minutesWatched: (student.progress && student.progress.totalMinutesWatched) || 0,
+        lastActivity: me.last || student.lastLogin || null
+      },
+      admin: req.admin, user: req.admin
+    });
+  } catch (err) {
+    res.render('error', { title: 'Error', message: err.message, user: req.admin });
+  }
+});
+
+// ─── GET /admin/courses/:id/students — roster + progress for one course ──
+router.get('/courses/:id/students', async (req, res) => {
+  try {
+    if (!isObjId(req.params.id)) {
+      return res.render('error', { title: 'Not Found', message: 'Course not found.', user: req.admin });
+    }
+    const course = await Course.findById(req.params.id);
+    if (!course) {
+      return res.render('error', { title: 'Not Found', message: 'Course not found.', user: req.admin });
+    }
+
+    const students = await User.find({ enrolledCourses: course._id, isAdmin: false })
+      .sort({ createdAt: -1 }).select('-password');
+    const ids = students.map(s => s._id);
+    const [totals, activity, stats] = await Promise.all([
+      lessonTotalsByCourse([course._id]),
+      courseActivityByUserCourse(ids, [course._id]),
+      studentStatsByUser(ids)
+    ]);
+    const total = totals[String(course._id)] || 0;
+
+    const rows = students.map(s => {
+      const act = activity[`${s._id}|${course._id}`] || { done: 0, last: null, enrolledAt: null };
+      const me = stats[String(s._id)] || { tests: 0, avg: 0, last: null };
+      const done = act.done || 0;
+      return {
+        student: s,
+        done,
+        pct: total > 0 ? Math.round((done / total) * 100) : 0,
+        tests: me.tests,
+        avgScore: me.avg,
+        lastActivity: act.last || me.last || null,
+        enrolledAt: act.enrolledAt || null
+      };
+    });
+    const avgPct = rows.length ? Math.round(rows.reduce((s, r) => s + r.pct, 0) / rows.length) : 0;
+
+    res.render('admin/course-students', {
+      title: 'Course Students', course, rows, total, avgPct,
+      admin: req.admin, user: req.admin
+    });
+  } catch (err) {
+    res.render('error', { title: 'Error', message: err.message, user: req.admin });
   }
 });
 

@@ -33,7 +33,7 @@
     </a>
 
     <span class="admin-nav-section">MANAGEMENT</span>
-    <a href="/admin/users" class="admin-nav-link <%= activePage === 'users' ? 'active' : '' %>">
+    <a href="/admin/students" class="admin-nav-link <%= (activePage === 'students' || activePage === 'users') ? 'active' : '' %>">
       <i class="fas fa-users"></i> Students
     </a>
     <a href="/admin/transactions" class="admin-nav-link <%= activePage === 'transactions' ? 'active' : '' %>">
