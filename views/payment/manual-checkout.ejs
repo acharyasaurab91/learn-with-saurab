@@ -1,0 +1,146 @@
+<%- include('../partials/header') %>
+
+<div class="page-hero page-hero-sm">
+  <div class="container">
+    <h1>Checkout — <span class="gradient-text"><%= course.title %></span></h1>
+    <p class="hero-sub">Manual payment · Verified by admin within 24 hours</p>
+  </div>
+</div>
+
+<div class="container payment-page">
+  <div class="payment-grid">
+
+    <!-- ── Order Summary ─────────────────────────────── -->
+    <div class="payment-summary">
+      <h2><i class="fas fa-receipt"></i> Order Summary</h2>
+      <div class="order-course">
+        <% if (course.imageUrl) { %>
+          <img src="<%= course.imageUrl %>" alt="<%= course.title %>">
+        <% } else { %>
+          <div class="order-thumb-placeholder"><i class="fas fa-book-open"></i></div>
+        <% } %>
+        <div class="order-course-info">
+          <h3><%= course.title %></h3>
+          <span class="order-meta">
+            <% if (course.examType) { %><i class="fas fa-tag"></i> <%= course.examType %><% } %>
+            <% if (course.subject) { %> · <%= course.subject %><% } %>
+          </span>
+        </div>
+      </div>
+
+      <div class="order-details">
+        <div class="order-row"><span>Course Price</span><span>Rs. <%= course.price.toLocaleString() %></span></div>
+        <div class="order-row order-total">
+          <strong>Total Payable</strong>
+          <strong class="price-highlight">Rs. <%= course.price.toLocaleString() %></strong>
+        </div>
+      </div>
+
+      <!-- Payment instructions -->
+      <div class="manual-instructions">
+        <h3><i class="fas fa-wallet"></i> How to pay</h3>
+        <p>Send <strong>Rs. <%= course.price.toLocaleString() %></strong> to eSewa ID: <strong><%= esewaId %></strong> or Bank: <strong><%= bankDetails %></strong>.</p>
+        <p class="manual-note"><i class="fas fa-info-circle"></i> After sending the payment, enter the transaction / reference number below so we can verify it.</p>
+      </div>
+
+      <div class="order-guarantees">
+        <div class="guarantee-item"><i class="fas fa-infinity text-teal"></i><span>Lifetime access</span></div>
+        <div class="guarantee-item"><i class="fas fa-user-check text-teal"></i><span>Admin-verified enrollment</span></div>
+        <div class="guarantee-item"><i class="fas fa-shield-alt text-teal"></i><span>100% secure</span></div>
+        <div class="guarantee-item"><i class="fas fa-video text-teal"></i><span>HD video lessons</span></div>
+      </div>
+    </div>
+
+    <!-- ── Submit Payment Proof ──────────────────────── -->
+    <div class="payment-methods">
+      <h2><i class="fas fa-money-check-alt"></i> Submit Payment Details</h2>
+
+      <% if (error) { %>
+      <div class="payment-error" style="display:flex">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span><%= error %></span>
+      </div>
+      <% } %>
+
+      <form method="POST" action="/payment/submit/<%= course._id %>" enctype="multipart/form-data" class="manual-pay-form">
+        <div class="form-group">
+          <label for="transactionId"><i class="fas fa-hashtag"></i> Transaction / Reference Number</label>
+          <input type="text" id="transactionId" name="transactionId" required maxlength="64"
+                 placeholder="e.g. 314526789012 or TXN-2026-1024">
+          <span class="form-hint" style="font-size:12px;color:#5F6C76">The reference number from your eSewa / bank receipt.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="screenshot"><i class="fas fa-camera"></i> Payment Screenshot (optional)</label>
+          <input type="file" id="screenshot" name="screenshot" accept=".jpg,.jpeg,.png,.webp">
+          <span class="form-hint" style="font-size:12px;color:#5F6C76">A screenshot of the payment confirmation helps us verify faster. JPG, PNG or WEBP up to 5MB.</span>
+        </div>
+
+        <button type="submit" class="btn-pay-now">
+          <i class="fas fa-paper-plane"></i>
+          <span>Submit for Verification</span>
+        </button>
+      </form>
+
+      <div class="ssl-note">
+        <i class="fas fa-shield-alt"></i>
+        Your enrollment activates once the admin verifies your payment
+      </div>
+
+      <div class="back-link">
+        <a href="/courses/<%= course._id %>"><i class="fas fa-arrow-left"></i> Back to course</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.payment-page { padding: 48px 0 80px; }
+.payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; max-width: 900px; margin: 0 auto; }
+.payment-summary, .payment-methods {
+  background: #FFFFFF; border: 1px solid #E2E8E4;
+  border-radius: 16px; padding: 28px;
+}
+.payment-summary h2, .payment-methods h2 {
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 800;
+  margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: #14212B;
+}
+.payment-summary h2 i, .payment-methods h2 i { color: #0E7C72; }
+.order-course { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #E2E8E4; }
+.order-course img { width: 80px; height: 56px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+.order-thumb-placeholder { width: 80px; height: 56px; border-radius: 8px; background: #F0F5F3; display: flex; align-items: center; justify-content: center; color: #0E7C72; flex-shrink: 0; }
+.order-course-info h3 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 800; color: #14212B; margin-bottom: 4px; }
+.order-meta { font-size: 12px; color: #5F6C76; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.order-details { margin-bottom: 20px; }
+.order-row { display: flex; justify-content: space-between; font-size: 14px; color: #5F6C76; padding: 6px 0; }
+.order-total { border-top: 1px dashed #E2E8E4; padding-top: 12px; margin-top: 6px; color: #14212B; }
+.price-highlight { color: #0E7C72; font-size: 18px; }
+.manual-instructions {
+  background: #F0F7F5; border: 1px solid #CBE3DD; border-radius: 12px;
+  padding: 16px 18px; margin-bottom: 20px;
+}
+.manual-instructions h3 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 800; color: #0E7C72; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.manual-instructions p { font-size: 13.5px; color: #2B3A42; margin-bottom: 6px; line-height: 1.55; }
+.manual-note { margin-top: 10px; font-size: 12.5px; color: #5F6C76; display: flex; align-items: center; gap: 6px; }
+.order-guarantees { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.guarantee-item { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #5F6C76; }
+.manual-pay-form { display: flex; flex-direction: column; gap: 18px; }
+.btn-pay-now {
+  width: 100%; padding: 15px 20px; border: none; border-radius: 12px; cursor: pointer;
+  background: linear-gradient(135deg, #0E7C72, #1F6A5C); color: #FFFFFF;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-pay-now:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(14,124,114,0.28); }
+.ssl-note { text-align: center; font-size: 12px; color: #5F6C76; margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.back-link { text-align: center; margin-top: 18px; }
+.back-link a { font-size: 13px; color: #0E7C72; text-decoration: none; }
+.payment-error { background: rgba(180,35,24,0.08); border: 1px solid rgba(180,35,24,0.25); color: #B42318; border-radius: 10px; padding: 12px 14px; font-size: 13.5px; margin-bottom: 18px; align-items: center; gap: 10px; }
+@media (max-width: 768px) {
+  .payment-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<%- include('../partials/footer') %>

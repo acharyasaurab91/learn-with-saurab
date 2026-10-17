@@ -704,9 +704,38 @@ router.get('/transactions', async (req, res) => {
     const transactions = await Transaction.find().sort({ createdAt: -1 })
       .populate('userId', 'firstName lastName email')
       .populate('courseId', 'title price');
-    res.render('admin/transactions', { title: 'Transactions', transactions, admin: req.admin, user: req.admin });
+    // Screenshot path rides in `notes` ('Screenshot: /uploads/...') — extract for the UI
+    const items = transactions.map(t => {
+      const o = t.toObject();
+      const m = /Screenshot:\s*(\S+)/.exec(o.notes || '');
+      o.screenshotPath = m ? m[1] : '';
+      return o;
+    });
+    res.render('admin/transactions', {
+      title: 'Transactions', transactions: items,
+      msg: req.query.msg || '', admin: req.admin, user: req.admin
+    });
   } catch (err) {
     res.render('error', { title: 'Error', message: err.message, user: req.admin });
+  }
+});
+
+// Phase 7A: approve a manually-submitted payment and enroll the student
+router.post('/transactions/:id/approve', async (req, res) => {
+  try {
+    const txn = await Transaction.findById(req.params.id);
+    if (!txn) return res.redirect('/admin/transactions?msg=' + encodeURIComponent('Transaction not found.'));
+
+    if (txn.status !== 'completed') {
+      txn.status = 'completed';
+      await txn.save();
+      await User.findByIdAndUpdate(txn.userId, { $addToSet: { enrolledCourses: txn.courseId } });
+      await Course.findByIdAndUpdate(txn.courseId, { $inc: { enrolledCount: 1 } });
+    }
+    res.redirect('/admin/transactions?msg=' + encodeURIComponent('Payment approved and student enrolled.'));
+  } catch (err) {
+    console.error('Approve transaction error:', err);
+    res.redirect('/admin/transactions?msg=' + encodeURIComponent('Could not approve payment.'));
   }
 });
 

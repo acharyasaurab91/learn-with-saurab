@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const https = require('https');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const { requireLogin } = require('../middleware/auth');
 const Course = require('../models/Course');
 const Transaction = require('../models/Transaction');
@@ -96,6 +99,117 @@ router.get('/enroll/:courseId', requireLogin, async (req, res) => {
     console.error(err);
     res.render('error', { title: 'Error', message: 'Could not process enrollment.', user: req.user });
   }
+});
+
+// ─── Phase 7A: Manual payment checkout (no merchant keys yet) ────────────────
+// Student sends money via eSewa ID / bank transfer, submits the reference
+// number + optional screenshot, and an admin approves it from /admin/transactions.
+
+fs.mkdirSync('uploads/payment-screenshots', { recursive: true });
+const SHOT_EXTS = ['.jpg', '.jpeg', '.png', '.webp'];
+const SHOT_MAX_MB = 5;
+const uploadScreenshot = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, 'uploads/payment-screenshots'),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname || '').toLowerCase();
+      cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + ext);
+    }
+  }),
+  limits: { fileSize: SHOT_MAX_MB * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    if (!SHOT_EXTS.includes(ext)) return cb(new Error('Screenshot must be a .jpg, .png or .webp image'));
+    cb(null, true);
+  }
+});
+
+// Shown on the manual checkout page — swap in the real IDs when available
+const PAYMENT_ESEWA_ID = '98XXXXXXXX';
+const PAYMENT_BANK_DETAILS = '[Bank Details]';
+
+router.get('/checkout/:courseId', requireLogin, async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.courseId);
+    if (!course) return res.render('error', { title: 'Not Found', message: 'Course not found.', user: req.user });
+
+    const isEnrolled = req.user.enrolledCourses.some(id => id.toString() === course._id.toString());
+    if (isEnrolled) return res.redirect(`/courses/${course._id}/learn`);
+
+    // Free course → auto-enroll immediately, no payment needed
+    if (course.price === 0) {
+      await User.findByIdAndUpdate(req.user._id, { $addToSet: { enrolledCourses: course._id } });
+      await Course.findByIdAndUpdate(course._id, { $inc: { enrolledCount: 1 } });
+      return res.redirect('/dashboard?welcome=1');
+    }
+
+    res.render('payment/manual-checkout', {
+      title: 'Checkout: ' + course.title,
+      course,
+      esewaId: PAYMENT_ESEWA_ID,
+      bankDetails: PAYMENT_BANK_DETAILS,
+      error: '',
+      user: req.user
+    });
+  } catch (err) {
+    console.error('Checkout error:', err);
+    res.render('error', { title: 'Error', message: 'Could not load checkout.', user: req.user });
+  }
+});
+
+router.post('/submit/:courseId', requireLogin, (req, res) => {
+  uploadScreenshot.single('screenshot')(req, res, async (uploadErr) => {
+    const renderCheckout = async (course, error) => {
+      res.render('payment/manual-checkout', {
+        title: 'Checkout: ' + ((course && course.title) || 'Course'),
+        course, esewaId: PAYMENT_ESEWA_ID, bankDetails: PAYMENT_BANK_DETAILS,
+        error, user: req.user
+      });
+    };
+
+    try {
+      if (uploadErr) {
+        const course = await Course.findById(req.params.courseId).catch(() => null);
+        if (!course) return res.render('error', { title: 'Not Found', message: 'Course not found.', user: req.user });
+        return renderCheckout(course, uploadErr.message || 'Invalid screenshot file.');
+      }
+
+      const course = await Course.findById(req.params.courseId);
+      if (!course) return res.render('error', { title: 'Not Found', message: 'Course not found.', user: req.user });
+
+      const isEnrolled = req.user.enrolledCourses.some(id => id.toString() === course._id.toString());
+      if (isEnrolled) return res.redirect(`/courses/${course._id}/learn`);
+      if (course.price === 0) return res.redirect(`/payment/checkout/${course._id}`);
+
+      const transactionId = String(req.body.transactionId || '').trim();
+      if (!transactionId) return renderCheckout(course, 'Please enter the transaction / reference number.');
+      if (transactionId.length > 64) return renderCheckout(course, 'Reference number is too long (max 64 characters).');
+
+      // Screenshot path rides along in notes — the Transaction schema is fixed
+      const screenshotPath = req.file ? '/uploads/payment-screenshots/' + req.file.filename : '';
+      try {
+        await Transaction.create({
+          userId: req.user._id,
+          courseId: course._id,
+          amount: course.price,
+          transactionId,
+          paymentMethod: 'manual',
+          status: 'pending',
+          notes: screenshotPath ? `Screenshot: ${screenshotPath}` : 'Submitted via manual checkout (no screenshot)'
+        });
+      } catch (dup) {
+        if (dup && dup.code === 11000) {
+          return renderCheckout(course, 'This reference number has already been submitted. Please contact support if this was a mistake.');
+        }
+        throw dup;
+      }
+
+      res.redirect('/dashboard?msg=' + encodeURIComponent('Payment submitted! Admin will verify shortly.'));
+    } catch (err) {
+      console.error('Manual payment submit error:', err);
+      res.render('error', { title: 'Error', message: 'Could not submit payment. Please try again.', user: req.user });
+    }
+  });
 });
 
 // ─── eSewa ────────────────────────────────────────────────────────────────────

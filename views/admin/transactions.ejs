@@ -7,33 +7,47 @@
       <span class="badge-green">Rs. <%= transactions.filter(t=>t.status==='completed').reduce((a,t)=>a+(t.amount||0),0).toLocaleString() %> Total Revenue</span>
     </div>
     <div class="admin-section">
+      <% if (msg) { %>
+      <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= msg %></div>
+      <% } %>
       <table class="data-table">
-        <thead><tr><th>Student</th><th>Course</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Date</th><th>Student</th><th>Course</th><th>Amount</th><th>Txn ID</th><th>Screenshot</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>
           <% transactions.forEach(t => { %>
           <tr>
+            <td><%= new Date(t.createdAt).toLocaleDateString() %></td>
             <td><%= t.userId ? t.userId.firstName + ' ' + (t.userId.lastName||'') : 'Unknown' %><br><span class="text-muted text-sm"><%= t.userId ? t.userId.email : '' %></span></td>
             <td><%= t.courseId ? t.courseId.title : 'Unknown' %></td>
-            <td><strong>Rs. <%= t.amount ? t.amount.toLocaleString() : '0' %></strong></td>
-            <td><span class="badge-blue"><%= t.paymentMethod %></span></td>
+            <td><strong>Rs. <%= t.amount ? t.amount.toLocaleString() : '0' %></strong><br><span class="badge-blue"><%= t.paymentMethod %></span></td>
+            <td><%= t.transactionId %></td>
+            <td>
+              <% if (t.screenshotPath) { %>
+                <a href="<%= t.screenshotPath %>" target="_blank" rel="noopener" title="View screenshot">
+                  <img src="<%= t.screenshotPath %>" alt="Payment screenshot" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid #E2E8E4">
+                </a>
+              <% } else { %>
+                <span class="text-muted text-sm">—</span>
+              <% } %>
+            </td>
             <td><span class="badge-<%= t.status === 'completed' ? 'green' : t.status === 'pending' ? 'yellow' : 'red' %>"><%= t.status.toUpperCase() %></span></td>
-            <td><%= new Date(t.createdAt).toLocaleDateString() %></td>
             <td>
               <% if (t.status === 'pending') { %>
-              <button onclick="completeTransaction('<%= t._id %>')" class="btn-icon btn-blue" title="Mark Complete"><i class="fas fa-check"></i></button>
+              <form method="POST" action="/admin/transactions/<%= t._id %>/approve" style="display:inline"
+                    onsubmit="return confirm('Approve this payment and enroll the student?')">
+                <button type="submit" class="btn-icon btn-blue" title="Approve"><i class="fas fa-check"></i> Approve</button>
+              </form>
+              <% } else { %>
+                <span class="text-muted text-sm">—</span>
               <% } %>
             </td>
           </tr>
           <% }) %>
+          <% if (!transactions.length) { %>
+          <tr><td colspan="8" class="text-muted" style="text-align:center">No transactions yet.</td></tr>
+          <% } %>
         </tbody>
       </table>
     </div>
   </div>
 </div>
-<%- include('../partials/footer', { extraJs: `<script>
-async function completeTransaction(id) {
-  if (!confirm('Mark this transaction as completed and enroll the student?')) return;
-  const res = await fetch('/admin/transactions/' + id + '/complete', { method: 'PUT' });
-  if ((await res.json()).success) location.reload();
-}
-</script>` }) %>
+<%- include('../partials/footer') %>

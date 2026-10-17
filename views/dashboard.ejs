@@ -3,6 +3,12 @@
 <div class="dashboard-page">
   <%- include('partials/sidebar', { active: 'dashboard' }) %>
   <div class="dashboard-main">
+    <% if (typeof flashMsg !== 'undefined' && flashMsg) { %>
+    <div class="alert alert-success" id="flashBanner">
+      <i class="fas fa-check-circle"></i> <%= flashMsg %>
+      <button onclick="document.getElementById('flashBanner').remove()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:inherit"><i class="fas fa-times"></i></button>
+    </div>
+    <% } %>
     <% if (welcome) { %>
     <div class="welcome-banner" id="welcomeBanner">
       <div>

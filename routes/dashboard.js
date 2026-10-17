@@ -95,7 +95,9 @@ async function showDashboard(req, res) {
       courseProgress: courseData.courseProgress,
       continueCourse,
       continuePct: continueCourse ? (courseData.courseProgress[continueCourse._id.toString()] || 0) : 0,
-      welcome: req.query.welcome === '1'
+      welcome: req.query.welcome === '1',
+      // Phase 7A: flash banner (e.g. "Payment submitted! Admin will verify shortly.")
+      flashMsg: req.query.msg || ''
     });
   } catch (err) {
     console.error(err);

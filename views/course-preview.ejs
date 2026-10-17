@@ -40,11 +40,11 @@
                 <i class="fas fa-play"></i> Continue Learning
               </a>
             <% } else if (course.price === 0) { %>
-              <a href="/payment/enroll/<%= course._id %>" class="btn-enroll-big">
+              <a href="/payment/checkout/<%= course._id %>" class="btn-enroll-big">
                 <i class="fas fa-graduation-cap"></i> Enroll Free
               </a>
             <% } else { %>
-              <a href="/payment/enroll/<%= course._id %>" class="btn-enroll-big btn-pay">
+              <a href="/payment/checkout/<%= course._id %>" class="btn-enroll-big btn-pay">
                 <i class="fas fa-lock-open"></i> Enroll Now
               </a>
               <div class="payment-logos">
