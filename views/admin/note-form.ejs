@@ -1,0 +1,57 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'notes' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <div>
+        <h1><i class="fas fa-file-upload"></i> Upload Chapter Notes</h1>
+        <p class="text-muted" style="margin-top:4px">Upload a PDF — its text is extracted automatically so you can turn it into a web page.</p>
+      </div>
+      <a href="/admin/notes" class="btn-secondary" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none"><i class="fas fa-arrow-left"></i> Back to Notes</a>
+    </div>
+
+    <% if (flash && flash.success) { %>
+      <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= flash.success %></div>
+    <% } %>
+    <% if (flash && flash.error) { %>
+      <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= flash.error %></div>
+    <% } %>
+
+    <div class="admin-section">
+      <form method="POST" action="/admin/notes" enctype="multipart/form-data">
+        <div class="form-group">
+          <label for="fTitle">Title *</label>
+          <input type="text" id="fTitle" name="title" required maxlength="200" placeholder="e.g. Chapter 4 — Genetics and Evolution">
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="fSubject">Subject</label>
+            <input type="text" id="fSubject" name="subject" placeholder="e.g. Zoology">
+          </div>
+          <div class="form-group">
+            <label for="fCategory">Category</label>
+            <select id="fCategory" name="category">
+              <option value="">— Select category —</option>
+              <% (categories || []).forEach(cat => { %>
+                <option value="<%= cat.name %>"><%= cat.name %></option>
+              <% }) %>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="fPdf">PDF File *</label>
+          <input type="file" id="fPdf" name="pdf" accept=".pdf,application/pdf" required>
+          <small class="form-hint">Text-based PDFs only (scanned images can't be extracted yet). Max 20MB. You'll review the extracted text on the next screen.</small>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-admin-primary"><i class="fas fa-cogs"></i> Upload &amp; Extract Text</button>
+          <a href="/admin/notes" class="btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

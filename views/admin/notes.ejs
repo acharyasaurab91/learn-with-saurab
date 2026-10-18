@@ -1,0 +1,56 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'notes' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-file-alt"></i> Chapter Notes</h1>
+      <a href="/admin/notes/new" class="btn-admin-primary"><i class="fas fa-plus"></i> Upload PDF</a>
+    </div>
+
+    <% if (flash && flash.success) { %>
+      <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= flash.success %></div>
+    <% } %>
+    <% if (flash && flash.error) { %>
+      <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= flash.error %></div>
+    <% } %>
+
+    <div class="admin-section">
+      <% if (!chapters || chapters.length === 0) { %>
+        <div class="empty-state">
+          <i class="fas fa-file-alt"></i>
+          <h3>No chapter notes yet</h3>
+          <p>Upload a PDF chapter note to extract its text and publish it as a web page.</p>
+          <a href="/admin/notes/new" class="btn-admin-primary"><i class="fas fa-plus"></i> Upload PDF →</a>
+        </div>
+      <% } else { %>
+      <table class="data-table">
+        <thead><tr><th>Title</th><th>Subject</th><th>Category</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+        <tbody>
+          <% chapters.forEach(ch => { %>
+          <tr>
+            <td><strong><%= ch.title %></strong></td>
+            <td><%= ch.subject || '—' %></td>
+            <td><%= ch.category || '—' %></td>
+            <td>
+              <% if (ch.isPublished) { %>
+                <span class="badge-blue" style="background:#E6F2EF;color:#0E7C72">Published</span>
+              <% } else { %>
+                <span class="badge-blue" style="background:#F3F5F6;color:#5F6C76">Draft</span>
+              <% } %>
+            </td>
+            <td><%= ch.createdAt ? new Date(ch.createdAt).toLocaleDateString('en-GB') : '—' %></td>
+            <td class="actions-cell">
+              <a href="/admin/notes/<%= ch._id %>/edit" class="btn-icon btn-edit" title="Edit"><i class="fas fa-edit"></i></a>
+              <% if (ch.isPublished) { %>
+                <a href="/notes/<%= ch.slug %>" target="_blank" class="btn-icon btn-blue" title="View live"><i class="fas fa-external-link-alt"></i></a>
+              <% } %>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

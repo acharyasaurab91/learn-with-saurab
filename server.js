@@ -105,7 +105,7 @@ app.use((req, res, next) => {
 });
 
 // Ensure upload directories exist
-['uploads/videos', 'uploads/course-images', 'uploads/question-images', 'uploads/resources'].forEach(dir => {
+['uploads/videos', 'uploads/course-images', 'uploads/question-images', 'uploads/resources', 'uploads/notes-pdfs'].forEach(dir => {
   fs.mkdirSync(dir, { recursive: true });
 });
 
@@ -180,6 +180,9 @@ app.use('/mistake-notebook', require('./routes/mistakes'));
 
 // Payment
 app.use('/payment', require('./routes/payment'));
+
+// Chapter notes (public, published-only)
+app.use('/notes', require('./routes/notes'));
 
 // Admin panel
 app.use('/admin', require('./routes/admin'));

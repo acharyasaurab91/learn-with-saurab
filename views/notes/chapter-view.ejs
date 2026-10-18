@@ -1,0 +1,30 @@
+<%- include('../partials/header') %>
+
+<div class="container" style="padding-top:48px; padding-bottom:72px; min-height:60vh;">
+  <article style="max-width:820px; margin:0 auto;">
+
+    <!-- Header (basic layout — full design system lands in the next phase) -->
+    <header style="margin-bottom:28px; padding-bottom:20px; border-bottom:1px solid var(--border, #E2E8E4);">
+      <h1 style="font-family:'Plus Jakarta Sans',sans-serif; font-size:30px; font-weight:800; color:var(--text-primary, #14212B); margin:0 0 10px; line-height:1.25;">
+        <%= chapter.title %>
+      </h1>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:13px; color:var(--text-secondary, #5F6C76);">
+        <% if (chapter.subject) { %><span><i class="fas fa-book"></i> <%= chapter.subject %></span><% } %>
+        <% if (chapter.category) { %><span><i class="fas fa-tag"></i> <%= chapter.category %></span><% } %>
+        <span><i class="far fa-calendar-alt"></i> <%= new Date(chapter.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) %></span>
+      </div>
+    </header>
+
+    <!-- Note content — admin-authored HTML, rendered raw by design (Phase 6.5B decision 3) -->
+    <div class="note-content" style="font-size:16px; line-height:1.75; color:var(--text-primary, #14212B);">
+      <%- chapter.processedHtml %>
+    </div>
+
+    <footer style="margin-top:40px; padding-top:20px; border-top:1px solid var(--border, #E2E8F4);">
+      <a href="/dashboard" style="font-size:14px; color:var(--color-teal, #0E7C72);"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    </footer>
+
+  </article>
+</div>
+
+<%- include('../partials/footer') %>

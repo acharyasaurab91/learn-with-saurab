@@ -1,0 +1,69 @@
+<%- include('../partials/header', { extraCss: '<link rel="stylesheet" href="/css/admin.css">' }) %>
+<div class="admin-layout">
+  <%- include('./partials/sidebar', { activePage: 'notes' }) %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <div>
+        <h1><i class="fas fa-edit"></i> Edit Note</h1>
+        <p class="text-muted" style="margin-top:4px">Extracted text (read-only) · editable HTML below · toggle publish when ready.</p>
+      </div>
+      <a href="/admin/notes" class="btn-secondary" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none"><i class="fas fa-arrow-left"></i> Back to Notes</a>
+    </div>
+
+    <% if (flash && flash.success) { %>
+      <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= flash.success %></div>
+    <% } %>
+    <% if (flash && flash.error) { %>
+      <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= flash.error %></div>
+    <% } %>
+
+    <div class="admin-section">
+      <form method="POST" action="/admin/notes/<%= chapter._id %>">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="fTitle">Title *</label>
+            <input type="text" id="fTitle" name="title" required maxlength="200" value="<%= chapter.title %>">
+          </div>
+          <div class="form-group">
+            <label for="fSubject">Subject</label>
+            <input type="text" id="fSubject" name="subject" value="<%= chapter.subject || '' %>" placeholder="e.g. Zoology">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="fCategory">Category</label>
+          <input type="text" id="fCategory" name="category" value="<%= chapter.category || '' %>" placeholder="e.g. CEE">
+        </div>
+
+        <div class="form-group">
+          <label for="fRawText">Extracted PDF Text (read-only)</label>
+          <textarea id="fRawText" name="rawText" rows="10" readonly style="background:#F3F5F6;color:#5F6C76"><%= chapter.rawText || '' %></textarea>
+          <small class="form-hint">Raw text pulled from the uploaded PDF — proof the extraction worked. Not saved on submit.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="fHtml">Processed HTML (editable)</label>
+          <textarea id="fHtml" name="processedHtml" rows="18" style="font-family:monospace;font-size:13px" spellcheck="false"><%= chapter.processedHtml || '' %></textarea>
+          <small class="form-hint">This is exactly what students see on the note page. Tweak the HTML as needed.</small>
+        </div>
+
+        <div class="form-group" style="display:flex;align-items:center;gap:12px">
+          <label class="pub-toggle" style="margin:0" title="<%= chapter.isPublished ? 'Published — visible to students' : 'Draft — hidden from students' %>">
+            <input type="checkbox" name="isPublished" value="on" <%= chapter.isPublished ? 'checked' : '' %>>
+            <span class="pub-slider"></span>
+          </label>
+          <span style="font-weight:600;font-size:14px;color:#14212B"><%= chapter.isPublished ? 'Published' : 'Draft' %></span>
+          <% if (chapter.isPublished) { %>
+            <a href="/notes/<%= chapter.slug %>" target="_blank" style="font-size:13px;color:#0E7C72;margin-left:8px"><i class="fas fa-external-link-alt"></i> View live</a>
+          <% } %>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-admin-primary"><i class="fas fa-save"></i> Save Changes</button>
+          <a href="/admin/notes" class="btn-secondary">Back to Notes</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

@@ -15,6 +15,8 @@ const VideoProgress = require('../models/VideoProgress');
 const Setting = require('../models/Setting');
 const Review = require('../models/Review');
 const mongoose = require('mongoose');
+const Chapter = require('../models/Chapter');
+const pdfParse = require('pdf-parse/lib/pdf-parse.js'); // direct path: bypasses package exports map
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -36,6 +38,7 @@ const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 * 1024 } })
 // create/edit, the legacy add-module route and question images at 2GB.
 fs.mkdirSync('uploads/videos', { recursive: true });
 fs.mkdirSync('uploads/resources', { recursive: true });
+fs.mkdirSync('uploads/notes-pdfs', { recursive: true }); // Phase 6.5B: chapter note PDFs
 
 const VIDEO_EXTS = ['.mp4', '.webm', '.mov'];
 const RESOURCE_EXTS = ['.pdf', '.pptx', '.docx', '.txt', '.zip'];
@@ -89,6 +92,46 @@ const uploadResourceFile = multer({
     cb(null, true);
   }
 });
+
+// ─── Phase 6.5B: uploader for chapter note PDFs ──────────────────────────────
+const uploadNotePdf = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, 'uploads/notes-pdfs'),
+    filename: (req, file, cb) => cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + '.pdf')
+  }),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    if (ext !== '.pdf') return cb(new Error('Chapter notes must be a .pdf file'));
+    cb(null, true);
+  }
+});
+
+// Slugify a note title: lowercase → hyphens → strip everything but a-z0-9-
+function noteSlugify(str) {
+  return String(str).toLowerCase().trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+// HTML-escape before wrapping so raw PDF text can never inject markup
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Basic wrapper: split on blank lines into <p> blocks (AI structuring comes later)
+function rawTextToHtml(rawText) {
+  return String(rawText || '')
+    .split(/\r?\n\s*\r?\n/)
+    .map(block => block.trim())
+    .filter(Boolean)
+    .map(block => '<p>' + escapeHtml(block).replace(/\r?\n/g, '<br>') + '</p>')
+    .join('\n');
+}
 
 const videoUploadMw = multerJson(uploadVideoFile.single('videoFile'), VIDEO_TYPE_MSG);
 const resourceUploadMw = multerJson(uploadResourceFile.single('resourceFile'), RESOURCE_TYPE_MSG);
@@ -1320,6 +1363,120 @@ router.post('/live', async (req, res) => {
     res.redirect('/admin/live?saved=1');
   } catch (err) {
     res.render('error', { title: 'Error', message: err.message, user: req.admin });
+  }
+});
+
+// ─── Phase 6.5B: Chapter notes (PDF → raw HTML) ─────────────────────────────
+
+router.get('/notes', async (req, res) => {
+  try {
+    const chapters = await Chapter.find().sort({ createdAt: -1 });
+    res.render('admin/notes', { title: 'Chapter Notes', chapters, admin: req.admin, user: req.admin });
+  } catch (err) {
+    req.session.flash = { error: err.message };
+    res.redirect('/admin');
+  }
+});
+
+router.get('/notes/new', async (req, res) => {
+  try {
+    const categories = await Category.find().sort({ name: 1 }).select('name');
+    res.render('admin/note-form', { title: 'Upload Chapter Notes', categories, admin: req.admin, user: req.admin });
+  } catch (err) {
+    req.session.flash = { error: err.message };
+    res.redirect('/admin/notes');
+  }
+});
+
+router.post('/notes', (req, res) => {
+  uploadNotePdf.single('pdf')(req, res, async (uploadErr) => {
+    try {
+      if (uploadErr) {
+        req.session.flash = { error: uploadErr.message || 'Could not upload that file.' };
+        return res.redirect('/admin/notes/new');
+      }
+      if (!req.file) {
+        req.session.flash = { error: 'Please choose a PDF file to upload.' };
+        return res.redirect('/admin/notes/new');
+      }
+
+      const title = String(req.body.title || '').trim();
+      if (!title) {
+        req.session.flash = { error: 'Title is required.' };
+        return res.redirect('/admin/notes/new');
+      }
+      const subject = String(req.body.subject || '').trim();
+      const category = String(req.body.category || '').trim();
+
+      // Extract raw text — a bad PDF must never crash the server
+      let rawText = '';
+      try {
+        const dataBuffer = fs.readFileSync(req.file.path);
+        const data = await pdfParse(dataBuffer);
+        rawText = (data && data.text) || '';
+      } catch (pdfErr) {
+        console.error('PDF parse error:', pdfErr.message);
+        req.session.flash = { error: 'Could not read that PDF. Please upload a valid, text-based PDF.' };
+        return res.redirect('/admin/notes/new');
+      }
+
+      // Unique slug
+      const base = noteSlugify(title) || 'note';
+      let slug = base;
+      let n = 1;
+      while (await Chapter.exists({ slug })) slug = `${base}-${++n}`;
+
+      const processedHtml = rawTextToHtml(rawText);
+      const chapter = await Chapter.create({ title, slug, subject, category, rawText, processedHtml });
+
+      req.session.flash = { success: 'PDF processed! Review the extracted text below.' };
+      res.redirect('/admin/notes/' + chapter._id + '/edit');
+    } catch (err) {
+      console.error('Notes upload error:', err);
+      req.session.flash = { error: err.message };
+      res.redirect('/admin/notes/new');
+    }
+  });
+});
+
+router.get('/notes/:id/edit', async (req, res) => {
+  try {
+    const chapter = await Chapter.findById(req.params.id);
+    if (!chapter) {
+      req.session.flash = { error: 'Chapter note not found.' };
+      return res.redirect('/admin/notes');
+    }
+    res.render('admin/note-edit', { title: 'Edit: ' + chapter.title, chapter, admin: req.admin, user: req.admin });
+  } catch (err) {
+    req.session.flash = { error: err.message };
+    res.redirect('/admin/notes');
+  }
+});
+
+router.post('/notes/:id', async (req, res) => {
+  try {
+    const chapter = await Chapter.findById(req.params.id);
+    if (!chapter) {
+      req.session.flash = { error: 'Chapter note not found.' };
+      return res.redirect('/admin/notes');
+    }
+    const title = String(req.body.title || '').trim();
+    if (!title) {
+      req.session.flash = { error: 'Title is required.' };
+      return res.redirect('/admin/notes/' + chapter._id + '/edit');
+    }
+    chapter.title = title;
+    chapter.subject = String(req.body.subject || '').trim();
+    chapter.category = String(req.body.category || '').trim();
+    chapter.processedHtml = String(req.body.processedHtml || '');
+    chapter.isPublished = req.body.isPublished === 'on' || req.body.isPublished === 'true';
+    await chapter.save();
+    req.session.flash = { success: 'Note saved.' };
+    res.redirect('/admin/notes/' + chapter._id + '/edit');
+  } catch (err) {
+    console.error('Note save error:', err);
+    req.session.flash = { error: err.message };
+    res.redirect('/admin/notes');
   }
 });
 
